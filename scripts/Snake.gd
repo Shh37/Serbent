@@ -6,7 +6,9 @@ var next_direction = Vector2i.RIGHT
 var input_queue = []
 
 var move_timer = 0.0
-var move_speed = 0.15 # Seconds per move
+var move_speed_normal = 0.15
+var move_speed_dash = 0.05
+var is_dashing = false
 
 func _ready():
 	# Initial snake (3 segments)
@@ -14,14 +16,20 @@ func _ready():
 	update_position_from_grid()
 
 func _process(delta):
+	is_dashing = Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_ENTER) or Input.is_key_pressed(KEY_KP_ENTER)
 	handle_input()
 	
+	var current_speed = move_speed_dash if is_dashing else move_speed_normal
+	
 	move_timer += delta
-	if move_timer >= move_speed:
+	if move_timer >= current_speed:
 		move_timer = 0.0
 		move_step()
 
 func handle_input():
+	if is_dashing:
+		return # Cannot change direction while dashing
+		
 	var new_dir = Vector2i.ZERO
 	if Input.is_action_just_pressed("ui_up"): new_dir = Vector2i.UP
 	elif Input.is_action_just_pressed("ui_down"): new_dir = Vector2i.DOWN
