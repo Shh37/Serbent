@@ -6,6 +6,7 @@ extends Node2D
 var active_chunks = {} # Vector2i -> Chunk node
 var view_distance = 2 # Number of chunks around player
 var points = {} # Vector2i (global) -> Point node
+var thorns = {} # Vector2i (global) -> Thorn node
 
 func _process(_delta):
 	if not player:
@@ -23,6 +24,12 @@ func collect_point(global_pos: Vector2i) -> Node:
 		p.queue_free()
 		return p
 	return null
+
+func register_thorn(global_pos: Vector2i, thorn_node: Node):
+	thorns[global_pos] = thorn_node
+
+func has_thorn(global_pos: Vector2i) -> bool:
+	return thorns.has(global_pos)
 
 func update_chunks():
 	var player_grid_pos = Vector2i(
@@ -48,6 +55,7 @@ func update_chunks():
 			
 	for cpos in to_remove:
 		remove_points_in_chunk(cpos)
+		remove_thorns_in_chunk(cpos)
 		active_chunks[cpos].queue_free()
 		active_chunks.erase(cpos)
 
@@ -63,6 +71,19 @@ func remove_points_in_chunk(cpos: Vector2i):
 			
 	for ppos in to_erase:
 		points.erase(ppos)
+
+func remove_thorns_in_chunk(cpos: Vector2i):
+	var chunk_start = cpos * GameConstants.CHUNK_SIZE
+	var chunk_end = chunk_start + Vector2i(GameConstants.CHUNK_SIZE, GameConstants.CHUNK_SIZE)
+	
+	var to_erase = []
+	for tpos in thorns.keys():
+		if tpos.x >= chunk_start.x and tpos.x < chunk_end.x and \
+		   tpos.y >= chunk_start.y and tpos.y < chunk_end.y:
+			to_erase.append(tpos)
+			
+	for tpos in to_erase:
+		thorns.erase(tpos)
 
 func spawn_chunk(cpos: Vector2i):
 	var chunk = Node2D.new()

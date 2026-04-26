@@ -48,10 +48,15 @@ func move_step():
 		game_over()
 		return
 		
+	# Check for thorn collision
+	var world = get_parent().get_node("World")
+	if world.has_thorn(new_head):
+		game_over()
+		return
+		
 	body.insert(0, new_head)
 	
 	# Check for point collection
-	var world = get_parent().get_node("World")
 	var collected_point = world.collect_point(new_head)
 	
 	if collected_point:
