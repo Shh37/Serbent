@@ -8,6 +8,7 @@ var view_distance = 2 # Number of chunks around player
 var points = {} # Vector2i (global) -> Point node
 var thorns = {} # Vector2i (global) -> Thorn node
 var active_beams = [] # Array of Beam nodes
+var active_diagonal_beams = [] # Array of DiagonalBeam nodes
 var beam_timer = 0.0
 var next_beam_time = 3.0 # First beam after 3 seconds
 
@@ -29,7 +30,10 @@ func update_beam_spawning(delta):
 	if beam_timer >= next_beam_time:
 		beam_timer = 0.0
 		next_beam_time = randf_range(4.0, 8.0) # Spawn every 4-8 seconds
-		spawn_random_beam()
+		if randf() > 0.4:
+			spawn_random_beam()
+		else:
+			spawn_random_diagonal_beam()
 
 func update_bomb_spawning(delta):
 	bomb_timer += delta
@@ -55,6 +59,30 @@ func spawn_random_beam():
 	
 	beam.setup(orientation, global_index)
 	register_beam(beam)
+
+func spawn_random_diagonal_beam():
+	if not player:
+		return
+		
+	# Pick a global grid position near the player
+	var player_grid_pos = Vector2i(player.position / GameConstants.CELL_SIZE)
+	var offset = randi_range(-8, 8)
+	
+	var beam = Node2D.new()
+	beam.set_script(load("res://scripts/DiagonalBeam.gd"))
+	add_child(beam)
+	
+	var type = DiagonalBeam.Type.FORWARD_SLASH if randf() > 0.5 else DiagonalBeam.Type.BACK_SLASH
+	var k: int
+	if type == DiagonalBeam.Type.FORWARD_SLASH:
+		# x + y = k
+		k = (player_grid_pos.x + player_grid_pos.y) + offset
+	else:
+		# x - y = k
+		k = (player_grid_pos.x - player_grid_pos.y) + offset
+		
+	beam.setup(type, k)
+	register_diagonal_beam(beam)
 
 func spawn_random_bomb():
 	if not player:
@@ -95,6 +123,12 @@ func register_beam(beam_node: Node):
 func unregister_beam(beam_node: Node):
 	active_beams.erase(beam_node)
 
+func register_diagonal_beam(beam_node: Node):
+	active_diagonal_beams.append(beam_node)
+
+func unregister_diagonal_beam(beam_node: Node):
+	active_diagonal_beams.erase(beam_node)
+
 func register_bomb(bomb_node: Node):
 	active_bombs.append(bomb_node)
 
@@ -119,6 +153,14 @@ func check_hazard_collision(snake: Node):
 				if pos.x == beam.global_grid_index:
 					snake.cut_snake(0)
 					return
+	
+	# Check Diagonal Beams
+	for beam in active_diagonal_beams:
+		if beam.is_active:
+			var pos = snake.body[0] # Head
+			if beam.is_on_beam(pos):
+				snake.cut_snake(0)
+				return
 	
 	# Check Bombs
 	for bomb in active_bombs:
