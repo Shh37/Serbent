@@ -138,3 +138,6 @@ func get_diamond_offsets(radius: int) -> Array:
 			if abs(x) + abs(y) <= radius:
 				offsets.append(Vector2i(x, y))
 	return offsets
+
+func _exit_tree():
+	pass

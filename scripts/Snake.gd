@@ -85,8 +85,28 @@ func move_step():
 		# Normal move, remove tail
 		body.pop_back()
 	
+	# Check for beam collision (if any beam is currently active)
+	# This is for when the snake MOVES into an already active beam
+	# But beams are usually instantaneous. Let's check anyway.
+	if world.has_method("check_beam_collision"):
+		world.check_beam_collision(self)
+	
 	update_position_from_grid()
 	queue_redraw()
+
+func cut_snake(cut_index: int):
+	if cut_index == 0:
+		game_over()
+		return
+		
+	if cut_index > 0 and cut_index < body.size():
+		var segments_lost = body.size() - cut_index
+		# Keep only the part before the cut (head is at index 0)
+		body = body.slice(0, cut_index)
+		# Spec: Score reduction (number of segments lost)
+		score = max(0, score - segments_lost)
+		print("Snake cut! Lost ", segments_lost, " segments. New score: ", score)
+		queue_redraw()
 
 func update_position_from_grid():
 	# Centering the camera/pivot on the head

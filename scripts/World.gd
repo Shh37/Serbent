@@ -7,12 +7,42 @@ var active_chunks = {} # Vector2i -> Chunk node
 var view_distance = 2 # Number of chunks around player
 var points = {} # Vector2i (global) -> Point node
 var thorns = {} # Vector2i (global) -> Thorn node
+var active_beams = [] # Array of Beam nodes
+var beam_timer = 0.0
+var next_beam_time = 3.0 # First beam after 3 seconds
 
 func _process(_delta):
 	if not player:
 		return
 		
+	
 	update_chunks()
+	update_beam_spawning(_delta)
+
+func update_beam_spawning(delta):
+	beam_timer += delta
+	if beam_timer >= next_beam_time:
+		beam_timer = 0.0
+		next_beam_time = randf_range(4.0, 8.0) # Spawn every 4-8 seconds
+		spawn_random_beam()
+
+func spawn_random_beam():
+	if not player:
+		return
+		
+	# Pick a global grid index near the player
+	var player_grid_pos = Vector2i(player.position / GameConstants.CELL_SIZE)
+	var offset = randi_range(-8, 8) # Within 8 cells of player
+	
+	var beam = Node2D.new()
+	beam.set_script(load("res://scripts/Beam.gd"))
+	add_child(beam)
+	
+	var orientation = Beam.Orientation.HORIZONTAL if randf() > 0.5 else Beam.Orientation.VERTICAL
+	var global_index = (player_grid_pos.y if orientation == Beam.Orientation.HORIZONTAL else player_grid_pos.x) + offset
+	
+	beam.setup(orientation, global_index)
+	register_beam(beam)
 
 func register_point(global_pos: Vector2i, point_node: Node):
 	points[global_pos] = point_node
@@ -30,6 +60,25 @@ func register_thorn(global_pos: Vector2i, thorn_node: Node):
 
 func has_thorn(global_pos: Vector2i) -> bool:
 	return thorns.has(global_pos)
+
+func register_beam(beam_node: Node):
+	active_beams.append(beam_node)
+
+func unregister_beam(beam_node: Node):
+	active_beams.erase(beam_node)
+
+func check_beam_collision(snake: Node):
+	for beam in active_beams:
+		if beam.is_active:
+			var body = snake.body
+			var pos = body[0] # Head
+			
+			if beam.orientation == Beam.Orientation.HORIZONTAL:
+				if pos.y == beam.global_grid_index:
+					snake.cut_snake(1)
+			else:
+				if pos.x == beam.global_grid_index:
+					snake.cut_snake(1)
 
 func update_chunks():
 	var player_grid_pos = Vector2i(
