@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://df7k38r3o8m6"]
+
+[ext_resource type="Script" path="res://scripts/World.gd" id="1_world"]
+[ext_resource type="Script" path="res://scripts/Snake.gd" id="2_snake"]
+
+[node name="Main" type="Node2D"]
+
+[node name="World" type="Node2D" parent="." node_paths=PackedStringArray("player")]
+script = ExtResource("1_world")
+player = NodePath("../Snake")
+
+[node name="Snake" type="Node2D" parent="."]
+script = ExtResource("2_snake")
+
+[node name="Camera2D" type="Camera2D" parent="Snake"]
+position_smoothing_enabled = true
+position_smoothing_speed = 10.0

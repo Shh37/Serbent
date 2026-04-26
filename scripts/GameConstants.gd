@@ -1,0 +1,17 @@
+extends Node
+class_name GameConstants
+
+const CELL_SIZE = 32
+const CHUNK_SIZE = 16 # Cells per chunk side
+const CHUNK_PIXEL_SIZE = CELL_SIZE * CHUNK_SIZE
+
+# Colors (Gruvbox Material Dark Medium)
+const COLOR_BG = Color("#282828")
+const COLOR_FG = Color("#d4be98")
+const COLOR_SNAKE = Color("#a9b665")
+const COLOR_DANGER = Color("#ea6962")
+const COLOR_POINT = Color("#d8a657")
+const COLOR_CHUNK_BORDER = Color("#3c3836")
+const COLOR_BLOCK_BORDER = Color("#32302f") # Slightly lighter than BG
+const COLOR_ACCENT_BLUE = Color("#7daea3")
+const COLOR_ACCENT_PURPLE = Color("#d3869b")
