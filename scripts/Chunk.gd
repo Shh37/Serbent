@@ -25,111 +25,121 @@ func _draw():
 func setup(p_chunk_pos: Vector2i):
 	chunk_pos = p_chunk_pos
 	position = Vector2(chunk_pos) * GameConstants.CHUNK_PIXEL_SIZE
-	var used_positions = spawn_points()
-	spawn_thorns(used_positions)
-	spawn_diamond_thorns(used_positions)
-	queue_redraw()
-
-func spawn_points() -> Dictionary:
-	# Randomly spawn 2-4 points per chunk
-	var num_points = randi_range(2, 4)
 	var used_positions = {}
 	
-	for i in range(num_points):
-		var local_pos = Vector2i(
-			randi_range(0, GameConstants.CHUNK_SIZE - 1),
-			randi_range(0, GameConstants.CHUNK_SIZE - 1)
-		)
-		
-		if used_positions.has(local_pos):
-			continue
-		used_positions[local_pos] = true
-		
-		var global_pos = chunk_pos * GameConstants.CHUNK_SIZE + local_pos
-		
-		var point = Node2D.new()
-		point.set_script(load("res://scripts/Point.gd"))
-		add_child(point)
-		
-		var type = Point.Type.NORMAL
-		var r = randf()
-		if r > 0.85: type = Point.Type.LARGE # 15% chance
-		elif r > 0.65: type = Point.Type.MEDIUM # 20% chance
-		
-		point.setup_local(local_pos, type)
-		
-		# Register point in World for collision
-		var world = get_parent()
-		if world.has_method("register_point"):
-			world.register_point(global_pos, point)
+	# Order: Clusters -> Points -> Single Thorns
+	spawn_diamond_thorns(used_positions)
+	spawn_points(used_positions)
+	spawn_thorns(used_positions)
 	
-	return used_positions
+	queue_redraw()
+
+func is_pos_safe(pos: Vector2i, used_positions: Dictionary, min_dist: int) -> bool:
+	for dx in range(-min_dist, min_dist + 1):
+		for dy in range(-min_dist, min_dist + 1):
+			if used_positions.has(pos + Vector2i(dx, dy)):
+				return false
+	return true
+
+func spawn_points(used_positions: Dictionary):
+	# Randomly spawn 2-4 points per chunk
+	var num_points = randi_range(2, 4)
+	
+	for i in range(num_points):
+		var attempts = 0
+		while attempts < 20:
+			var local_pos = Vector2i(
+				randi_range(1, GameConstants.CHUNK_SIZE - 2),
+				randi_range(1, GameConstants.CHUNK_SIZE - 2)
+			)
+			
+			if is_pos_safe(local_pos, used_positions, 2):
+				used_positions[local_pos] = true
+				var global_pos = chunk_pos * GameConstants.CHUNK_SIZE + local_pos
+				
+				var point = Node2D.new()
+				point.set_script(load("res://scripts/Point.gd"))
+				add_child(point)
+				
+				var type = Point.Type.NORMAL
+				var r = randf()
+				if r > 0.85: type = Point.Type.LARGE
+				elif r > 0.65: type = Point.Type.MEDIUM
+				
+				point.setup_local(local_pos, type)
+				
+				var world = get_parent()
+				if world.has_method("register_point"):
+					world.register_point(global_pos, point)
+				break
+			attempts += 1
 
 func spawn_thorns(used_positions: Dictionary):
-	# Randomly spawn 3-6 thorns per chunk
-	var num_thorns = randi_range(3, 6)
+	# Randomly spawn 3-5 single thorns per chunk
+	var num_thorns = randi_range(3, 5)
 	
 	for i in range(num_thorns):
-		var local_pos = Vector2i(
-			randi_range(0, GameConstants.CHUNK_SIZE - 1),
-			randi_range(0, GameConstants.CHUNK_SIZE - 1)
-		)
-		
-		if used_positions.has(local_pos):
-			continue
-		used_positions[local_pos] = true
-		
-		var global_pos = chunk_pos * GameConstants.CHUNK_SIZE + local_pos
-		
-		var thorn = Node2D.new()
-		thorn.set_script(load("res://scripts/Thorn.gd"))
-		add_child(thorn)
-		
-		thorn.setup_local(local_pos)
-		
-		# Register thorn in World for collision
-		var world = get_parent()
-		if world.has_method("register_thorn"):
-			world.register_thorn(global_pos, thorn)
+		var attempts = 0
+		while attempts < 20:
+			var local_pos = Vector2i(
+				randi_range(1, GameConstants.CHUNK_SIZE - 2),
+				randi_range(1, GameConstants.CHUNK_SIZE - 2)
+			)
+			
+			if is_pos_safe(local_pos, used_positions, 1):
+				used_positions[local_pos] = true
+				var global_pos = chunk_pos * GameConstants.CHUNK_SIZE + local_pos
+				
+				var thorn = Node2D.new()
+				thorn.set_script(load("res://scripts/Thorn.gd"))
+				add_child(thorn)
+				
+				thorn.setup_local(local_pos)
+				
+				var world = get_parent()
+				if world.has_method("register_thorn"):
+					world.register_thorn(global_pos, thorn)
+				break
+			attempts += 1
 
 func spawn_diamond_thorns(used_positions: Dictionary):
-	# Chance to spawn 1-2 diamond clusters in this chunk
-	var num_clusters = 0
-	if randf() < 0.8: num_clusters += 1
-	if randf() < 0.4: num_clusters += 1
-	
-	for c in range(num_clusters):
-		var center = Vector2i(
-			randi_range(2, GameConstants.CHUNK_SIZE - 3),
-			randi_range(2, GameConstants.CHUNK_SIZE - 3)
-		)
-		
-		var radius = randi_range(1, 2)
-		var offsets = get_diamond_offsets(radius)
-		
-		for offset in offsets:
-			var local_pos = center + offset
+	# Chance to spawn 1 diamond cluster in this chunk
+	if randf() > 0.6:
+		var attempts = 0
+		while attempts < 10:
+			var center = Vector2i(
+				randi_range(3, GameConstants.CHUNK_SIZE - 4),
+				randi_range(3, GameConstants.CHUNK_SIZE - 4)
+			)
 			
-			# Boundary check
-			if local_pos.x < 0 or local_pos.x >= GameConstants.CHUNK_SIZE or \
-			   local_pos.y < 0 or local_pos.y >= GameConstants.CHUNK_SIZE:
-				continue
-				
-			if used_positions.has(local_pos):
-				continue
-			used_positions[local_pos] = true
+			var radius = randi_range(1, 2)
+			var offsets = get_diamond_offsets(radius)
 			
-			var global_pos = chunk_pos * GameConstants.CHUNK_SIZE + local_pos
+			# Check if any offset is blocked
+			var can_place = true
+			for offset in offsets:
+				if not is_pos_safe(center + offset, used_positions, 1):
+					can_place = false
+					break
 			
-			var thorn = Node2D.new()
-			thorn.set_script(load("res://scripts/Thorn.gd"))
-			add_child(thorn)
-			
-			thorn.setup_local(local_pos)
-			
-			var world = get_parent()
-			if world.has_method("register_thorn"):
-				world.register_thorn(global_pos, thorn)
+			if can_place:
+				for offset in offsets:
+					var local_pos = center + offset
+					used_positions[local_pos] = true
+					
+					var global_pos = chunk_pos * GameConstants.CHUNK_SIZE + local_pos
+					
+					var thorn = Node2D.new()
+					thorn.set_script(load("res://scripts/Thorn.gd"))
+					add_child(thorn)
+					
+					thorn.setup_local(local_pos)
+					
+					var world = get_parent()
+					if world.has_method("register_thorn"):
+						world.register_thorn(global_pos, thorn)
+				break
+			attempts += 1
 
 func get_diamond_offsets(radius: int) -> Array:
 	var offsets = []

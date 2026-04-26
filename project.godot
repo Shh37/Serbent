@@ -11,15 +11,16 @@ config_version=5
 [application]
 
 config/name="NAGA"
-config/features=PackedStringArray("4.6", "Mobile")
 run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://icon.svg"
- 
- [display]
- window/size/viewport_width=1280
- window/size/viewport_height=720
- window/stretch/mode="canvas_items"
- window/stretch/aspect="expand"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [physics]
 
@@ -29,6 +30,4 @@ config/icon="res://icon.svg"
 
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="mobile"
-
-[rendering/environment/defaults]
-default_clear_color=Color(0.156863, 0.156863, 0.156863, 1)
+environment/defaults/default_clear_color=Color(0.156863, 0.156863, 0.156863, 1)
