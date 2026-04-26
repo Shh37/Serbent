@@ -5,12 +5,24 @@ extends Node2D
 
 var active_chunks = {} # Vector2i -> Chunk node
 var view_distance = 2 # Number of chunks around player
+var points = {} # Vector2i (global) -> Point node
 
 func _process(_delta):
 	if not player:
 		return
 		
 	update_chunks()
+
+func register_point(global_pos: Vector2i, point_node: Node):
+	points[global_pos] = point_node
+
+func collect_point(global_pos: Vector2i) -> Node:
+	if points.has(global_pos):
+		var p = points[global_pos]
+		points.erase(global_pos)
+		p.queue_free()
+		return p
+	return null
 
 func update_chunks():
 	var player_grid_pos = Vector2i(
@@ -35,8 +47,22 @@ func update_chunks():
 			to_remove.append(cpos)
 			
 	for cpos in to_remove:
+		remove_points_in_chunk(cpos)
 		active_chunks[cpos].queue_free()
 		active_chunks.erase(cpos)
+
+func remove_points_in_chunk(cpos: Vector2i):
+	var chunk_start = cpos * GameConstants.CHUNK_SIZE
+	var chunk_end = chunk_start + Vector2i(GameConstants.CHUNK_SIZE, GameConstants.CHUNK_SIZE)
+	
+	var to_erase = []
+	for ppos in points.keys():
+		if ppos.x >= chunk_start.x and ppos.x < chunk_end.x and \
+		   ppos.y >= chunk_start.y and ppos.y < chunk_end.y:
+			to_erase.append(ppos)
+			
+	for ppos in to_erase:
+		points.erase(ppos)
 
 func spawn_chunk(cpos: Vector2i):
 	var chunk = Node2D.new()

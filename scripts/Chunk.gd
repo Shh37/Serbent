@@ -25,4 +25,44 @@ func _draw():
 func setup(p_chunk_pos: Vector2i):
 	chunk_pos = p_chunk_pos
 	position = Vector2(chunk_pos) * GameConstants.CHUNK_PIXEL_SIZE
+	spawn_points()
 	queue_redraw()
+
+func spawn_points():
+	# Randomly spawn 2-4 points per chunk
+	var num_points = randi_range(2, 4)
+	var used_positions = {}
+	
+	for i in range(num_points):
+		var local_pos = Vector2i(
+			randi_range(0, GameConstants.CHUNK_SIZE - 1),
+			randi_range(0, GameConstants.CHUNK_SIZE - 1)
+		)
+		
+		if used_positions.has(local_pos):
+			continue
+		used_positions[local_pos] = true
+		
+		var global_pos = chunk_pos * GameConstants.CHUNK_SIZE + local_pos
+		
+		# Avoid spawning on chunk borders (optional, but looks cleaner)
+		# Or just spawn anywhere.
+		
+		var point = Node2D.new()
+		point.set_script(load("res://scripts/Point.gd"))
+		add_child(point)
+		# Points are children of Chunk, but Point.gd uses absolute grid pos for positioning.
+		# Wait, if Point is child of Chunk, it should use local pos.
+		# Let's adjust Point.gd setup to take local pos if it's a child.
+		
+		var type = Point.Type.NORMAL
+		var r = randf()
+		if r > 0.85: type = Point.Type.LARGE # 15% chance
+		elif r > 0.65: type = Point.Type.MEDIUM # 20% chance
+		
+		point.setup_local(local_pos, type)
+		
+		# Register point in World for collision
+		var world = get_parent()
+		if world.has_method("register_point"):
+			world.register_point(global_pos, point)

@@ -34,6 +34,9 @@ func handle_input():
 		if new_dir != -last_dir:
 			input_queue.append(new_dir)
 
+var score = 0
+var pending_growth = 0
+
 func move_step():
 	if not input_queue.is_empty():
 		direction = input_queue.pop_front()
@@ -46,7 +49,36 @@ func move_step():
 		return
 		
 	body.insert(0, new_head)
-	body.pop_back() # Remove tail for normal movement (add point logic later)
+	
+	# Check for point collection
+	var world = get_parent().get_node("World")
+	var collected_point = world.collect_point(new_head)
+	
+	if collected_point:
+		var growth = 0
+		match collected_point.type:
+			Point.Type.NORMAL:
+				score += GameConstants.POINT_VALUE_NORMAL
+				growth = GameConstants.POINT_VALUE_NORMAL
+			Point.Type.MEDIUM:
+				score += GameConstants.POINT_VALUE_MEDIUM
+				growth = GameConstants.POINT_VALUE_MEDIUM
+			Point.Type.LARGE:
+				score += GameConstants.POINT_VALUE_LARGE
+				growth = GameConstants.POINT_VALUE_LARGE
+		
+		# growth - 1 because we already added the head and haven't popped the tail yet
+		# Wait, if we don't pop the tail, we grow by 1.
+		# So if growth is 3, we skip popping the tail for 3 steps.
+		pending_growth += growth
+		print("Score: ", score, " Length: ", body.size(), " Growth: +", growth)
+	
+	if pending_growth > 0:
+		# Don't pop tail, let the snake grow
+		pending_growth -= 1
+	else:
+		# Normal move, remove tail
+		body.pop_back()
 	
 	update_position_from_grid()
 	queue_redraw()
