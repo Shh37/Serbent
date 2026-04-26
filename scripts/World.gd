@@ -11,6 +11,10 @@ var active_beams = [] # Array of Beam nodes
 var beam_timer = 0.0
 var next_beam_time = 3.0 # First beam after 3 seconds
 
+var active_bombs = [] # Array of Bomb nodes
+var bomb_timer = 0.0
+var next_bomb_time = 5.0 # First bomb after 5 seconds
+
 func _process(_delta):
 	if not player:
 		return
@@ -18,6 +22,7 @@ func _process(_delta):
 	
 	update_chunks()
 	update_beam_spawning(_delta)
+	update_bomb_spawning(_delta)
 
 func update_beam_spawning(delta):
 	beam_timer += delta
@@ -25,6 +30,13 @@ func update_beam_spawning(delta):
 		beam_timer = 0.0
 		next_beam_time = randf_range(4.0, 8.0) # Spawn every 4-8 seconds
 		spawn_random_beam()
+
+func update_bomb_spawning(delta):
+	bomb_timer += delta
+	if bomb_timer >= next_bomb_time:
+		bomb_timer = 0.0
+		next_bomb_time = randf_range(6.0, 12.0) # Spawn every 6-12 seconds
+		spawn_random_bomb()
 
 func spawn_random_beam():
 	if not player:
@@ -43,6 +55,22 @@ func spawn_random_beam():
 	
 	beam.setup(orientation, global_index)
 	register_beam(beam)
+
+func spawn_random_bomb():
+	if not player:
+		return
+		
+	# Pick a global grid position near the player (within 8 cells), same range as Beam
+	var player_grid_pos = Vector2i(player.position / GameConstants.CELL_SIZE)
+	var offset = Vector2i(randi_range(-8, 8), randi_range(-8, 8))
+	var center = player_grid_pos + offset
+	
+	var bomb = Node2D.new()
+	bomb.set_script(load("res://scripts/Bomb.gd"))
+	add_child(bomb)
+	
+	bomb.setup(center)
+	register_bomb(bomb)
 
 func register_point(global_pos: Vector2i, point_node: Node):
 	points[global_pos] = point_node
@@ -67,18 +95,40 @@ func register_beam(beam_node: Node):
 func unregister_beam(beam_node: Node):
 	active_beams.erase(beam_node)
 
-func check_beam_collision(snake: Node):
+func register_bomb(bomb_node: Node):
+	active_bombs.append(bomb_node)
+
+func unregister_bomb(bomb_node: Node):
+	active_bombs.erase(bomb_node)
+
+func check_hazard_collision(snake: Node):
+	# Check Beams
 	for beam in active_beams:
 		if beam.is_active:
-			var body = snake.body
-			var pos = body[0] # Head
+			var pos = snake.body[0] # Head
 			
 			if beam.orientation == Beam.Orientation.HORIZONTAL:
 				if pos.y == beam.global_grid_index:
-					snake.cut_snake(1)
+					snake.cut_snake(1) # We use 1 here to check if head hit? No, cut_snake(index) cuts FROM index.
+					# Actually Beam.gd's check_collision uses snake.cut_snake(i).
+					# Here in World.gd, we are checking if the HEAD just moved into an active beam.
+					# If head hits, index 0, but cut_snake(0) is game over.
+					snake.cut_snake(0)
+					return
 			else:
 				if pos.x == beam.global_grid_index:
-					snake.cut_snake(1)
+					snake.cut_snake(0)
+					return
+	
+	# Check Bombs
+	for bomb in active_bombs:
+		if bomb.is_active:
+			var pos = snake.body[0] # Head
+			var half_size = GameConstants.BOMB_SIZE / 2
+			if abs(pos.x - bomb.center_grid_pos.x) <= half_size and \
+			   abs(pos.y - bomb.center_grid_pos.y) <= half_size:
+				snake.cut_snake(0) # Head hit active explosion = game over
+				return
 
 func update_chunks():
 	var player_grid_pos = Vector2i(

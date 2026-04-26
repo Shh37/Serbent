@@ -85,11 +85,10 @@ func move_step():
 		# Normal move, remove tail
 		body.pop_back()
 	
-	# Check for beam collision (if any beam is currently active)
-	# This is for when the snake MOVES into an already active beam
-	# But beams are usually instantaneous. Let's check anyway.
-	if world.has_method("check_beam_collision"):
-		world.check_beam_collision(self)
+	# Check for hazard collision (if any beam/bomb is currently active)
+	# This is for when the snake MOVES into an already active hazard
+	if world.has_method("check_hazard_collision"):
+		world.check_hazard_collision(self)
 	
 	update_position_from_grid()
 	queue_redraw()
