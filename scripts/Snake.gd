@@ -6,13 +6,14 @@ var next_direction = Vector2i.RIGHT
 var input_queue = []
 
 var move_timer = 0.0
-var move_speed_normal = 0.15
-var move_speed_dash = 0.05
+var move_speed_normal = GameConstants.SNAKE_INITIAL_SPEED
+var move_speed_dash = move_speed_normal * GameConstants.SNAKE_DASH_MULTIPLIER
 var is_dashing = false
 
 func _ready():
 	# Initial snake (3 segments)
 	body = [Vector2i(5, 5), Vector2i(4, 5), Vector2i(3, 5)]
+	recalculate_speed()
 	update_position_from_grid()
 
 func _process(delta):
@@ -99,6 +100,7 @@ func move_step():
 		world.check_hazard_collision(self)
 	
 	update_position_from_grid()
+	recalculate_speed()
 	queue_redraw()
 
 func cut_snake(cut_index: int):
@@ -113,7 +115,13 @@ func cut_snake(cut_index: int):
 		# Spec: Score reduction (number of segments lost)
 		score = max(0, score - segments_lost)
 		print("Snake cut! Lost ", segments_lost, " segments. New score: ", score)
+		recalculate_speed()
 		queue_redraw()
+
+func recalculate_speed():
+	var segments_added = max(0, body.size() - 3)
+	move_speed_normal = max(GameConstants.SNAKE_MIN_SPEED, GameConstants.SNAKE_INITIAL_SPEED - (segments_added * GameConstants.SNAKE_SPEED_INCREMENT))
+	move_speed_dash = move_speed_normal * GameConstants.SNAKE_DASH_MULTIPLIER
 
 func update_position_from_grid():
 	# Centering the camera/pivot on the head
