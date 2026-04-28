@@ -28,7 +28,7 @@ func setup(p_chunk_pos: Vector2i):
 	var used_positions = {}
 	
 	# Order: Clusters -> Points -> Single Thorns
-	spawn_diamond_thorns(used_positions)
+	spawn_cluster_thorns(used_positions)
 	spawn_points(used_positions)
 	spawn_thorns(used_positions)
 	
@@ -102,12 +102,12 @@ func spawn_thorns(used_positions: Dictionary):
 				break
 			attempts += 1
 
-func spawn_diamond_thorns(used_positions: Dictionary):
-	# Chance to spawn 1-2 diamond clusters in this chunk
+func spawn_cluster_thorns(used_positions: Dictionary):
+	# Chance to spawn 1-2 thorn clusters in this chunk
 	var num_clusters = 0
 	var r_cluster = randf()
 	if r_cluster > 0.8: num_clusters = 2
-	elif r_cluster > 0.5: num_clusters = 1
+	elif r_cluster > 0.4: num_clusters = 1
 	
 	for i in range(num_clusters):
 		var attempts = 0
@@ -117,8 +117,15 @@ func spawn_diamond_thorns(used_positions: Dictionary):
 				randi_range(2, GameConstants.CHUNK_SIZE - 3)
 			)
 			
-			var radius = randi_range(1, 2)
-			var offsets = get_diamond_offsets(radius, true)
+			var offsets = []
+			var type_r = randf()
+			if type_r > 0.7:
+				# 5x5 Cross (hollow center)
+				offsets = get_cross_offsets(2, true)
+			else:
+				# Diamond (hollow)
+				var radius = randi_range(1, 2)
+				offsets = get_diamond_offsets(radius, true)
 			
 			# Check if any offset is blocked
 			var can_place = true
@@ -157,6 +164,17 @@ func get_diamond_offsets(radius: int, hollow: bool = false) -> Array:
 			else:
 				if dist <= radius:
 					offsets.append(Vector2i(x, y))
+	return offsets
+
+func get_cross_offsets(radius: int, hollow: bool = false) -> Array:
+	var offsets = []
+	for i in range(-radius, radius + 1):
+		if i == 0:
+			if not hollow:
+				offsets.append(Vector2i(0, 0))
+			continue
+		offsets.append(Vector2i(i, 0))
+		offsets.append(Vector2i(0, i))
 	return offsets
 
 func _exit_tree():
