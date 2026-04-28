@@ -119,14 +119,18 @@ func spawn_cluster_thorns(used_positions: Dictionary):
 			
 			var offsets = []
 			var type_r = randf()
-			if type_r > 0.85:
+			if type_r > 0.9:
+				# X patterns (3x3 or 5x5)
+				var radius = randi_range(1, 2)
+				offsets = get_x_offsets(radius, false)
+			elif type_r > 0.8:
 				# 5x5 Cross (hollow center)
 				offsets = get_cross_offsets(2, true)
-			elif type_r > 0.7:
+			elif type_r > 0.65:
 				# 5x5 Corner patterns
 				var p_name = "corner_5x5_1" if randf() > 0.5 else "corner_5x5_2"
 				offsets = get_pattern_offsets(p_name)
-			elif type_r > 0.5:
+			elif type_r > 0.45:
 				# 3x3 Diagonal patterns
 				var p_name = "diag_1" if randf() > 0.5 else "diag_2"
 				offsets = get_pattern_offsets(p_name)
@@ -210,6 +214,17 @@ func get_pattern_offsets(pattern_name: String) -> Array:
 				Vector2i(-2, -2), Vector2i(-2, -1), Vector2i(-1, -2),
 				Vector2i(2, 2), Vector2i(2, 1), Vector2i(1, 2)
 			]
+	return offsets
+
+func get_x_offsets(radius: int, hollow: bool = false) -> Array:
+	var offsets = []
+	for i in range(-radius, radius + 1):
+		if i == 0:
+			if not hollow:
+				offsets.append(Vector2i(0, 0))
+			continue
+		offsets.append(Vector2i(i, i))
+		offsets.append(Vector2i(i, -i))
 	return offsets
 
 func _exit_tree():
