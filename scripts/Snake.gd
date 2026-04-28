@@ -9,6 +9,7 @@ var move_timer = 0.0
 var move_speed_normal = GameConstants.SNAKE_INITIAL_SPEED
 var move_speed_dash = move_speed_normal * GameConstants.SNAKE_DASH_MULTIPLIER
 var is_dashing = false
+var is_reversing = false
 
 func _ready():
 	# Initial snake (3 segments)
@@ -19,6 +20,9 @@ func _ready():
 func _process(delta):
 	is_dashing = Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_ENTER) or Input.is_key_pressed(KEY_KP_ENTER)
 	handle_input()
+	
+	if is_reversing:
+		return
 	
 	var current_speed = move_speed_dash if is_dashing else move_speed_normal
 	
@@ -38,9 +42,12 @@ func handle_input():
 	elif Input.is_action_just_pressed("ui_right"): new_dir = Vector2i.RIGHT
 	
 	if new_dir != Vector2i.ZERO:
-		# Don't allow immediate 180 turn
+		# Check if it's the opposite of the last intended direction
 		var last_dir = input_queue.back() if not input_queue.is_empty() else direction
-		if new_dir != -last_dir:
+		if new_dir == -last_dir:
+			reverse_snake()
+			input_queue.clear() # Clear any pending turns
+		else:
 			input_queue.append(new_dir)
 
 var score = 0
@@ -139,6 +146,73 @@ func _draw():
 		draw_rect(rect, GameConstants.COLOR_SNAKE)
 		# Border
 		draw_rect(rect, GameConstants.COLOR_BLOCK_BORDER, false, 1.0)
+
+func reverse_snake():
+	if body.size() < 2 or is_reversing:
+		return
+		
+	is_reversing = true
+	var camera = $Camera2D
+	
+	# Record the current head position before flipping
+	var old_head_pos = global_position
+	
+	body.reverse()
+	
+	# Set direction to move away from the new second segment.
+	# This ensures we don't immediately collide with our own body
+	# when reversing from a curved position (the "spinning" issue).
+	direction = body[0] - body[1]
+	
+	# Update position to the new head (this would normally jump the camera)
+	update_position_from_grid()
+	
+	# Keep the camera at the old head position initially
+	camera.global_position = old_head_pos
+	
+	# Disable smoothing during manual tweening to avoid conflicts
+	var old_smoothing = camera.position_smoothing_enabled
+	camera.position_smoothing_enabled = false
+	
+	# Tween camera from old head to new head (local 0,0)
+	var tween = create_tween()
+	tween.set_trans(Tween.TRANS_QUART) # Fast start
+	tween.set_ease(Tween.EASE_OUT)      # Slow end
+	tween.tween_property(camera, "position", Vector2.ZERO, GameConstants.SNAKE_REVERSE_TIME)
+	
+	# Visual effect: Stronger blur and darkening during transition
+	var hud = get_tree().root.find_child("HUD", true, false)
+	if hud and hud.has_node("EdgeBlur"):
+		var edge_blur = hud.get_node("EdgeBlur")
+		var blur_mat = edge_blur.material as ShaderMaterial
+		if blur_mat:
+			var base_blur = blur_mat.get_shader_parameter("blur_strength")
+			var base_tint = blur_mat.get_shader_parameter("tint_color")
+			
+			var fx_tween = create_tween()
+			fx_tween.set_trans(Tween.TRANS_SINE)
+			fx_tween.set_ease(Tween.EASE_IN_OUT)
+			
+			# Intensify blur and darkness quickly
+			fx_tween.tween_method(func(v): blur_mat.set_shader_parameter("blur_strength", v), base_blur, 5.0, GameConstants.SNAKE_REVERSE_TIME * 0.3)
+			fx_tween.parallel().tween_method(func(v): blur_mat.set_shader_parameter("tint_color", v), base_tint, Color(0, 0, 0, 0.9), GameConstants.SNAKE_REVERSE_TIME * 0.3)
+			
+			# Fade back to normal
+			fx_tween.tween_method(func(v): blur_mat.set_shader_parameter("blur_strength", v), 5.0, base_blur, GameConstants.SNAKE_REVERSE_TIME * 0.7)
+			fx_tween.parallel().tween_method(func(v): blur_mat.set_shader_parameter("tint_color", v), Color(0, 0, 0, 0.9), base_tint, GameConstants.SNAKE_REVERSE_TIME * 0.7)
+	
+	# Resume movement when the animation finished
+	tween.finished.connect(func():
+		is_reversing = false
+		camera.position_smoothing_enabled = old_smoothing
+		# Set move_timer close to current_speed to trigger the first move quickly
+		# This removes the "delay" feel after the camera transition.
+		var current_speed = move_speed_dash if is_dashing else move_speed_normal
+		move_timer = current_speed * 0.9
+	)
+	
+	move_timer = 0.0
+	queue_redraw()
 
 func game_over():
 	print("Game Over!")

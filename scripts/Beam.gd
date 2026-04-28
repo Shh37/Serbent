@@ -55,19 +55,20 @@ func check_collision():
 	var world = get_parent()
 	var snake = world.get_parent().get_node("Snake")
 	if snake and snake.has_method("cut_snake"):
-		# Find all body parts that intersect with this beam
 		var body = snake.body
+		var hit_indices = []
 		for i in range(body.size()):
 			var pos = body[i]
 			
 			if orientation == Orientation.HORIZONTAL:
 				if pos.y == global_grid_index:
-					snake.cut_snake(i)
-					break # Only cut at the first intersection from the head
+					hit_indices.append(i)
 			else:
 				if pos.x == global_grid_index:
-					snake.cut_snake(i)
-					break
+					hit_indices.append(i)
+		
+		if not hit_indices.is_empty():
+			snake.cut_snake(hit_indices[0])
 
 func _draw():
 	var cell_size = GameConstants.CELL_SIZE

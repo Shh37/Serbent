@@ -12,6 +12,10 @@ func _ready():
 	snake = get_tree().root.find_child("Snake", true, false)
 
 func _process(delta):
+	if snake and snake.is_reversing:
+		update_ui() # Keep updating UI (like length) but skip timer
+		return
+		
 	game_time += delta
 	update_ui()
 
