@@ -35,10 +35,21 @@ func setup(p_chunk_pos: Vector2i):
 	queue_redraw()
 
 func is_pos_safe(pos: Vector2i, used_positions: Dictionary, min_dist: int) -> bool:
+	# Local check within current chunk generation
 	for dx in range(-min_dist, min_dist + 1):
 		for dy in range(-min_dist, min_dist + 1):
 			if used_positions.has(pos + Vector2i(dx, dy)):
 				return false
+	
+	# Global check across other chunks
+	var world = get_parent()
+	if world:
+		var global_pos = chunk_pos * GameConstants.CHUNK_SIZE + pos
+		for dx in range(-min_dist, min_dist + 1):
+			for dy in range(-min_dist, min_dist + 1):
+				var check_global = global_pos + Vector2i(dx, dy)
+				if world.points.has(check_global) or world.thorns.has(check_global):
+					return false
 	return true
 
 func spawn_points(used_positions: Dictionary):
@@ -49,8 +60,8 @@ func spawn_points(used_positions: Dictionary):
 		var attempts = 0
 		while attempts < 20:
 			var local_pos = Vector2i(
-				randi_range(1, GameConstants.CHUNK_SIZE - 2),
-				randi_range(1, GameConstants.CHUNK_SIZE - 2)
+				randi_range(0, GameConstants.CHUNK_SIZE - 1),
+				randi_range(0, GameConstants.CHUNK_SIZE - 1)
 			)
 			
 			if is_pos_safe(local_pos, used_positions, 2):
@@ -82,8 +93,8 @@ func spawn_thorns(used_positions: Dictionary):
 		var attempts = 0
 		while attempts < 20:
 			var local_pos = Vector2i(
-				randi_range(1, GameConstants.CHUNK_SIZE - 2),
-				randi_range(1, GameConstants.CHUNK_SIZE - 2)
+				randi_range(0, GameConstants.CHUNK_SIZE - 1),
+				randi_range(0, GameConstants.CHUNK_SIZE - 1)
 			)
 			
 			if is_pos_safe(local_pos, used_positions, 1):
