@@ -119,10 +119,14 @@ func spawn_cluster_thorns(used_positions: Dictionary):
 			
 			var offsets = []
 			var type_r = randf()
-			if type_r > 0.8:
+			if type_r > 0.85:
 				# 5x5 Cross (hollow center)
 				offsets = get_cross_offsets(2, true)
-			elif type_r > 0.6:
+			elif type_r > 0.7:
+				# 5x5 Corner patterns
+				var p_name = "corner_5x5_1" if randf() > 0.5 else "corner_5x5_2"
+				offsets = get_pattern_offsets(p_name)
+			elif type_r > 0.5:
 				# 3x3 Diagonal patterns
 				var p_name = "diag_1" if randf() > 0.5 else "diag_2"
 				offsets = get_pattern_offsets(p_name)
@@ -195,6 +199,16 @@ func get_pattern_offsets(pattern_name: String) -> Array:
 				Vector2i(-1, -1), Vector2i(0, -1),
 				Vector2i(-1, 0), Vector2i(1, 0),
 				Vector2i(0, 1), Vector2i(1, 1)
+			]
+		"corner_5x5_1": # 5x5 with TR and BL corners
+			offsets = [
+				Vector2i(2, -2), Vector2i(2, -1), Vector2i(1, -2),
+				Vector2i(-2, 2), Vector2i(-2, 1), Vector2i(-1, 2)
+			]
+		"corner_5x5_2": # 5x5 with TL and BR corners
+			offsets = [
+				Vector2i(-2, -2), Vector2i(-2, -1), Vector2i(-1, -2),
+				Vector2i(2, 2), Vector2i(2, 1), Vector2i(1, 2)
 			]
 	return offsets
 
