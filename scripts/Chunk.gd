@@ -103,17 +103,22 @@ func spawn_thorns(used_positions: Dictionary):
 			attempts += 1
 
 func spawn_diamond_thorns(used_positions: Dictionary):
-	# Chance to spawn 1 diamond cluster in this chunk
-	if randf() > 0.6:
+	# Chance to spawn 1-2 diamond clusters in this chunk
+	var num_clusters = 0
+	var r_cluster = randf()
+	if r_cluster > 0.8: num_clusters = 2
+	elif r_cluster > 0.5: num_clusters = 1
+	
+	for i in range(num_clusters):
 		var attempts = 0
-		while attempts < 10:
+		while attempts < 20:
 			var center = Vector2i(
-				randi_range(3, GameConstants.CHUNK_SIZE - 4),
-				randi_range(3, GameConstants.CHUNK_SIZE - 4)
+				randi_range(2, GameConstants.CHUNK_SIZE - 3),
+				randi_range(2, GameConstants.CHUNK_SIZE - 3)
 			)
 			
 			var radius = randi_range(1, 2)
-			var offsets = get_diamond_offsets(radius)
+			var offsets = get_diamond_offsets(radius, true)
 			
 			# Check if any offset is blocked
 			var can_place = true
@@ -141,12 +146,17 @@ func spawn_diamond_thorns(used_positions: Dictionary):
 				break
 			attempts += 1
 
-func get_diamond_offsets(radius: int) -> Array:
+func get_diamond_offsets(radius: int, hollow: bool = false) -> Array:
 	var offsets = []
 	for x in range(-radius, radius + 1):
 		for y in range(-radius, radius + 1):
-			if abs(x) + abs(y) <= radius:
-				offsets.append(Vector2i(x, y))
+			var dist = abs(x) + abs(y)
+			if hollow:
+				if dist == radius:
+					offsets.append(Vector2i(x, y))
+			else:
+				if dist <= radius:
+					offsets.append(Vector2i(x, y))
 	return offsets
 
 func _exit_tree():
