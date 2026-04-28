@@ -136,14 +136,18 @@ func update_position_from_grid():
 
 func _draw():
 	# Draw segments relative to the head (since the node follows the head)
-	var head_pos = Vector2(body[0]) * GameConstants.CELL_SIZE
-	
-	for segment in body:
+	for i in range(body.size()):
+		var segment = body[i]
 		var draw_pos = Vector2(segment) * GameConstants.CELL_SIZE - position
 		var rect = Rect2(draw_pos, Vector2.ONE * GameConstants.CELL_SIZE)
 		
 		# Fill
-		draw_rect(rect, GameConstants.COLOR_SNAKE)
+		var color = GameConstants.COLOR_SNAKE
+		if i == 0:
+			# Brighter head for better visibility
+			color = color.lightened(0.2)
+			
+		draw_rect(rect, color)
 		# Border
 		draw_rect(rect, GameConstants.COLOR_BLOCK_BORDER, false, 1.0)
 
