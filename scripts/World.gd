@@ -39,7 +39,8 @@ func update_bomb_spawning(delta):
 	bomb_timer += delta
 	if bomb_timer >= next_bomb_time:
 		bomb_timer = 0.0
-		next_bomb_time = randf_range(6.0, 12.0) # Spawn every 6-12 seconds
+		# Normal distribution centered at 4.0, flattened (sigma=3.0) to make extremes more frequent
+		next_bomb_time = clamp(randfn(4.0, 3.0), 0.5, 8.5)
 		spawn_random_bomb()
 
 func spawn_random_beam():
@@ -97,7 +98,16 @@ func spawn_random_bomb():
 	bomb.set_script(load("res://scripts/Bomb.gd"))
 	add_child(bomb)
 	
-	bomb.setup(center)
+	var r = randf()
+	var radius = 2 # Default
+	if r < 0.5:
+		radius = 1 # Small (frequent)
+	elif r < 0.85:
+		radius = 2 # Medium
+	else:
+		radius = 3 # Large (rare)
+	
+	bomb.setup(center, radius)
 	register_bomb(bomb)
 
 func register_point(global_pos: Vector2i, point_node: Node):
@@ -166,10 +176,9 @@ func check_hazard_collision(snake: Node):
 	for bomb in active_bombs:
 		if bomb.is_active:
 			var pos = snake.body[0] # Head
-			var half_size = GameConstants.BOMB_SIZE / 2
 			var dx = abs(pos.x - bomb.center_grid_pos.x)
 			var dy = abs(pos.y - bomb.center_grid_pos.y)
-			if dx + dy <= half_size:
+			if dx + dy <= bomb.radius:
 				snake.cut_snake(0) # Head hit active explosion = game over
 				return
 
