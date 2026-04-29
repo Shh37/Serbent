@@ -54,11 +54,12 @@ func check_collision():
 		var body = snake.body
 		var half_size = GameConstants.BOMB_SIZE / 2
 		
-		# Check if any segment is within the explosion range
+		# Check if any segment is within the diamond-shaped explosion range
 		for i in range(body.size()):
 			var pos = body[i]
-			if abs(pos.x - center_grid_pos.x) <= half_size and \
-			   abs(pos.y - center_grid_pos.y) <= half_size:
+			var dx = abs(pos.x - center_grid_pos.x)
+			var dy = abs(pos.y - center_grid_pos.y)
+			if dx + dy <= half_size:
 				snake.cut_snake(i)
 				break
 
@@ -68,16 +69,15 @@ func _draw():
 	var half_size = GameConstants.BOMB_SIZE / 2
 	var size = GameConstants.BOMB_SIZE
 	
-	var rect = Rect2(
-		Vector2(center_grid_pos - Vector2i(half_size, half_size)) * cell_size,
-		Vector2(size, size) * cell_size
-	)
+	var warning_color = color
+	warning_color.a = 0.2 if not is_active else 1.0
 	
-	if is_active:
-		# Draw the actual explosion
-		draw_rect(rect, color)
-	elif show_warning:
-		# Draw warning area (faint red)
-		var warning_color = color
-		warning_color.a = 0.2
-		draw_rect(rect, warning_color)
+	if is_active or show_warning:
+		for x in range(-half_size, half_size + 1):
+			for y in range(-half_size, half_size + 1):
+				if abs(x) + abs(y) <= half_size:
+					var draw_pos = Vector2(center_grid_pos + Vector2i(x, y)) * cell_size
+					draw_rect(Rect2(draw_pos, Vector2(cell_size, cell_size)), warning_color)
+					
+					# Draw block border for better "blocky" look
+					draw_rect(Rect2(draw_pos, Vector2(cell_size, cell_size)), GameConstants.COLOR_BLOCK_BORDER, false, 1.0)

@@ -167,8 +167,9 @@ func check_hazard_collision(snake: Node):
 		if bomb.is_active:
 			var pos = snake.body[0] # Head
 			var half_size = GameConstants.BOMB_SIZE / 2
-			if abs(pos.x - bomb.center_grid_pos.x) <= half_size and \
-			   abs(pos.y - bomb.center_grid_pos.y) <= half_size:
+			var dx = abs(pos.x - bomb.center_grid_pos.x)
+			var dy = abs(pos.y - bomb.center_grid_pos.y)
+			if dx + dy <= half_size:
 				snake.cut_snake(0) # Head hit active explosion = game over
 				return
 
