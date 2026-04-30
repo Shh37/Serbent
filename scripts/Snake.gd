@@ -217,8 +217,7 @@ func game_over():
 	red_tint.a = 0.6
 	var fx_tween = _play_screen_fx(5.0, red_tint, 1.5)
 	
-	if fx_tween:
-		await fx_tween.finished
+	await get_tree().create_timer(1.5, false).timeout
 		
 	get_tree().reload_current_scene()
 
