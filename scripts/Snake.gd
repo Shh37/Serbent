@@ -10,6 +10,23 @@ var move_speed_normal = GameConstants.SNAKE_INITIAL_SPEED
 var move_speed_dash = move_speed_normal * GameConstants.SNAKE_DASH_MULTIPLIER
 var is_dashing = false
 var is_reversing = false
+var dash_dir_hold = Vector2i.ZERO
+
+func _dir_to_action(dir: Vector2i) -> String:
+	if dir == Vector2i.UP:
+		return "ui_up"
+	if dir == Vector2i.DOWN:
+		return "ui_down"
+	if dir == Vector2i.LEFT:
+		return "ui_left"
+	if dir == Vector2i.RIGHT:
+		return "ui_right"
+	return ""
+
+func update_is_dashing():
+	var dir_action := _dir_to_action(dash_dir_hold)
+	var dir_dashing := dash_dir_hold != Vector2i.ZERO and dir_action != "" and Input.is_action_pressed(dir_action)
+	is_dashing = Input.is_key_pressed(KEY_SPACE) or dir_dashing
 
 func _ready():
 	# Initial snake (3 segments)
@@ -18,8 +35,9 @@ func _ready():
 	update_position_from_grid()
 
 func _process(delta):
-	is_dashing = Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_ENTER) or Input.is_key_pressed(KEY_KP_ENTER)
+	update_is_dashing()
 	handle_input()
+	update_is_dashing()
 	
 	if is_reversing:
 		return
@@ -42,6 +60,12 @@ func handle_input():
 	elif Input.is_action_just_pressed("ui_right"): new_dir = Vector2i.RIGHT
 	
 	if new_dir != Vector2i.ZERO:
+		if new_dir == direction and input_queue.is_empty():
+			# Re-press the current movement direction to start dashing while held
+			dash_dir_hold = new_dir
+			return
+		# Turning cancels any directional dash; after turning, another press is required
+		dash_dir_hold = Vector2i.ZERO
 		# Check if it's the opposite of the last intended direction
 		var last_dir = input_queue.back() if not input_queue.is_empty() else direction
 		if new_dir == -last_dir:
@@ -55,7 +79,10 @@ var pending_growth = 0
 
 func move_step():
 	if not input_queue.is_empty():
-		direction = input_queue.pop_front()
+		var new_direction = input_queue.pop_front()
+		if new_direction != direction:
+			dash_dir_hold = Vector2i.ZERO
+		direction = new_direction
 		
 	var new_head = body[0] + direction
 	
@@ -160,6 +187,8 @@ func _draw():
 func reverse_snake():
 	if body.size() < 2 or is_reversing:
 		return
+		
+	dash_dir_hold = Vector2i.ZERO
 		
 	is_reversing = true
 	var camera = $Camera2D
