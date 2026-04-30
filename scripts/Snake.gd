@@ -224,27 +224,6 @@ func game_over():
 
 func _play_screen_fx(target_blur: float, target_tint: Color, duration: float) -> Tween:
 	var hud = get_tree().root.find_child("HUD", true, false)
-	if not (hud and hud.has_node("EdgeBlur")):
-		return null
-		
-	var edge_blur = hud.get_node("EdgeBlur")
-	var blur_mat = edge_blur.material as ShaderMaterial
-	if not blur_mat:
-		return null
-		
-	var base_blur = blur_mat.get_shader_parameter("blur_strength")
-	var base_tint = blur_mat.get_shader_parameter("tint_color")
-	
-	var fx_tween = create_tween()
-	
-	# Intensify (Fast pop: 20% of duration)
-	fx_tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
-	fx_tween.tween_method(func(v): blur_mat.set_shader_parameter("blur_strength", v), base_blur, target_blur, duration * 0.2)
-	fx_tween.parallel().tween_method(func(v): blur_mat.set_shader_parameter("tint_color", v), base_tint, target_tint, duration * 0.2)
-	
-	# Fade back (Slow recovery: 80% of duration)
-	fx_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	fx_tween.tween_method(func(v): blur_mat.set_shader_parameter("blur_strength", v), target_blur, base_blur, duration * 0.8)
-	fx_tween.parallel().tween_method(func(v): blur_mat.set_shader_parameter("tint_color", v), target_tint, base_tint, duration * 0.8)
-	
-	return fx_tween
+	if hud and hud.has_method("play_screen_fx"):
+		return hud.play_screen_fx(target_blur, target_tint, duration)
+	return null
