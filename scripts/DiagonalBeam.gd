@@ -4,7 +4,7 @@ class_name DiagonalBeam
 enum Type { FORWARD_SLASH, BACK_SLASH }
 
 var type: Type
-var offset_k: int # The k in x+y=k or x-y=k
+var offset_k: int
 var warning_time = 2.0
 var active_time = 0.5
 var timer = 0.0
@@ -13,11 +13,13 @@ var flicker_speed = 0.1
 var flicker_timer = 0.0
 var show_warning = true
 var thickness = 1
+var zigzag_amplitude = 0
 
-func setup(p_type: Type, p_offset_k: int, p_thickness: int = 1):
+func setup(p_type: Type, p_offset_k: int, p_thickness: int = 1, p_zigzag_amplitude: int = 0):
 	type = p_type
 	offset_k = p_offset_k
 	thickness = p_thickness
+	zigzag_amplitude = p_zigzag_amplitude
 	timer = warning_time
 	queue_redraw()
 
@@ -42,8 +44,6 @@ func activate_beam():
 	timer = active_time
 	show_warning = true
 	queue_redraw()
-	
-	# Check collision immediately when activated
 	check_collision()
 
 func deactivate_beam():
@@ -52,26 +52,50 @@ func deactivate_beam():
 		world.unregister_diagonal_beam(self)
 	queue_free()
 
+func get_zigzag_offset(u: int) -> int:
+	if zigzag_amplitude == 0: return 0
+	
+	if zigzag_amplitude == 1:
+		# 1 vertical, 1 horizontal (Period 2)
+		var p = u % 2
+		if p < 0: p += 2
+		return p # 0 or 1
+	elif zigzag_amplitude == 2:
+		# 2 vertical, 2 horizontal (Period 4)
+		var p = u % 4
+		if p < 0: p += 4
+		var seq = [0, 1, 2, 1]
+		return seq[p] - 1
+	elif zigzag_amplitude == 3:
+		# 3 vertical, 3 horizontal (Period 6)
+		var p = u % 6
+		if p < 0: p += 6
+		var seq = [0, 1, 2, 3, 2, 1]
+		return seq[p] - 1
+	return 0
+
+func is_on_beam(grid_pos: Vector2i) -> bool:
+	var u: int
+	var v_base: int
+	if type == Type.FORWARD_SLASH:
+		u = grid_pos.x - grid_pos.y
+		v_base = grid_pos.x + grid_pos.y - offset_k
+	else:
+		u = grid_pos.x + grid_pos.y
+		v_base = grid_pos.x - grid_pos.y - offset_k
+		
+	var z_offset = get_zigzag_offset(u)
+	return abs(v_base - z_offset) <= thickness / 2
+
 func check_collision():
 	var world = get_parent()
 	var snake = world.get_parent().get_node("Snake")
 	if snake and snake.has_method("cut_snake"):
 		var body = snake.body
-		# Check from tail to head or head to tail?
-		# Beam.gd checks and breaks at first intersection.
 		for i in range(body.size()):
-			var pos = body[i]
-			if is_on_beam(pos):
+			if is_on_beam(body[i]):
 				snake.cut_snake(i)
 				break
-
-func is_on_beam(grid_pos: Vector2i) -> bool:
-	if type == Type.FORWARD_SLASH:
-		# x + y = k => offset = x + y - k
-		return abs((grid_pos.x + grid_pos.y) - offset_k) <= thickness / 2
-	else: # BACK_SLASH
-		# x - y = k => offset = x - y - k
-		return abs((grid_pos.x - grid_pos.y) - offset_k) <= thickness / 2
 
 func _draw():
 	var cell_size = GameConstants.CELL_SIZE
@@ -84,27 +108,18 @@ func _draw():
 	if not is_active:
 		draw_color.a = 0.2
 		
-	# Draw blocks in view
 	var world = get_parent()
 	var snake = world.get_parent().get_node("Snake")
 	var center_grid = Vector2i(snake.position / cell_size) if snake else Vector2i.ZERO
 	
-	var range_val = 40 # Draw enough blocks to cover the screen
-	
+	var range_val = 40
 	for i in range(-range_val, range_val):
-		# Draw for each thickness layer
-		for t_offset in range(-thickness / 2, thickness / 2 + 1):
-			var grid_pos: Vector2i
-			if type == Type.FORWARD_SLASH:
-				# x + y = k + t_offset => y = (k + t_offset) - x
-				var x = center_grid.x + i
-				var y = (offset_k + t_offset) - x
-				grid_pos = Vector2i(x, y)
-			else:
-				# x - y = k + t_offset => y = x - (k + t_offset)
-				var x = center_grid.x + i
-				var y = x - (offset_k + t_offset)
-				grid_pos = Vector2i(x, y)
-				
-			var rect = Rect2(grid_pos.x * cell_size, grid_pos.y * cell_size, cell_size, cell_size)
-			draw_rect(rect, draw_color)
+		var x = center_grid.x + i
+		var base_y = (offset_k - x) if type == Type.FORWARD_SLASH else (x - offset_k)
+		
+		# Search locally for valid y (within zigzag_amplitude and thickness bounds)
+		for dy in range(-zigzag_amplitude - thickness - 2, zigzag_amplitude + thickness + 3):
+			var y = base_y + dy
+			if is_on_beam(Vector2i(x, y)):
+				var rect = Rect2(x * cell_size, y * cell_size, cell_size, cell_size)
+				draw_rect(rect, draw_color)

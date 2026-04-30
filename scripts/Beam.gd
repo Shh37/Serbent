@@ -4,7 +4,7 @@ class_name Beam
 enum Orientation { HORIZONTAL, VERTICAL }
 
 var orientation: Orientation
-var global_grid_index: int # Global grid coordinate
+var global_grid_index: int
 var warning_time = 2.0
 var active_time = 0.5
 var timer = 0.0
@@ -13,11 +13,13 @@ var flicker_speed = 0.1
 var flicker_timer = 0.0
 var show_warning = true
 var thickness = 1
+var zigzag_amplitude = 0
 
-func setup(p_orientation: Orientation, p_index: int, p_thickness: int = 1):
+func setup(p_orientation: Orientation, p_index: int, p_thickness: int = 1, p_zigzag_amplitude: int = 0):
 	orientation = p_orientation
 	global_grid_index = p_index
 	thickness = p_thickness
+	zigzag_amplitude = p_zigzag_amplitude
 	timer = warning_time
 	queue_redraw()
 
@@ -42,16 +44,44 @@ func activate_beam():
 	timer = active_time
 	show_warning = true
 	queue_redraw()
-	
-	# Check collision immediately when activated
 	check_collision()
 
 func deactivate_beam():
-	# Beam finished, remove it
 	var world = get_parent()
 	if world.has_method("unregister_beam"):
 		world.unregister_beam(self)
 	queue_free()
+
+func get_zigzag_offset(pos_along_beam: int) -> int:
+	if zigzag_amplitude == 0: return 0
+	
+	if zigzag_amplitude == 1:
+		# 1 step Up, 1 step Down (Period 2)
+		var p = pos_along_beam % 2
+		if p < 0: p += 2
+		return p # 0 or 1
+	elif zigzag_amplitude == 2:
+		# 2 steps Up, 2 steps Down (Period 4)
+		var p = pos_along_beam % 4
+		if p < 0: p += 4
+		var seq = [0, 1, 2, 1]
+		return seq[p] - 1
+	elif zigzag_amplitude == 3:
+		# 3 steps Up, 3 steps Down (Period 6)
+		var p = pos_along_beam % 6
+		if p < 0: p += 6
+		var seq = [0, 1, 2, 3, 2, 1]
+		return seq[p] - 1
+		
+	return 0
+
+func is_on_beam(grid_pos: Vector2i) -> bool:
+	if orientation == Orientation.HORIZONTAL:
+		var z_offset = get_zigzag_offset(grid_pos.x)
+		return abs(grid_pos.y - (global_grid_index + z_offset)) <= thickness / 2
+	else:
+		var z_offset = get_zigzag_offset(grid_pos.y)
+		return abs(grid_pos.x - (global_grid_index + z_offset)) <= thickness / 2
 
 func check_collision():
 	var world = get_parent()
@@ -60,14 +90,8 @@ func check_collision():
 		var body = snake.body
 		var hit_indices = []
 		for i in range(body.size()):
-			var pos = body[i]
-			
-			if orientation == Orientation.HORIZONTAL:
-				if abs(pos.y - global_grid_index) <= thickness / 2:
-					hit_indices.append(i)
-			else:
-				if abs(pos.x - global_grid_index) <= thickness / 2:
-					hit_indices.append(i)
+			if is_on_beam(body[i]):
+				hit_indices.append(i)
 		
 		if not hit_indices.is_empty():
 			snake.cut_snake(hit_indices[0])
@@ -76,36 +100,29 @@ func _draw():
 	var cell_size = GameConstants.CELL_SIZE
 	var color = GameConstants.COLOR_DANGER
 	
-	# Get player position to center the beam span
+	if not is_active and not show_warning:
+		return
+		
+	var draw_color = color
+	if not is_active:
+		draw_color.a = 0.2
+		
 	var world = get_parent()
 	var snake = world.get_parent().get_node("Snake")
-	var center = snake.position if snake else Vector2.ZERO
+	var center_grid = Vector2i(snake.position / cell_size) if snake else Vector2i.ZERO
 	
-	# Drawing range (enough to cover the screen)
-	var span = 5000 
-	
-	if is_active:
-		# Draw the actual beam
-		var rect: Rect2
-		if orientation == Orientation.HORIZONTAL:
-			var top_y = (global_grid_index - thickness / 2) * cell_size
-			rect = Rect2(center.x - span/2, top_y, span, cell_size * thickness)
-		else:
-			var left_x = (global_grid_index - thickness / 2) * cell_size
-			rect = Rect2(left_x, center.y - span/2, cell_size * thickness, span)
+	var range_val = 40
+	for i in range(-range_val, range_val):
+		var pos_along = (center_grid.x if orientation == Orientation.HORIZONTAL else center_grid.y) + i
+		var z_offset = get_zigzag_offset(pos_along)
 		
-		draw_rect(rect, color)
-	elif show_warning:
-		# Draw warning block (faint red)
-		var warning_color = color
-		warning_color.a = 0.2
-		
-		var rect: Rect2
-		if orientation == Orientation.HORIZONTAL:
-			var top_y = (global_grid_index - thickness / 2) * cell_size
-			rect = Rect2(center.x - span/2, top_y, span, cell_size * thickness)
-		else:
-			var left_x = (global_grid_index - thickness / 2) * cell_size
-			rect = Rect2(left_x, center.y - span/2, cell_size * thickness, span)
-		
-		draw_rect(rect, warning_color)
+		for t_offset in range(-thickness / 2, thickness / 2 + 1):
+			var rect: Rect2
+			if orientation == Orientation.HORIZONTAL:
+				var grid_y = global_grid_index + z_offset + t_offset
+				rect = Rect2(pos_along * cell_size, grid_y * cell_size, cell_size, cell_size)
+			else:
+				var grid_x = global_grid_index + z_offset + t_offset
+				rect = Rect2(grid_x * cell_size, pos_along * cell_size, cell_size, cell_size)
+			
+			draw_rect(rect, draw_color)

@@ -29,7 +29,8 @@ func update_beam_spawning(delta):
 	beam_timer += delta
 	if beam_timer >= next_beam_time:
 		beam_timer = 0.0
-		next_beam_time = randf_range(4.0, 8.0) # Spawn every 4-8 seconds
+		# Normal distribution centered at 4.0, flattened (sigma=3.0) to make extremes more frequent
+		next_beam_time = clamp(randfn(4.0, 3.0), 0.5, 8.5)
 		if randf() > 0.4:
 			spawn_random_beam()
 		else:
@@ -58,9 +59,20 @@ func spawn_random_beam():
 	var orientation = Beam.Orientation.HORIZONTAL if randf() > 0.5 else Beam.Orientation.VERTICAL
 	var global_index = (player_grid_pos.y if orientation == Beam.Orientation.HORIZONTAL else player_grid_pos.x) + offset
 	
-	var thickness = 3 if randf() > 0.7 else 1
+	var variation_r = randf()
+	var thickness = 1
+	var zigzag_amplitude = 0
 	
-	beam.setup(orientation, global_index, thickness)
+	if variation_r > 0.8:
+		thickness = 3
+	elif variation_r > 0.65:
+		zigzag_amplitude = 3
+	elif variation_r > 0.5:
+		zigzag_amplitude = 2
+	elif variation_r > 0.35:
+		zigzag_amplitude = 1
+	
+	beam.setup(orientation, global_index, thickness, zigzag_amplitude)
 	register_beam(beam)
 
 func spawn_random_diagonal_beam():
@@ -84,9 +96,20 @@ func spawn_random_diagonal_beam():
 		# x - y = k
 		k = (player_grid_pos.x - player_grid_pos.y) + offset
 		
-	var thickness = 3 if randf() > 0.7 else 1
+	var variation_r = randf()
+	var thickness = 1
+	var zigzag_amplitude = 0
+	
+	if variation_r > 0.8:
+		thickness = 3
+	elif variation_r > 0.65:
+		zigzag_amplitude = 3
+	elif variation_r > 0.5:
+		zigzag_amplitude = 2
+	elif variation_r > 0.35:
+		zigzag_amplitude = 1
 		
-	beam.setup(type, k, thickness)
+	beam.setup(type, k, thickness, zigzag_amplitude)
 	register_diagonal_beam(beam)
 
 func spawn_random_bomb():
