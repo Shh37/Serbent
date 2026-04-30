@@ -35,6 +35,12 @@ func setup(p_chunk_pos: Vector2i):
 	queue_redraw()
 
 func is_pos_safe(pos: Vector2i, used_positions: Dictionary, min_dist: int) -> bool:
+	var global_pos = chunk_pos * GameConstants.CHUNK_SIZE + pos
+	
+	# Prevent spawning near the starting position (safe zone)
+	if Vector2(global_pos).distance_to(Vector2(5, 5)) < 8.0:
+		return false
+		
 	# Local check within current chunk generation
 	for dx in range(-min_dist, min_dist + 1):
 		for dy in range(-min_dist, min_dist + 1):
@@ -44,7 +50,6 @@ func is_pos_safe(pos: Vector2i, used_positions: Dictionary, min_dist: int) -> bo
 	# Global check across other chunks
 	var world = get_parent()
 	if world:
-		var global_pos = chunk_pos * GameConstants.CHUNK_SIZE + pos
 		for dx in range(-min_dist, min_dist + 1):
 			for dy in range(-min_dist, min_dist + 1):
 				var check_global = global_pos + Vector2i(dx, dy)
