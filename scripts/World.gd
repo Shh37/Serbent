@@ -58,7 +58,9 @@ func spawn_random_beam():
 	var orientation = Beam.Orientation.HORIZONTAL if randf() > 0.5 else Beam.Orientation.VERTICAL
 	var global_index = (player_grid_pos.y if orientation == Beam.Orientation.HORIZONTAL else player_grid_pos.x) + offset
 	
-	beam.setup(orientation, global_index)
+	var thickness = 3 if randf() > 0.7 else 1
+	
+	beam.setup(orientation, global_index, thickness)
 	register_beam(beam)
 
 func spawn_random_diagonal_beam():
@@ -82,7 +84,9 @@ func spawn_random_diagonal_beam():
 		# x - y = k
 		k = (player_grid_pos.x - player_grid_pos.y) + offset
 		
-	beam.setup(type, k)
+	var thickness = 3 if randf() > 0.7 else 1
+		
+	beam.setup(type, k, thickness)
 	register_diagonal_beam(beam)
 
 func spawn_random_bomb():

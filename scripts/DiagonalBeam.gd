@@ -12,10 +12,12 @@ var is_active = false
 var flicker_speed = 0.1
 var flicker_timer = 0.0
 var show_warning = true
+var thickness = 1
 
-func setup(p_type: Type, p_offset_k: int):
+func setup(p_type: Type, p_offset_k: int, p_thickness: int = 1):
 	type = p_type
 	offset_k = p_offset_k
+	thickness = p_thickness
 	timer = warning_time
 	queue_redraw()
 
@@ -65,9 +67,11 @@ func check_collision():
 
 func is_on_beam(grid_pos: Vector2i) -> bool:
 	if type == Type.FORWARD_SLASH:
-		return grid_pos.x + grid_pos.y == offset_k
+		# x + y = k => offset = x + y - k
+		return abs((grid_pos.x + grid_pos.y) - offset_k) <= thickness / 2
 	else: # BACK_SLASH
-		return grid_pos.x - grid_pos.y == offset_k
+		# x - y = k => offset = x - y - k
+		return abs((grid_pos.x - grid_pos.y) - offset_k) <= thickness / 2
 
 func _draw():
 	var cell_size = GameConstants.CELL_SIZE
@@ -88,17 +92,19 @@ func _draw():
 	var range_val = 40 # Draw enough blocks to cover the screen
 	
 	for i in range(-range_val, range_val):
-		var grid_pos: Vector2i
-		if type == Type.FORWARD_SLASH:
-			# x + y = k => y = k - x
-			var x = center_grid.x + i
-			var y = offset_k - x
-			grid_pos = Vector2i(x, y)
-		else:
-			# x - y = k => y = x - offset_k
-			var x = center_grid.x + i
-			var y = x - offset_k
-			grid_pos = Vector2i(x, y)
-			
-		var rect = Rect2(grid_pos.x * cell_size, grid_pos.y * cell_size, cell_size, cell_size)
-		draw_rect(rect, draw_color)
+		# Draw for each thickness layer
+		for t_offset in range(-thickness / 2, thickness / 2 + 1):
+			var grid_pos: Vector2i
+			if type == Type.FORWARD_SLASH:
+				# x + y = k + t_offset => y = (k + t_offset) - x
+				var x = center_grid.x + i
+				var y = (offset_k + t_offset) - x
+				grid_pos = Vector2i(x, y)
+			else:
+				# x - y = k + t_offset => y = x - (k + t_offset)
+				var x = center_grid.x + i
+				var y = x - (offset_k + t_offset)
+				grid_pos = Vector2i(x, y)
+				
+			var rect = Rect2(grid_pos.x * cell_size, grid_pos.y * cell_size, cell_size, cell_size)
+			draw_rect(rect, draw_color)

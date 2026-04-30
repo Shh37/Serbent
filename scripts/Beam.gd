@@ -12,10 +12,12 @@ var is_active = false
 var flicker_speed = 0.1
 var flicker_timer = 0.0
 var show_warning = true
+var thickness = 1
 
-func setup(p_orientation: Orientation, p_index: int):
+func setup(p_orientation: Orientation, p_index: int, p_thickness: int = 1):
 	orientation = p_orientation
 	global_grid_index = p_index
+	thickness = p_thickness
 	timer = warning_time
 	queue_redraw()
 
@@ -61,10 +63,10 @@ func check_collision():
 			var pos = body[i]
 			
 			if orientation == Orientation.HORIZONTAL:
-				if pos.y == global_grid_index:
+				if abs(pos.y - global_grid_index) <= thickness / 2:
 					hit_indices.append(i)
 			else:
-				if pos.x == global_grid_index:
+				if abs(pos.x - global_grid_index) <= thickness / 2:
 					hit_indices.append(i)
 		
 		if not hit_indices.is_empty():
@@ -86,9 +88,11 @@ func _draw():
 		# Draw the actual beam
 		var rect: Rect2
 		if orientation == Orientation.HORIZONTAL:
-			rect = Rect2(center.x - span/2, global_grid_index * cell_size, span, cell_size)
+			var top_y = (global_grid_index - thickness / 2) * cell_size
+			rect = Rect2(center.x - span/2, top_y, span, cell_size * thickness)
 		else:
-			rect = Rect2(global_grid_index * cell_size, center.y - span/2, cell_size, span)
+			var left_x = (global_grid_index - thickness / 2) * cell_size
+			rect = Rect2(left_x, center.y - span/2, cell_size * thickness, span)
 		
 		draw_rect(rect, color)
 	elif show_warning:
@@ -98,8 +102,10 @@ func _draw():
 		
 		var rect: Rect2
 		if orientation == Orientation.HORIZONTAL:
-			rect = Rect2(center.x - span/2, global_grid_index * cell_size, span, cell_size)
+			var top_y = (global_grid_index - thickness / 2) * cell_size
+			rect = Rect2(center.x - span/2, top_y, span, cell_size * thickness)
 		else:
-			rect = Rect2(global_grid_index * cell_size, center.y - span/2, cell_size, span)
+			var left_x = (global_grid_index - thickness / 2) * cell_size
+			rect = Rect2(left_x, center.y - span/2, cell_size * thickness, span)
 		
 		draw_rect(rect, warning_color)
