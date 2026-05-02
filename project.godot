@@ -10,8 +10,8 @@ config_version=5
 
 [application]
 
-config/name="Serbent"
-run/main_scene="res://scenes/Main.tscn"
+config/name="Serpent"
+run/main_scene="res://scenes/MainMenu.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://icon.svg"
 
