@@ -20,10 +20,10 @@ func _ready():
 	# Set colors using GameConstants (class_name)
 	title.add_theme_color_override("default_color", GameConstants.COLOR_FG)
 	
-	play_btn.add_theme_color_override("font_color", GameConstants.COLOR_DANGER)
-	play_btn.add_theme_color_override("font_hover_color", GameConstants.COLOR_DANGER)
-	play_btn.add_theme_color_override("font_pressed_color", GameConstants.COLOR_DANGER.darkened(0.4))
-	play_btn.add_theme_color_override("font_focus_color", GameConstants.COLOR_DANGER)
+	play_btn.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+	play_btn.add_theme_color_override("font_hover_color", GameConstants.COLOR_FG)
+	play_btn.add_theme_color_override("font_pressed_color", GameConstants.COLOR_GHOST)
+	play_btn.add_theme_color_override("font_focus_color", GameConstants.COLOR_FG)
 	
 	# Connect signals
 	play_btn.pressed.connect(_on_play_pressed)
@@ -51,7 +51,7 @@ func _on_button_down(btn: Button):
 	tween.set_parallel(true)
 	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 	tween.tween_property(btn, "scale", Vector2(0.92, 0.92), 0.05)
-	tween.tween_property(btn, "self_modulate", Color(0.5, 0.5, 0.5), 0.05)
+	tween.tween_property(btn, "self_modulate", Color(0.85, 0.85, 0.85), 0.05)
 
 func _on_button_up(btn: Button):
 	var tween = create_tween()
