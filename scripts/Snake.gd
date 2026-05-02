@@ -37,8 +37,15 @@ func update_is_dashing():
 	is_dashing = Input.is_key_pressed(KEY_SPACE) or dir_dashing
 
 func _ready():
-	# Initial snake (3 segments)
-	body = [Vector2i(5, 5), Vector2i(4, 5), Vector2i(3, 5)]
+	# Randomize initial direction
+	var dirs = [Vector2i.RIGHT, Vector2i.LEFT, Vector2i.UP, Vector2i.DOWN]
+	direction = dirs[randi() % dirs.size()]
+	next_direction = direction
+	
+	# Initial snake (3 segments) arranged according to direction
+	var head = Vector2i(5, 5)
+	body = [head, head - direction, head - 2 * direction]
+	
 	old_body = body.duplicate()
 	recalculate_speed()
 	update_position_from_grid()
