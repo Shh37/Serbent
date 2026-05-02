@@ -52,7 +52,7 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_font_sizes/normal_font_size = 140
 bbcode_enabled = true
-text = "[center][color=#d8a657]SER[/color][color=#a9b665]P[/color][color=#d8a657]ENT[/color][/center]"
+text = "[center][color=#d8a657]SER[/color][color=#a9b665]B[/color][color=#d8a657]ENT[/color][/center]"
 scroll_active = false
 autowrap_mode = 0
 
