@@ -3,6 +3,12 @@
 [ext_resource type="Script" path="res://scripts/MainMenu.gd" id="1_menu"]
 [ext_resource type="Script" path="res://scripts/MenuBackground.gd" id="2_bg"]
 [ext_resource type="Shader" path="res://shaders/menu_blur.gdshader" id="3_shader"]
+[ext_resource type="Shader" path="res://shaders/ui_blur.gdshader" id="4_ui_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ui_blur"]
+shader = ExtResource("4_ui_shader")
+shader_parameter/blur_amount = 5.0
+shader_parameter/tint_color = Color(0.0823529, 0.0823529, 0.0823529, 0.6)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_blur"]
 shader = ExtResource("3_shader")
@@ -84,4 +90,76 @@ layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 80
 text = "PLAY"
+flat = true
+
+[node name="SettingsButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 50
+text = "SETTINGS"
+flat = true
+
+[node name="SettingsLayer" type="CanvasLayer" parent="."]
+layer = 2
+visible = false
+
+[node name="ColorRect" type="ColorRect" parent="SettingsLayer"]
+material = SubResource("ShaderMaterial_ui_blur")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CenterContainer" type="CenterContainer" parent="SettingsLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="SettingsLayer/CenterContainer"]
+layout_mode = 2
+theme_override_constants/separation = 50
+
+[node name="Label" type="Label" parent="SettingsLayer/CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 80
+text = "SETTINGS"
+horizontal_alignment = 1
+
+[node name="CRTSetting" type="VBoxContainer" parent="SettingsLayer/CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="SettingsLayer/CenterContainer/VBoxContainer/CRTSetting"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "CRT SHADER"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="SettingsLayer/CenterContainer/VBoxContainer/CRTSetting"]
+layout_mode = 2
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="CRTOn" type="Button" parent="SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "ON"
+flat = true
+
+[node name="CRTOff" type="Button" parent="SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "OFF"
+flat = true
+
+[node name="BackButton" type="Button" parent="SettingsLayer/CenterContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 40
+text = "BACK"
 flat = true

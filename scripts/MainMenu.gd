@@ -17,26 +17,91 @@ func _ready():
 	var play_btn = $CenterContainer/VBoxContainer/ButtonContainer/PlayButton
 	play_btn.add_theme_font_override("font", font_title)
 	
+	var settings_btn = $CenterContainer/VBoxContainer/ButtonContainer/SettingsButton
+	settings_btn.add_theme_font_override("font", font_title)
+	
+	# Settings UI elements
+	var settings_label = $SettingsLayer/CenterContainer/VBoxContainer/Label
+	settings_label.add_theme_font_override("font", font_title)
+	settings_label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+	
+	var crt_label = $SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/Label
+	crt_label.add_theme_font_override("font", font_title)
+	crt_label.add_theme_color_override("font_color", GameConstants.COLOR_FG) # Made more prominent
+	
+	var crt_on_btn = $SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOn
+	var crt_off_btn = $SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOff
+	
+	var back_btn = $SettingsLayer/CenterContainer/VBoxContainer/BackButton
+	back_btn.add_theme_font_override("font", font_title)
+	
 	# Set colors using GameConstants (class_name)
 	title.add_theme_color_override("default_color", GameConstants.COLOR_FG)
 	
-	play_btn.add_theme_color_override("font_color", GameConstants.COLOR_FG)
-	play_btn.add_theme_color_override("font_hover_color", GameConstants.COLOR_FG)
-	play_btn.add_theme_color_override("font_pressed_color", GameConstants.COLOR_GHOST)
-	play_btn.add_theme_color_override("font_focus_color", GameConstants.COLOR_FG)
+	for btn in [play_btn, settings_btn, back_btn, crt_on_btn, crt_off_btn]:
+		btn.add_theme_font_override("font", font_title)
+		btn.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+		btn.add_theme_color_override("font_hover_color", GameConstants.COLOR_FG)
+		btn.add_theme_color_override("font_pressed_color", GameConstants.COLOR_GHOST)
+		btn.add_theme_color_override("font_focus_color", GameConstants.COLOR_FG)
+		
+		# Connect signals
+		btn.mouse_entered.connect(func(): _update_button_style(btn, true))
+		btn.mouse_exited.connect(func(): _update_button_style(btn, false))
+		btn.button_down.connect(func(): _on_button_down(btn))
+		btn.button_up.connect(func(): _on_button_up(btn))
 	
-	# Connect signals
 	play_btn.pressed.connect(_on_play_pressed)
-	play_btn.mouse_entered.connect(func(): _update_button_style(play_btn, true))
-	play_btn.mouse_exited.connect(func(): _update_button_style(play_btn, false))
-	play_btn.button_down.connect(func(): _on_button_down(play_btn))
-	play_btn.button_up.connect(func(): _on_button_up(play_btn))
+	settings_btn.pressed.connect(_on_settings_pressed)
+	back_btn.pressed.connect(_on_back_pressed)
+	crt_on_btn.pressed.connect(func(): _on_crt_toggle_pressed(true))
+	crt_off_btn.pressed.connect(func(): _on_crt_toggle_pressed(false))
+	
+	# Sync shader visibility
+	_update_shader_visibility(Config.crt_enabled)
+	_update_crt_buttons_style(Config.crt_enabled)
+	Config.crt_changed.connect(_update_shader_visibility)
+	Config.crt_changed.connect(_update_crt_buttons_style)
 	
 	# Initial style
-	play_btn.pivot_offset = play_btn.size / 2
+	for btn in [play_btn, settings_btn, back_btn, crt_on_btn, crt_off_btn]:
+		btn.pivot_offset = btn.size / 2
 
 func _on_play_pressed():
 	get_tree().change_scene_to_file("res://scenes/Main.tscn")
+
+func _on_settings_pressed():
+	$SettingsLayer.visible = true
+
+func _on_back_pressed():
+	$SettingsLayer.visible = false
+
+func _on_crt_toggle_pressed(enabled: bool):
+	Config.crt_enabled = enabled
+
+func _update_crt_buttons_style(enabled: bool):
+	var crt_on_btn = $SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOn
+	var crt_off_btn = $SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOff
+	
+	if enabled:
+		crt_on_btn.add_theme_color_override("font_color", GameConstants.COLOR_SNAKE) # Active green
+		crt_off_btn.add_theme_color_override("font_color", GameConstants.COLOR_GHOST) # Inactive gray
+	else:
+		crt_on_btn.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
+		crt_off_btn.add_theme_color_override("font_color", GameConstants.COLOR_DANGER) # Active red
+
+func _update_shader_visibility(enabled: bool):
+	# Update main menu edge blur
+	var blur_rect = $EdgeBlur
+	if blur_rect and blur_rect.material:
+		blur_rect.material.set_shader_parameter("crt_enabled", enabled)
+	if blur_rect:
+		blur_rect.visible = true
+		
+	# Update settings background blur
+	var settings_blur = $SettingsLayer/ColorRect
+	if settings_blur and settings_blur.material:
+		settings_blur.material.set_shader_parameter("crt_enabled", enabled)
 
 func _update_button_style(btn: Button, hover: bool):
 	var tween = create_tween()
@@ -62,20 +127,24 @@ func _on_button_up(btn: Button):
 	tween.tween_property(btn, "self_modulate", Color.WHITE, 0.1)
 
 func _process(_delta):
-	# Update pivot offset for correct scaling
-	var play_btn = $CenterContainer/VBoxContainer/ButtonContainer/PlayButton
-	play_btn.pivot_offset = play_btn.size / 2
+	# Update pivot offsets
+	for btn in [$CenterContainer/VBoxContainer/ButtonContainer/PlayButton, 
+				$CenterContainer/VBoxContainer/ButtonContainer/SettingsButton,
+				$SettingsLayer/CenterContainer/VBoxContainer/BackButton,
+				$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOn,
+				$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOff]:
+		btn.pivot_offset = btn.size / 2
 	
 	# Subtle floating animation for the title
 	var title = $CenterContainer/VBoxContainer/TitleContainer/Title
 	title.position.y = title_pos.y + sin(Time.get_ticks_msec() * 0.002) * 8.0
 	
-	# Update blur shader uniforms to track actual element positions
-	_update_blur_regions(title, play_btn)
+	# Update blur shader uniforms
+	_update_blur_regions(title, $CenterContainer/VBoxContainer/ButtonContainer/PlayButton)
 
 func _update_blur_regions(title: Control, play_btn: Control):
 	var blur_rect = $EdgeBlur
-	if not blur_rect or not blur_rect.material:
+	if not blur_rect or not blur_rect.material or not blur_rect.visible:
 		return
 	
 	var mat = blur_rect.material as ShaderMaterial
