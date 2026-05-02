@@ -29,8 +29,10 @@ func _ready():
 	Config.crt_changed.connect(_update_shader_visibility)
 
 func _update_shader_visibility(enabled: bool):
+	if edge_blur and edge_blur.material:
+		edge_blur.material.set_shader_parameter("crt_enabled", enabled)
 	if edge_blur:
-		edge_blur.visible = enabled
+		edge_blur.visible = true
 
 func _process(delta):
 	if snake and snake.is_reversing:

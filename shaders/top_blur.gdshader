@@ -2,7 +2,7 @@ shader_type canvas_item;
 
 #include "res://shaders/crt_base.gdshaderinc"
 
-uniform sampler2D screen_texture : hint_screen_texture, filter_nearest_mipmap;
+uniform sampler2D screen_texture : hint_screen_texture, filter_linear_mipmap;
 uniform float blur_strength : hint_range(0.0, 5.0) = 4.0;
 uniform float edge_margin : hint_range(0.0, 1.0) = 0.2;
 uniform vec4 tint_color : source_color = vec4(0.1, 0.1, 0.1, 0.4);
