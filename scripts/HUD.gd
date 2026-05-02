@@ -23,6 +23,14 @@ func _ready():
 	# Wait for the scene to be fully loaded to find the snake
 	await get_tree().process_frame
 	snake = get_tree().root.find_child("Snake", true, false)
+	
+	# Sync shader visibility
+	_update_shader_visibility(Config.crt_enabled)
+	Config.crt_changed.connect(_update_shader_visibility)
+
+func _update_shader_visibility(enabled: bool):
+	if edge_blur:
+		edge_blur.visible = enabled
 
 func _process(delta):
 	if snake and snake.is_reversing:
