@@ -15,6 +15,7 @@ const COLOR_CHUNK_BORDER = Color("#3c3836")
 const COLOR_BLOCK_BORDER = Color("#32302f") # Slightly lighter than BG
 const COLOR_ACCENT_BLUE = Color("#7daea3")
 const COLOR_ACCENT_PURPLE = Color("#d3869b")
+const COLOR_GHOST = Color("#928374") # Gruvbox Material gray
 
 const COLOR_POINT_NORMAL = Color("#d8a657")
 const COLOR_POINT_MEDIUM = Color("#d3869b")

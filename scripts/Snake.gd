@@ -1,6 +1,8 @@
 extends Node2D
 
 var body = [] # Array of Vector2i (grid positions)
+var old_body = [] # Previous grid positions for animation
+var dead_parts = [] # List of { segments: Array, time: float }
 var direction = Vector2i.RIGHT
 var next_direction = Vector2i.RIGHT
 var input_queue = []
@@ -23,6 +25,12 @@ func _dir_to_action(dir: Vector2i) -> String:
 		return "ui_right"
 	return ""
 
+func get_animated_t() -> float:
+	var speed = move_speed_dash if is_dashing else move_speed_normal
+	var t = clamp(move_timer / speed, 0.0, 1.0)
+	# Cubic Ease Out: snappy but slightly smoother than Quartic
+	return 1.0 - pow(1.0 - t, 3.0)
+
 func update_is_dashing():
 	var dir_action := _dir_to_action(dash_dir_hold)
 	var dir_dashing := dash_dir_hold != Vector2i.ZERO and dir_action != "" and Input.is_action_pressed(dir_action)
@@ -31,13 +39,23 @@ func update_is_dashing():
 func _ready():
 	# Initial snake (3 segments)
 	body = [Vector2i(5, 5), Vector2i(4, 5), Vector2i(3, 5)]
+	old_body = body.duplicate()
 	recalculate_speed()
 	update_position_from_grid()
 
 func _process(delta):
+	var old_speed = move_speed_dash if is_dashing else move_speed_normal
+	
 	update_is_dashing()
 	handle_input()
 	update_is_dashing()
+	
+	var new_speed = move_speed_dash if is_dashing else move_speed_normal
+	if old_speed != new_speed:
+		# Rescale timer to maintain the same visual progress (t)
+		move_timer = move_timer * (new_speed / old_speed)
+	
+	_update_dead_parts(delta)
 	
 	if is_reversing:
 		return
@@ -48,6 +66,10 @@ func _process(delta):
 	if move_timer >= current_speed:
 		move_timer = 0.0
 		move_step()
+	
+	# Update visual position and redraw for animation
+	update_position_from_grid()
+	queue_redraw()
 
 func handle_input():
 	if is_dashing:
@@ -74,10 +96,25 @@ func handle_input():
 		else:
 			input_queue.append(new_dir)
 
+func _update_dead_parts(delta):
+	if dead_parts.is_empty():
+		return
+	var i = dead_parts.size() - 1
+	var changed = false
+	while i >= 0:
+		dead_parts[i].time -= delta
+		changed = true
+		if dead_parts[i].time <= 0:
+			dead_parts.remove_at(i)
+		i -= 1
+	if changed:
+		queue_redraw()
+
 var score = 0
 var pending_growth = 0
 
 func move_step():
+	old_body = body.duplicate()
 	if not input_queue.is_empty():
 		var new_direction = input_queue.pop_front()
 		if new_direction != direction:
@@ -135,7 +172,7 @@ func move_step():
 	
 	update_position_from_grid()
 	recalculate_speed()
-	queue_redraw()
+	# queue_redraw() is now called in _process
 
 func cut_snake(cut_index: int):
 	if cut_index == 0:
@@ -143,6 +180,10 @@ func cut_snake(cut_index: int):
 		return
 		
 	if cut_index > 0 and cut_index < body.size():
+		# Save the severed part for a visual fade-out effect
+		var severed_part = body.slice(cut_index)
+		dead_parts.append({"segments": severed_part, "time": 2.0})
+		
 		var segments_lost = body.size() - cut_index
 		# Keep only the part before the cut (head is at index 0)
 		body = body.slice(0, cut_index)
@@ -156,6 +197,8 @@ func cut_snake(cut_index: int):
 		_play_screen_fx(5.0, red_tint, GameConstants.SNAKE_REVERSE_TIME)
 		
 		recalculate_speed()
+		old_body = body.duplicate() # Reset animation
+		move_timer = 0.0
 		queue_redraw()
 
 func recalculate_speed():
@@ -164,14 +207,47 @@ func recalculate_speed():
 	move_speed_dash = move_speed_normal * GameConstants.SNAKE_DASH_MULTIPLIER
 
 func update_position_from_grid():
+	var t = get_animated_t()
+	var head_curr = Vector2(body[0])
+	var head_prev = Vector2(old_body[0] if not old_body.is_empty() else body[0])
+	var visual_head_pos = head_prev.lerp(head_curr, t)
+	
 	# Centering the camera/pivot on the head
-	position = Vector2(body[0]) * GameConstants.CELL_SIZE
+	position = visual_head_pos * GameConstants.CELL_SIZE
 
 func _draw():
-	# Draw segments relative to the head (since the node follows the head)
+	var t = get_animated_t()
+	var visual_positions = []
 	for i in range(body.size()):
-		var segment = body[i]
-		var draw_pos = Vector2(segment) * GameConstants.CELL_SIZE - position
+		var curr_pos = Vector2(body[i])
+		var prev_pos = Vector2(old_body[i] if i < old_body.size() else body[i])
+		visual_positions.append(prev_pos.lerp(curr_pos, t))
+	
+	# 0. Draw Dead Parts (severed tail fading out)
+	for part in dead_parts:
+		var alpha = clamp(part.time / 1.0, 0.0, 1.0) # Fade out in the last 1 second
+		var color = GameConstants.COLOR_GHOST
+		color.a = alpha * 0.6 # Apply transparency
+		for segment in part.segments:
+			var draw_pos = Vector2(segment) * GameConstants.CELL_SIZE - position
+			var rect = Rect2(draw_pos, Vector2.ONE * GameConstants.CELL_SIZE)
+			draw_rect(rect, color)
+	
+	# 1. Draw Joints (static blocks at grid positions to fill gaps at corners)
+	# We draw joints for every connection to keep the body solid during turns
+	for i in range(body.size() - 1):
+		# The "corner" or intermediate point between segment i and i+1 is old_body[i]
+		if i < old_body.size():
+			var joint_pos = Vector2(old_body[i])
+			var draw_pos = joint_pos * GameConstants.CELL_SIZE - position
+			var rect = Rect2(draw_pos, Vector2.ONE * GameConstants.CELL_SIZE)
+			# Fill with snake color (no border for joints to keep them seamless)
+			draw_rect(rect, GameConstants.COLOR_SNAKE)
+	
+	# 2. Draw Segments (from tail to head so head is on top)
+	for i in range(body.size() - 1, -1, -1):
+		var visual_pos = visual_positions[i]
+		var draw_pos = visual_pos * GameConstants.CELL_SIZE - position
 		var rect = Rect2(draw_pos, Vector2.ONE * GameConstants.CELL_SIZE)
 		
 		# Fill
@@ -181,8 +257,7 @@ func _draw():
 			color = color.lightened(0.2)
 			
 		draw_rect(rect, color)
-		# Border
-		draw_rect(rect, GameConstants.COLOR_BLOCK_BORDER, false, 1.0)
+		# Individual block borders removed to make the body look seamless
 
 func reverse_snake():
 	if body.size() < 2 or is_reversing:
@@ -197,6 +272,7 @@ func reverse_snake():
 	var old_head_pos = global_position
 	
 	body.reverse()
+	old_body = body.duplicate() # Reset animation
 	
 	# Set direction to move away from the new second segment.
 	# This ensures we don't immediately collide with our own body
