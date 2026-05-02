@@ -215,7 +215,7 @@ func reverse_snake():
 	
 	# Tween camera from old head to new head (local 0,0)
 	var tween = create_tween()
-	tween.set_trans(Tween.TRANS_QUART) # Fast start
+	tween.set_trans(Tween.TRANS_EXPO) # Fast start, slow end
 	tween.set_ease(Tween.EASE_OUT)      # Slow end
 	tween.tween_property(camera, "position", Vector2.ZERO, GameConstants.SNAKE_REVERSE_TIME)
 	

@@ -24,6 +24,11 @@ func setup(p_type: Type, p_offset_k: int, p_thickness: int = 1, p_zigzag_amplitu
 	queue_redraw()
 
 func _process(delta):
+	var world = get_parent()
+	var snake = world.get_parent().get_node("Snake") if world else null
+	if snake and snake.is_reversing:
+		return  # Pause countdown during reverse animation
+	
 	timer -= delta
 	
 	if not is_active:
