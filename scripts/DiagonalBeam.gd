@@ -44,6 +44,7 @@ func _process(delta):
 		if timer <= 0:
 			activate_beam()
 	else:
+		queue_redraw()
 		if timer <= 0:
 			deactivate_beam()
 
@@ -111,7 +112,10 @@ func _draw():
 	
 	var draw_color = color
 	if is_active:
-		draw_color.a = 1.0
+		var flash_ratio = clamp(timer / active_time, 0.0, 1.0)
+		var boost = flash_ratio * 1.5
+		draw_color = Color(color.r + boost, color.g + boost * 0.2, color.b + boost * 0.2)
+		draw_color.a = flash_ratio
 	else:
 		draw_color.a = 0.5 if show_warning else 0.15
 		

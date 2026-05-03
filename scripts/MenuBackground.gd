@@ -425,7 +425,10 @@ func _draw_beams():
 	for b in deco_beams:
 		var color = GameConstants.COLOR_DANGER
 		if b["is_active"]:
-			color.a = 1.0
+			var flash_ratio = clamp(b["timer"] / b["active_time"], 0.0, 1.0)
+			var boost = flash_ratio * 1.5
+			color = Color(color.r + boost, color.g + boost * 0.2, color.b + boost * 0.2)
+			color.a = flash_ratio
 		else:
 			color.a = 0.5 if b["show"] else 0.15
 		var center_grid = Vector2i((-scroll_offset + viewport_size * 0.5) / CELL)
@@ -463,7 +466,10 @@ func _draw_diag_beams():
 	for b in deco_diag_beams:
 		var color = GameConstants.COLOR_DANGER
 		if b["is_active"]:
-			color.a = 1.0
+			var flash_ratio = clamp(b["timer"] / b["active_time"], 0.0, 1.0)
+			var boost = flash_ratio * 1.5
+			color = Color(color.r + boost, color.g + boost * 0.2, color.b + boost * 0.2)
+			color.a = flash_ratio
 		else:
 			color.a = 0.5 if b["show"] else 0.15
 		var center_grid = Vector2i((-scroll_offset + viewport_size * 0.5) / CELL)
@@ -485,7 +491,10 @@ func _draw_bombs():
 	for b in deco_bombs:
 		var color = GameConstants.COLOR_DANGER
 		if b["is_active"]:
-			color.a = 1.0
+			var flash_ratio = clamp(b["timer"] / b["active_time"], 0.0, 1.0)
+			var boost = flash_ratio * 1.5
+			color = Color(color.r + boost, color.g + boost * 0.2, color.b + boost * 0.2)
+			color.a = flash_ratio
 		else:
 			color.a = 0.5 if b["show"] else 0.15
 		var c = b["center"]

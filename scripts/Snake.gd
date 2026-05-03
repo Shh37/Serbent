@@ -172,10 +172,7 @@ func move_step():
 		# Normal move, remove tail
 		body.pop_back()
 	
-	# Check for hazard collision (if any beam/bomb is currently active)
-	# This is for when the snake MOVES into an already active hazard
-	if world.has_method("check_hazard_collision"):
-		world.check_hazard_collision(self)
+	# Hazard collision is now ONLY checked at the moment the hazard activates.
 	
 	update_position_from_grid()
 	recalculate_speed()

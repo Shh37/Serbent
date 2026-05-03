@@ -39,6 +39,7 @@ func _process(delta):
 		if timer <= 0:
 			activate_bomb()
 	else:
+		queue_redraw() # Continually redraw for flash fade effect
 		if timer <= 0:
 			deactivate_bomb()
 
@@ -79,7 +80,11 @@ func _draw():
 	
 	var warning_color = color
 	if is_active:
-		warning_color.a = 1.0
+		var flash_ratio = clamp(timer / active_time, 0.0, 1.0)
+		# Boost brightness (especially red) to create a glowing effect without turning pure white
+		var boost = flash_ratio * 1.5
+		warning_color = Color(color.r + boost, color.g + boost * 0.2, color.b + boost * 0.2)
+		warning_color.a = flash_ratio
 	else:
 		# Blink between dark red (low alpha) and light red (higher alpha)
 		warning_color.a = 0.5 if show_warning else 0.15
