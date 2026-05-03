@@ -19,6 +19,9 @@ var deco_beams: Array = []   # { orientation, index, thickness, zigzag, timer, w
 var deco_diag_beams: Array = []
 var deco_bombs: Array = []   # { center, radius, timer, warning_time, active_time, is_active, show, flicker_t }
 
+func _get_flicker_speed(timer: float, warning_time: float) -> float:
+	return lerp(0.04, 0.2, clamp(timer / warning_time, 0.0, 1.0))
+
 var beam_timer = 0.0
 var next_beam_time = 2.0
 var bomb_timer = 0.0
@@ -231,7 +234,8 @@ func _update_beams(delta):
 		b["timer"] -= delta
 		if not b["is_active"]:
 			b["flicker_t"] += delta
-			if b["flicker_t"] >= 0.1:
+			var f_speed = _get_flicker_speed(b["timer"], b["warning_time"])
+			if b["flicker_t"] >= f_speed:
 				b["flicker_t"] = 0.0
 				b["show"] = not b["show"]
 			if b["timer"] <= 0:
@@ -252,7 +256,8 @@ func _update_beams(delta):
 		b["timer"] -= delta
 		if not b["is_active"]:
 			b["flicker_t"] += delta
-			if b["flicker_t"] >= 0.1:
+			var f_speed = _get_flicker_speed(b["timer"], b["warning_time"])
+			if b["flicker_t"] >= f_speed:
 				b["flicker_t"] = 0.0
 				b["show"] = not b["show"]
 			if b["timer"] <= 0:
@@ -322,7 +327,8 @@ func _update_bombs(delta):
 		b["timer"] -= delta
 		if not b["is_active"]:
 			b["flicker_t"] += delta
-			if b["flicker_t"] >= 0.1:
+			var f_speed = _get_flicker_speed(b["timer"], b["warning_time"])
+			if b["flicker_t"] >= f_speed:
 				b["flicker_t"] = 0.0
 				b["show"] = not b["show"]
 			if b["timer"] <= 0:
@@ -417,11 +423,11 @@ func _beam_zigzag_offset(pos_along: int, amplitude: int) -> int:
 
 func _draw_beams():
 	for b in deco_beams:
-		if not b["is_active"] and not b["show"]:
-			continue
 		var color = GameConstants.COLOR_DANGER
-		if not b["is_active"]:
-			color.a = 0.2
+		if b["is_active"]:
+			color.a = 1.0
+		else:
+			color.a = 0.5 if b["show"] else 0.15
 		var center_grid = Vector2i((-scroll_offset + viewport_size * 0.5) / CELL)
 		var range_val = 40
 		for i in range(-range_val, range_val):
@@ -455,11 +461,11 @@ func _is_on_diag_beam(grid_pos: Vector2i, b: Dictionary) -> bool:
 
 func _draw_diag_beams():
 	for b in deco_diag_beams:
-		if not b["is_active"] and not b["show"]:
-			continue
 		var color = GameConstants.COLOR_DANGER
-		if not b["is_active"]:
-			color.a = 0.2
+		if b["is_active"]:
+			color.a = 1.0
+		else:
+			color.a = 0.5 if b["show"] else 0.15
 		var center_grid = Vector2i((-scroll_offset + viewport_size * 0.5) / CELL)
 		var range_val = 40
 		for i in range(-range_val, range_val):
@@ -477,11 +483,11 @@ func _draw_diag_beams():
 
 func _draw_bombs():
 	for b in deco_bombs:
-		if not b["is_active"] and not b["show"]:
-			continue
 		var color = GameConstants.COLOR_DANGER
-		if not b["is_active"]:
-			color.a = 0.2
+		if b["is_active"]:
+			color.a = 1.0
+		else:
+			color.a = 0.5 if b["show"] else 0.15
 		var c = b["center"]
 		var rad = b["radius"]
 		for x in range(-rad, rad + 1):
