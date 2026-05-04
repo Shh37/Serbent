@@ -129,11 +129,8 @@ func _generate_chunk_data(cp: Vector2i) -> Dictionary:
 			var key = Vector2i(lx, ly)
 			if _is_pos_safe(key, used, 2):
 				used[key] = true
-				var t = 0
-				var rv = rng.randf()
-				if rv > 0.85: t = 2
-				elif rv > 0.65: t = 1
-				data["points"].append({"pos": key, "type": t})
+				data["points"].append({"pos": key})
+
 				break
 
 	# 3) Single thorns (min_dist = 1, matching Chunk.gd)
@@ -395,10 +392,8 @@ func _draw_chunks():
 		# Points
 		for pdata in data["points"]:
 			var ppos = pdata["pos"]
-			var ptype = pdata["type"]
 			var color = GameConstants.COLOR_POINT_NORMAL
-			if ptype == 1: color = GameConstants.COLOR_POINT_MEDIUM
-			elif ptype == 2: color = GameConstants.COLOR_POINT_LARGE
+
 			var rect = Rect2(origin + Vector2(ppos) * CELL, Vector2(CELL, CELL))
 			draw_rect(rect, color)
 			draw_rect(rect, GameConstants.COLOR_BLOCK_BORDER, false, 1.0)

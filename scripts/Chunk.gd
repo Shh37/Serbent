@@ -77,12 +77,8 @@ func spawn_points(used_positions: Dictionary):
 				point.set_script(load("res://scripts/Point.gd"))
 				add_child(point)
 				
-				var type = Point.Type.NORMAL
-				var r = randf()
-				if r > 0.85: type = Point.Type.LARGE
-				elif r > 0.65: type = Point.Type.MEDIUM
-				
-				point.setup_local(local_pos, type)
+				point.setup_local(local_pos)
+
 				
 				var world = get_parent()
 				if world.has_method("register_point"):
