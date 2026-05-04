@@ -13,12 +13,10 @@ void fragment() {
     calculate_crt_uv(SCREEN_UV, TIME, safe_uv, outside_amount);
 
     // --- Edge blur mask ---
-    float left = safe_uv.x;
-    float right = 1.0 - safe_uv.x;
-    float top = safe_uv.y;
-    float bottom = 1.0 - safe_uv.y;
-    float min_dist = min(min(left, right), min(top, bottom));
-    float edge_mask = clamp(1.0 - (min_dist / edge_margin), 0.0, 1.0);
+    vec2 center_dist = abs(safe_uv - 0.5) * 2.0; // 0..1 from center
+    vec2 d = max(center_dist - (1.0 - edge_margin * 2.0), vec2(0.0));
+    float edge_mask = length(d) / (edge_margin * 2.0 + 0.0001);
+    edge_mask = clamp(edge_mask, 0.0, 1.0);
     edge_mask = edge_mask * edge_mask * (3.0 - 2.0 * edge_mask); // smoothstep
 
     float combined_mask = max(edge_mask, outside_amount);
@@ -30,7 +28,7 @@ void fragment() {
     vec3 color = sample_crt_color(screen_texture, sampling_uv, lod, chroma_strength);
 
     // --- Finalize ---
-    vec4 final_color = mix(vec4(color, 1.0), tint_color, combined_mask * 0.4);
+    vec4 final_color = mix(vec4(color, 1.0), vec4(tint_color.rgb, 1.0), combined_mask * tint_color.a);
     final_color.rgb = apply_crt_effects(final_color.rgb, safe_uv, res);
 
     COLOR = vec4(final_color.rgb, 1.0);

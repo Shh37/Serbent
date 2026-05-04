@@ -30,6 +30,7 @@ func setup(p_chunk_pos: Vector2i):
 	# Order: Clusters -> Points -> Single Thorns
 	spawn_cluster_thorns(used_positions)
 	spawn_points(used_positions)
+	spawn_powerups(used_positions)
 	spawn_thorns(used_positions)
 	
 	queue_redraw()
@@ -53,8 +54,9 @@ func is_pos_safe(pos: Vector2i, used_positions: Dictionary, min_dist: int) -> bo
 		for dx in range(-min_dist, min_dist + 1):
 			for dy in range(-min_dist, min_dist + 1):
 				var check_global = global_pos + Vector2i(dx, dy)
-				if world.points.has(check_global) or world.thorns.has(check_global):
+				if world.points.has(check_global) or world.thorns.has(check_global) or world.powerups.has(check_global):
 					return false
+
 	return true
 
 func spawn_points(used_positions: Dictionary):
@@ -86,6 +88,47 @@ func spawn_points(used_positions: Dictionary):
 				break
 			attempts += 1
 
+func spawn_powerups(used_positions: Dictionary):
+	# ~30% chance to spawn a powerup in a chunk
+	if randf() > 0.3:
+		return
+		
+	var attempts = 0
+	while attempts < 20:
+		var local_pos = Vector2i(
+			randi_range(0, GameConstants.CHUNK_SIZE - 1),
+			randi_range(0, GameConstants.CHUNK_SIZE - 1)
+		)
+		
+		if is_pos_safe(local_pos, used_positions, 2):
+			used_positions[local_pos] = true
+			var global_pos = chunk_pos * GameConstants.CHUNK_SIZE + local_pos
+			
+			var powerup = Node2D.new()
+			powerup.set_script(load("res://scripts/PowerUp.gd"))
+			add_child(powerup)
+			
+			var r = randf()
+			var type = GameConstants.PowerUpType.GHOST
+			if r < 0.25: # 5/20
+				type = GameConstants.PowerUpType.GHOST
+			elif r < 0.5: # 5/20
+				type = GameConstants.PowerUpType.TIME_STOP
+			else: # 10/20
+				type = GameConstants.PowerUpType.DOUBLE_GROWTH
+			
+			powerup.setup_local(local_pos, type)
+
+
+
+			
+			var world = get_parent()
+			if world.has_method("register_powerup"):
+				world.register_powerup(global_pos, powerup)
+			break
+		attempts += 1
+
+
 func spawn_thorns(used_positions: Dictionary):
 	# Randomly spawn 3-5 single thorns per chunk
 	var num_thorns = randi_range(3, 5)
@@ -98,8 +141,9 @@ func spawn_thorns(used_positions: Dictionary):
 				randi_range(0, GameConstants.CHUNK_SIZE - 1)
 			)
 			
-			if is_pos_safe(local_pos, used_positions, 1):
+			if is_pos_safe(local_pos, used_positions, 2):
 				used_positions[local_pos] = true
+
 				var global_pos = chunk_pos * GameConstants.CHUNK_SIZE + local_pos
 				
 				var thorn = Node2D.new()

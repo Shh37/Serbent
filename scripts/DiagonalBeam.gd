@@ -28,8 +28,8 @@ func setup(p_type: Type, p_offset_k: int, p_thickness: int = 1, p_zigzag_amplitu
 func _process(delta):
 	var world = get_parent()
 	var snake = world.get_parent().get_node("Snake") if world else null
-	if snake and snake.is_reversing:
-		return  # Pause countdown during reverse animation
+	if (snake and snake.is_reversing) or (world and world.is_time_stopped and not is_active):
+		return # Pause warning during Time Stop or reverse
 	
 	timer -= delta
 	
