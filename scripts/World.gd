@@ -29,8 +29,8 @@ func update_beam_spawning(delta):
 	beam_timer += delta
 	if beam_timer >= next_beam_time:
 		beam_timer = 0.0
-		# Normal distribution centered at 4.0, flattened (sigma=3.0) to make extremes more frequent
-		next_beam_time = clamp(randfn(4.0, 3.0), 0.5, 8.5)
+		# Normal distribution centered at 6.0, flattened (sigma=3.0) to make extremes more frequent
+		next_beam_time = clamp(randfn(6.0, 3.0), 0.5, 12.5)
 		if randf() > 0.4:
 			spawn_random_beam()
 		else:
@@ -40,8 +40,8 @@ func update_bomb_spawning(delta):
 	bomb_timer += delta
 	if bomb_timer >= next_bomb_time:
 		bomb_timer = 0.0
-		# Normal distribution centered at 4.0, flattened (sigma=3.0) to make extremes more frequent
-		next_bomb_time = clamp(randfn(4.0, 3.0), 0.5, 8.5)
+		# Normal distribution centered at 6.0, flattened (sigma=3.0) to make extremes more frequent
+		next_bomb_time = clamp(randfn(6.0, 3.0), 0.5, 12.5)
 		spawn_random_bomb()
 
 func spawn_random_beam():

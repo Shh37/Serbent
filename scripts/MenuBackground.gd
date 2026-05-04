@@ -221,7 +221,7 @@ func _update_beams(delta):
 	beam_timer += delta
 	if beam_timer >= next_beam_time:
 		beam_timer = 0.0
-		next_beam_time = clampf(randfn(4.0, 3.0), 0.5, 8.5)
+		next_beam_time = clampf(randfn(6.0, 3.0), 0.5, 12.5)
 		if randf() > 0.4:
 			_spawn_beam()
 		else:
@@ -318,7 +318,7 @@ func _update_bombs(delta):
 	bomb_timer += delta
 	if bomb_timer >= next_bomb_time:
 		bomb_timer = 0.0
-		next_bomb_time = clampf(randfn(4.0, 3.0), 0.5, 8.5)
+		next_bomb_time = clampf(randfn(6.0, 3.0), 0.5, 12.5)
 		_spawn_bomb()
 
 	var to_remove = []
