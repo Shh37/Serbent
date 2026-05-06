@@ -19,6 +19,9 @@ var deco_beams: Array = []   # { orientation, index, thickness, zigzag, timer, w
 var deco_diag_beams: Array = []
 var deco_bombs: Array = []   # { center, radius, timer, warning_time, active_time, is_active, show, flicker_t }
 
+func _get_flicker_speed(timer: float, warning_time: float) -> float:
+	return lerp(0.04, 0.2, clamp(timer / warning_time, 0.0, 1.0))
+
 var beam_timer = 0.0
 var next_beam_time = 2.0
 var bomb_timer = 0.0
@@ -126,11 +129,8 @@ func _generate_chunk_data(cp: Vector2i) -> Dictionary:
 			var key = Vector2i(lx, ly)
 			if _is_pos_safe(key, used, 2):
 				used[key] = true
-				var t = 0
-				var rv = rng.randf()
-				if rv > 0.85: t = 2
-				elif rv > 0.65: t = 1
-				data["points"].append({"pos": key, "type": t})
+				data["points"].append({"pos": key})
+
 				break
 
 	# 3) Single thorns (min_dist = 1, matching Chunk.gd)
@@ -218,7 +218,7 @@ func _update_beams(delta):
 	beam_timer += delta
 	if beam_timer >= next_beam_time:
 		beam_timer = 0.0
-		next_beam_time = clampf(randfn(4.0, 3.0), 0.5, 8.5)
+		next_beam_time = clampf(randfn(6.0, 3.0), 0.5, 12.5)
 		if randf() > 0.4:
 			_spawn_beam()
 		else:
@@ -231,7 +231,8 @@ func _update_beams(delta):
 		b["timer"] -= delta
 		if not b["is_active"]:
 			b["flicker_t"] += delta
-			if b["flicker_t"] >= 0.1:
+			var f_speed = _get_flicker_speed(b["timer"], b["warning_time"])
+			if b["flicker_t"] >= f_speed:
 				b["flicker_t"] = 0.0
 				b["show"] = not b["show"]
 			if b["timer"] <= 0:
@@ -252,7 +253,8 @@ func _update_beams(delta):
 		b["timer"] -= delta
 		if not b["is_active"]:
 			b["flicker_t"] += delta
-			if b["flicker_t"] >= 0.1:
+			var f_speed = _get_flicker_speed(b["timer"], b["warning_time"])
+			if b["flicker_t"] >= f_speed:
 				b["flicker_t"] = 0.0
 				b["show"] = not b["show"]
 			if b["timer"] <= 0:
@@ -313,7 +315,7 @@ func _update_bombs(delta):
 	bomb_timer += delta
 	if bomb_timer >= next_bomb_time:
 		bomb_timer = 0.0
-		next_bomb_time = clampf(randfn(4.0, 3.0), 0.5, 8.5)
+		next_bomb_time = clampf(randfn(6.0, 3.0), 0.5, 12.5)
 		_spawn_bomb()
 
 	var to_remove = []
@@ -322,7 +324,8 @@ func _update_bombs(delta):
 		b["timer"] -= delta
 		if not b["is_active"]:
 			b["flicker_t"] += delta
-			if b["flicker_t"] >= 0.1:
+			var f_speed = _get_flicker_speed(b["timer"], b["warning_time"])
+			if b["flicker_t"] >= f_speed:
 				b["flicker_t"] = 0.0
 				b["show"] = not b["show"]
 			if b["timer"] <= 0:
@@ -389,10 +392,8 @@ func _draw_chunks():
 		# Points
 		for pdata in data["points"]:
 			var ppos = pdata["pos"]
-			var ptype = pdata["type"]
 			var color = GameConstants.COLOR_POINT_NORMAL
-			if ptype == 1: color = GameConstants.COLOR_POINT_MEDIUM
-			elif ptype == 2: color = GameConstants.COLOR_POINT_LARGE
+
 			var rect = Rect2(origin + Vector2(ppos) * CELL, Vector2(CELL, CELL))
 			draw_rect(rect, color)
 			draw_rect(rect, GameConstants.COLOR_BLOCK_BORDER, false, 1.0)
@@ -417,11 +418,14 @@ func _beam_zigzag_offset(pos_along: int, amplitude: int) -> int:
 
 func _draw_beams():
 	for b in deco_beams:
-		if not b["is_active"] and not b["show"]:
-			continue
 		var color = GameConstants.COLOR_DANGER
-		if not b["is_active"]:
-			color.a = 0.2
+		if b["is_active"]:
+			var flash_ratio = clamp(b["timer"] / b["active_time"], 0.0, 1.0)
+			var boost = flash_ratio * 1.5
+			color = Color(color.r + boost, color.g + boost * 0.2, color.b + boost * 0.2)
+			color.a = flash_ratio
+		else:
+			color.a = 0.5 if b["show"] else 0.15
 		var center_grid = Vector2i((-scroll_offset + viewport_size * 0.5) / CELL)
 		var range_val = 40
 		for i in range(-range_val, range_val):
@@ -455,11 +459,14 @@ func _is_on_diag_beam(grid_pos: Vector2i, b: Dictionary) -> bool:
 
 func _draw_diag_beams():
 	for b in deco_diag_beams:
-		if not b["is_active"] and not b["show"]:
-			continue
 		var color = GameConstants.COLOR_DANGER
-		if not b["is_active"]:
-			color.a = 0.2
+		if b["is_active"]:
+			var flash_ratio = clamp(b["timer"] / b["active_time"], 0.0, 1.0)
+			var boost = flash_ratio * 1.5
+			color = Color(color.r + boost, color.g + boost * 0.2, color.b + boost * 0.2)
+			color.a = flash_ratio
+		else:
+			color.a = 0.5 if b["show"] else 0.15
 		var center_grid = Vector2i((-scroll_offset + viewport_size * 0.5) / CELL)
 		var range_val = 40
 		for i in range(-range_val, range_val):
@@ -477,11 +484,14 @@ func _draw_diag_beams():
 
 func _draw_bombs():
 	for b in deco_bombs:
-		if not b["is_active"] and not b["show"]:
-			continue
 		var color = GameConstants.COLOR_DANGER
-		if not b["is_active"]:
-			color.a = 0.2
+		if b["is_active"]:
+			var flash_ratio = clamp(b["timer"] / b["active_time"], 0.0, 1.0)
+			var boost = flash_ratio * 1.5
+			color = Color(color.r + boost, color.g + boost * 0.2, color.b + boost * 0.2)
+			color.a = flash_ratio
+		else:
+			color.a = 0.5 if b["show"] else 0.15
 		var c = b["center"]
 		var rad = b["radius"]
 		for x in range(-rad, rad + 1):

@@ -14,6 +14,8 @@ var is_dashing = false
 var is_reversing = false
 var dash_dir_hold = Vector2i.ZERO
 
+var active_powerups = {} # PowerUpType -> float (time remaining)
+
 func _dir_to_action(dir: Vector2i) -> String:
 	if dir == Vector2i.UP:
 		return "ui_up"
@@ -63,6 +65,7 @@ func _process(delta):
 		move_timer = move_timer * (new_speed / old_speed)
 	
 	_update_dead_parts(delta)
+	_update_powerups(delta)
 	
 	if is_reversing:
 		return
@@ -117,6 +120,25 @@ func _update_dead_parts(delta):
 	if changed:
 		queue_redraw()
 
+func _update_powerups(delta):
+	var world = get_parent().get_node("World")
+	world.is_time_stopped = false
+	
+	var to_remove = []
+	for type in active_powerups.keys():
+		active_powerups[type] -= delta
+		if active_powerups[type] <= 0:
+			to_remove.append(type)
+		
+		if type == GameConstants.PowerUpType.TIME_STOP:
+			world.is_time_stopped = true
+			
+	for type in to_remove:
+		active_powerups.erase(type)
+	
+	if not to_remove.is_empty():
+		queue_redraw()
+
 var score = 0
 var pending_growth = 0
 
@@ -131,9 +153,11 @@ func move_step():
 	var new_head = body[0] + direction
 	
 	# Self collision check
-	if new_head in body:
+	if new_head in body and not active_powerups.has(GameConstants.PowerUpType.GHOST):
 		game_over()
 		return
+
+
 		
 	# Check for thorn collision
 	var world = get_parent().get_node("World")
@@ -147,23 +171,22 @@ func move_step():
 	var collected_point = world.collect_point(new_head)
 	
 	if collected_point:
-		var growth = 0
-		match collected_point.type:
-			Point.Type.NORMAL:
-				score += GameConstants.POINT_VALUE_NORMAL
-				growth = GameConstants.POINT_VALUE_NORMAL
-			Point.Type.MEDIUM:
-				score += GameConstants.POINT_VALUE_MEDIUM
-				growth = GameConstants.POINT_VALUE_MEDIUM
-			Point.Type.LARGE:
-				score += GameConstants.POINT_VALUE_LARGE
-				growth = GameConstants.POINT_VALUE_LARGE
+		var growth = GameConstants.POINT_VALUE_NORMAL
+		var score_gain = GameConstants.POINT_VALUE_NORMAL
 		
-		# growth - 1 because we already added the head and haven't popped the tail yet
-		# Wait, if we don't pop the tail, we grow by 1.
-		# So if growth is 3, we skip popping the tail for 3 steps.
+		if active_powerups.has(GameConstants.PowerUpType.DOUBLE_GROWTH):
+			growth *= 2
+			score_gain *= 2
+			
+		score += score_gain
 		pending_growth += growth
 		print("Score: ", score, " Length: ", body.size(), " Growth: +", growth)
+
+	# Check for power-up collection
+	var collected_pu = world.collect_powerup(new_head)
+	if collected_pu:
+		apply_powerup(collected_pu.type)
+
 	
 	if pending_growth > 0:
 		# Don't pop tail, let the snake grow
@@ -172,17 +195,25 @@ func move_step():
 		# Normal move, remove tail
 		body.pop_back()
 	
-	# Check for hazard collision (if any beam/bomb is currently active)
-	# This is for when the snake MOVES into an already active hazard
-	if world.has_method("check_hazard_collision"):
-		world.check_hazard_collision(self)
+	# Hazard collision is now ONLY checked at the moment the hazard activates.
 	
 	update_position_from_grid()
 	recalculate_speed()
 	# queue_redraw() is now called in _process
 
+func apply_powerup(type: GameConstants.PowerUpType):
+	active_powerups[type] = 5.0 # All powerups last 5 seconds
+	print("Power-up collected: ", type)
+	
+	queue_redraw()
+
 func cut_snake(cut_index: int):
+	if active_powerups.has(GameConstants.PowerUpType.GHOST) and cut_index > 0:
+		return # Ghost body protection
+		
 	if cut_index == 0:
+
+
 		game_over()
 		return
 		
@@ -248,8 +279,13 @@ func _draw():
 			var joint_pos = Vector2(old_body[i])
 			var draw_pos = joint_pos * GameConstants.CELL_SIZE - position
 			var rect = Rect2(draw_pos, Vector2.ONE * GameConstants.CELL_SIZE)
+			var color = GameConstants.COLOR_SNAKE
+			if active_powerups.has(GameConstants.PowerUpType.GHOST):
+				color = color.darkened(0.5)
 			# Fill with snake color (no border for joints to keep them seamless)
-			draw_rect(rect, GameConstants.COLOR_SNAKE)
+			draw_rect(rect, color)
+
+
 	
 	# 2. Draw Segments (from tail to head so head is on top)
 	for i in range(body.size() - 1, -1, -1):
@@ -262,8 +298,11 @@ func _draw():
 		if i == 0:
 			# Brighter head for better visibility
 			color = color.lightened(0.2)
+		elif active_powerups.has(GameConstants.PowerUpType.GHOST):
+			color = color.darkened(0.5) # Dark green for ethereal body
 			
 		draw_rect(rect, color)
+
 		# Individual block borders removed to make the body look seamless
 
 func reverse_snake():

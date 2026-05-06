@@ -9,10 +9,12 @@ var warning_time = 2.0
 var active_time = 0.5
 var timer = 0.0
 var is_active = false
-var flicker_speed = 0.1
 var flicker_timer = 0.0
 var show_warning = true
 var thickness = 1
+
+func get_current_flicker_speed() -> float:
+	return lerp(0.04, 0.2, clamp(timer / warning_time, 0.0, 1.0))
 var zigzag_amplitude = 0
 
 func setup(p_orientation: Orientation, p_index: int, p_thickness: int = 1, p_zigzag_amplitude: int = 0):
@@ -26,14 +28,16 @@ func setup(p_orientation: Orientation, p_index: int, p_thickness: int = 1, p_zig
 func _process(delta):
 	var world = get_parent()
 	var snake = world.get_parent().get_node("Snake") if world else null
-	if snake and snake.is_reversing:
-		return  # Pause countdown during reverse animation
-	
+	if (snake and snake.is_reversing) or (world and world.is_time_stopped and not is_active):
+		return # Pause warning during Time Stop or reverse
+		
 	timer -= delta
+
 	
 	if not is_active:
 		flicker_timer += delta
-		if flicker_timer >= flicker_speed:
+		var current_flicker_speed = get_current_flicker_speed()
+		if flicker_timer >= current_flicker_speed:
 			flicker_timer = 0.0
 			show_warning = !show_warning
 			queue_redraw()
@@ -41,6 +45,7 @@ func _process(delta):
 		if timer <= 0:
 			activate_beam()
 	else:
+		queue_redraw()
 		if timer <= 0:
 			deactivate_beam()
 
@@ -105,12 +110,14 @@ func _draw():
 	var cell_size = GameConstants.CELL_SIZE
 	var color = GameConstants.COLOR_DANGER
 	
-	if not is_active and not show_warning:
-		return
-		
 	var draw_color = color
-	if not is_active:
-		draw_color.a = 0.2
+	if is_active:
+		var flash_ratio = clamp(timer / active_time, 0.0, 1.0)
+		var boost = flash_ratio * 1.5
+		draw_color = Color(color.r + boost, color.g + boost * 0.2, color.b + boost * 0.2)
+		draw_color.a = flash_ratio
+	else:
+		draw_color.a = 0.5 if show_warning else 0.15
 		
 	var world = get_parent()
 	var snake = world.get_parent().get_node("Snake")

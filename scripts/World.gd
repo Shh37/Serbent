@@ -7,6 +7,7 @@ var active_chunks = {} # Vector2i -> Chunk node
 var view_distance = 2 # Number of chunks around player
 var points = {} # Vector2i (global) -> Point node
 var thorns = {} # Vector2i (global) -> Thorn node
+var powerups = {} # Vector2i (global) -> PowerUp node
 var active_beams = [] # Array of Beam nodes
 var active_diagonal_beams = [] # Array of DiagonalBeam nodes
 var beam_timer = 0.0
@@ -15,6 +16,8 @@ var next_beam_time = 3.0 # First beam after 3 seconds
 var active_bombs = [] # Array of Bomb nodes
 var bomb_timer = 0.0
 var next_bomb_time = 5.0 # First bomb after 5 seconds
+
+var is_time_stopped = false
 
 func _process(_delta):
 	if not player:
@@ -26,22 +29,26 @@ func _process(_delta):
 	update_bomb_spawning(_delta)
 
 func update_beam_spawning(delta):
+	if is_time_stopped:
+		return
 	beam_timer += delta
 	if beam_timer >= next_beam_time:
 		beam_timer = 0.0
-		# Normal distribution centered at 4.0, flattened (sigma=3.0) to make extremes more frequent
-		next_beam_time = clamp(randfn(4.0, 3.0), 0.5, 8.5)
+		# Normal distribution centered at 6.0, flattened (sigma=3.0) to make extremes more frequent
+		next_beam_time = clamp(randfn(6.0, 3.0), 0.5, 12.5)
 		if randf() > 0.4:
 			spawn_random_beam()
 		else:
 			spawn_random_diagonal_beam()
 
 func update_bomb_spawning(delta):
+	if is_time_stopped:
+		return
 	bomb_timer += delta
 	if bomb_timer >= next_bomb_time:
 		bomb_timer = 0.0
-		# Normal distribution centered at 4.0, flattened (sigma=3.0) to make extremes more frequent
-		next_bomb_time = clamp(randfn(4.0, 3.0), 0.5, 8.5)
+		# Normal distribution centered at 6.0, flattened (sigma=3.0) to make extremes more frequent
+		next_bomb_time = clamp(randfn(6.0, 3.0), 0.5, 12.5)
 		spawn_random_bomb()
 
 func spawn_random_beam():
@@ -148,6 +155,17 @@ func collect_point(global_pos: Vector2i) -> Node:
 		return p
 	return null
 
+func register_powerup(global_pos: Vector2i, powerup_node: Node):
+	powerups[global_pos] = powerup_node
+
+func collect_powerup(global_pos: Vector2i) -> Node:
+	if powerups.has(global_pos):
+		var p = powerups[global_pos]
+		powerups.erase(global_pos)
+		p.queue_free()
+		return p
+	return null
+
 func register_thorn(global_pos: Vector2i, thorn_node: Node):
 	thorns[global_pos] = thorn_node
 
@@ -234,6 +252,7 @@ func update_chunks():
 	for cpos in to_remove:
 		remove_points_in_chunk(cpos)
 		remove_thorns_in_chunk(cpos)
+		remove_powerups_in_chunk(cpos)
 		active_chunks[cpos].queue_free()
 		active_chunks.erase(cpos)
 
@@ -262,6 +281,19 @@ func remove_thorns_in_chunk(cpos: Vector2i):
 			
 	for tpos in to_erase:
 		thorns.erase(tpos)
+
+func remove_powerups_in_chunk(cpos: Vector2i):
+	var chunk_start = cpos * GameConstants.CHUNK_SIZE
+	var chunk_end = chunk_start + Vector2i(GameConstants.CHUNK_SIZE, GameConstants.CHUNK_SIZE)
+	
+	var to_erase = []
+	for ppos in powerups.keys():
+		if ppos.x >= chunk_start.x and ppos.x < chunk_end.x and \
+		   ppos.y >= chunk_start.y and ppos.y < chunk_end.y:
+			to_erase.append(ppos)
+			
+	for ppos in to_erase:
+		powerups.erase(ppos)
 
 func spawn_chunk(cpos: Vector2i):
 	var chunk = Node2D.new()

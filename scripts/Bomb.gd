@@ -6,10 +6,13 @@ var warning_time = 2.0
 var active_time = 0.5
 var timer = 0.0
 var is_active = false
-var flicker_speed = 0.1
 var flicker_timer = 0.0
 var show_warning = true
 var radius = 2
+
+func get_current_flicker_speed() -> float:
+	# Faster blinking as timer decreases
+	return lerp(0.04, 0.2, clamp(timer / warning_time, 0.0, 1.0))
 
 func setup(p_center_grid_pos: Vector2i, p_radius: int = 2):
 	center_grid_pos = p_center_grid_pos
@@ -20,14 +23,15 @@ func setup(p_center_grid_pos: Vector2i, p_radius: int = 2):
 func _process(delta):
 	var world = get_parent()
 	var snake = world.get_parent().get_node("Snake") if world else null
-	if snake and snake.is_reversing:
-		return  # Pause countdown during reverse animation
+	if (snake and snake.is_reversing) or (world and world.is_time_stopped and not is_active):
+		return # Pause countdown during reverse or time stop
 	
 	timer -= delta
 	
 	if not is_active:
 		flicker_timer += delta
-		if flicker_timer >= flicker_speed:
+		var current_flicker_speed = get_current_flicker_speed()
+		if flicker_timer >= current_flicker_speed:
 			flicker_timer = 0.0
 			show_warning = !show_warning
 			queue_redraw()
@@ -35,6 +39,7 @@ func _process(delta):
 		if timer <= 0:
 			activate_bomb()
 	else:
+		queue_redraw() # Continually redraw for flash fade effect
 		if timer <= 0:
 			deactivate_bomb()
 
@@ -74,9 +79,17 @@ func _draw():
 	var color = GameConstants.COLOR_DANGER
 	
 	var warning_color = color
-	warning_color.a = 0.2 if not is_active else 1.0
+	if is_active:
+		var flash_ratio = clamp(timer / active_time, 0.0, 1.0)
+		# Boost brightness (especially red) to create a glowing effect without turning pure white
+		var boost = flash_ratio * 1.5
+		warning_color = Color(color.r + boost, color.g + boost * 0.2, color.b + boost * 0.2)
+		warning_color.a = flash_ratio
+	else:
+		# Blink between dark red (low alpha) and light red (higher alpha)
+		warning_color.a = 0.5 if show_warning else 0.15
 	
-	if is_active or show_warning:
+	if true: # Always draw during warning phase, but with alternating alpha
 		for x in range(-radius, radius + 1):
 			for y in range(-radius, radius + 1):
 				if abs(x) + abs(y) <= radius:

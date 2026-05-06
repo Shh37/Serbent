@@ -18,12 +18,16 @@ const COLOR_ACCENT_PURPLE = Color("#d3869b")
 const COLOR_GHOST = Color("#928374") # Gruvbox Material gray
 
 const COLOR_POINT_NORMAL = Color("#d8a657")
-const COLOR_POINT_MEDIUM = Color("#d3869b")
-const COLOR_POINT_LARGE = Color("#7daea3")
-
 const POINT_VALUE_NORMAL = 1
-const POINT_VALUE_MEDIUM = 2
-const POINT_VALUE_LARGE = 3
+
+enum PowerUpType { GHOST, TIME_STOP, DOUBLE_GROWTH }
+
+const COLOR_POWERUP_GHOST = Color("#d3869b") # Purple
+const COLOR_POWERUP_TIME = Color("#7daea3")  # Blue
+const COLOR_POWERUP_GROWTH = Color("#a9b665") # Green
+
+
+
 
 const BOMB_SIZE = 5
 const BOMB_WARNING_TIME = 2.5
