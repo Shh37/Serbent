@@ -22,7 +22,7 @@ const POINT_VALUE_NORMAL = 1
 
 enum PowerUpType { GHOST, TIME_STOP, DOUBLE_GROWTH }
 
-enum SkinColor { BASIC, MINT, OLIVE, MOSS, LIME }
+enum SkinColor { BASIC, MINT, OLIVE, MOSS, LIME, EMERALD }
 enum SkinPattern { SOLID, STRIPE11, STRIPE12, STRIPE21, STRIPE22, GRADIENT }
 
 const SKIN_COLORS = {
@@ -31,6 +31,7 @@ const SKIN_COLORS = {
 	SkinColor.OLIVE: Color("#98971a"),
 	SkinColor.MOSS: Color("#626e3c"),
 	SkinColor.LIME: Color("#b8bb26"),
+	SkinColor.EMERALD: Color("#689d6a"),
 }
 
 const COLOR_POWERUP_GHOST = Color("#d3869b") # Purple

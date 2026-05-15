@@ -31,7 +31,8 @@ var unlocked_colors: Array = [
 	GameConstants.SkinColor.MINT,
 	GameConstants.SkinColor.OLIVE,
 	GameConstants.SkinColor.MOSS,
-	GameConstants.SkinColor.LIME
+	GameConstants.SkinColor.LIME,
+	GameConstants.SkinColor.EMERALD
 ]
 
 var unlocked_patterns: Array = [

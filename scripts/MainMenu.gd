@@ -207,7 +207,8 @@ func _update_appearance_display():
 		GameConstants.SkinColor.MINT: "MINT",
 		GameConstants.SkinColor.OLIVE: "OLIVE",
 		GameConstants.SkinColor.MOSS: "MOSS",
-		GameConstants.SkinColor.LIME: "LIME"
+		GameConstants.SkinColor.LIME: "LIME",
+		GameConstants.SkinColor.EMERALD: "EMERALD"
 	}
 	color_name_label.text = color_names.get(c_type, "UNKNOWN")
 	
