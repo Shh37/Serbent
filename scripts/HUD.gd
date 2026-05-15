@@ -15,6 +15,7 @@ const DEFAULT_TINT = Color(0.1, 0.1, 0.1, 0.4)
 var main_font: Font
 
 func _ready():
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	main_font = load("res://assets/Shikakufuto_Free.ttf")
 	# Make material unique to prevent parameter persistence across scene reloads
 	if edge_blur and edge_blur.material:
@@ -54,6 +55,11 @@ func _update_shader_visibility(enabled: bool):
 		edge_blur.visible = true
 
 func _process(delta):
+	# Don't update when result screen is showing
+	if is_result_showing:
+		_update_result_button_pivots()
+		return
+	
 	if snake and snake.is_reversing:
 		update_ui() # Keep updating UI (like length) but skip timer
 		return
@@ -222,3 +228,224 @@ func play_screen_fx(target_blur: float, target_tint: Color, duration: float) -> 
 	fx_tween.parallel().tween_method(func(v): blur_mat.set_shader_parameter("tint_color", v), target_tint, DEFAULT_TINT, duration * 0.8)
 	
 	return fx_tween
+
+# ============================================================
+# Result Screen
+# ============================================================
+var result_layer: CanvasLayer
+var result_buttons: Array[Button] = []
+var is_result_showing = false
+
+func show_result_screen(final_length: int, survival_time: float, longest_length: int, total_points: int):
+	if is_result_showing:
+		return
+	is_result_showing = true
+	result_buttons.clear()
+	
+	# Create the result overlay layer
+	result_layer = CanvasLayer.new()
+	result_layer.name = "ResultLayer"
+	result_layer.layer = 10
+	result_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(result_layer)
+	
+	# Blur background
+	var blur_bg = ColorRect.new()
+	blur_bg.name = "BlurBG"
+	var blur_shader = load("res://shaders/ui_blur.gdshader")
+	var blur_mat = ShaderMaterial.new()
+	blur_mat.shader = blur_shader
+	blur_mat.set_shader_parameter("blur_amount", 5.0)
+	blur_mat.set_shader_parameter("tint_color", Color(0.0823529, 0.0823529, 0.0823529, 0.6))
+	blur_mat.set_shader_parameter("crt_enabled", Config.crt_enabled)
+	blur_bg.material = blur_mat
+	result_layer.add_child(blur_bg)
+	blur_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	blur_bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	
+	# Center container
+	var center = CenterContainer.new()
+	result_layer.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
+	# Main Content VBox
+	var content_vbox = VBoxContainer.new()
+	content_vbox.add_theme_constant_override("separation", 35)
+	content_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	center.add_child(content_vbox)
+	
+	# 1. Header
+	var header = Label.new()
+	header.text = "RESULTS"
+	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	header.add_theme_font_override("font", main_font)
+	header.add_theme_font_size_override("font_size", 80)
+	header.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+	content_vbox.add_child(header)
+	
+	# Separator
+	content_vbox.add_child(_create_separator())
+	
+	# 2. Stats Container
+	var stats_vbox = VBoxContainer.new()
+	stats_vbox.add_theme_constant_override("separation", 15)
+	content_vbox.add_child(stats_vbox)
+	
+	# Format survival time
+	var minutes = int(survival_time) / 60
+	var seconds = int(survival_time) % 60
+	var milliseconds = int((survival_time - int(survival_time)) * 1000)
+	var time_str = "%02d:%02d.%03d" % [minutes, seconds, milliseconds]
+	
+	# Horizontal Stat Rows
+	_add_result_row(stats_vbox, "SURVIVAL TIME", time_str, 28, 44, GameConstants.COLOR_POINT)
+	_add_result_row(stats_vbox, "LONGEST LENGTH", str(longest_length), 28, 44, GameConstants.COLOR_POINT)
+	_add_result_row(stats_vbox, "FINAL LENGTH", str(final_length), 22, 28, GameConstants.COLOR_FG)
+	_add_result_row(stats_vbox, "POINTS", str(total_points), 22, 28, GameConstants.COLOR_FG)
+	
+	# Separator
+	content_vbox.add_child(_create_separator())
+	
+	# 3. Action Buttons
+	var action_vbox = VBoxContainer.new()
+	action_vbox.add_theme_constant_override("separation", 15)
+	action_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	content_vbox.add_child(action_vbox)
+	
+	var retry_btn = _create_result_button("RETRY", 54)
+	retry_btn.pressed.connect(_on_retry_pressed)
+	action_vbox.add_child(retry_btn)
+	result_buttons.append(retry_btn)
+	
+	var title_btn = _create_result_button("MAIN MENU", 36)
+	title_btn.pressed.connect(_on_title_pressed)
+	action_vbox.add_child(title_btn)
+	result_buttons.append(title_btn)
+	
+	# Animate entrance
+	_animate_result_entrance(content_vbox, blur_mat)
+
+func _add_result_row(parent: Control, label_text: String, value_text: String, label_size: int, value_size: int, value_color: Color):
+	var hbox = HBoxContainer.new()
+	hbox.custom_minimum_size = Vector2(550, 0)
+	hbox.add_theme_constant_override("separation", 40)
+	parent.add_child(hbox)
+	
+	var label = Label.new()
+	label.text = label_text
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.add_theme_font_override("font", main_font)
+	label.add_theme_font_size_override("font_size", label_size)
+	label.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
+	hbox.add_child(label)
+	
+	var value = Label.new()
+	value.text = value_text
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	value.add_theme_font_override("font", main_font)
+	value.add_theme_font_size_override("font_size", value_size)
+	value.add_theme_color_override("font_color", value_color)
+	hbox.add_child(value)
+
+func _create_separator() -> ColorRect:
+	var sep = ColorRect.new()
+	sep.custom_minimum_size = Vector2(550, 2)
+	sep.color = GameConstants.COLOR_GHOST
+	sep.color.a = 0.25
+	sep.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	return sep
+
+func _create_result_button(text: String, font_size: int) -> Button:
+	var btn = Button.new()
+	btn.text = text
+	btn.flat = true
+	btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	btn.add_theme_font_override("font", main_font)
+	btn.add_theme_font_size_override("font_size", font_size)
+	btn.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+	btn.add_theme_color_override("font_hover_color", GameConstants.COLOR_FG)
+	btn.add_theme_color_override("font_pressed_color", GameConstants.COLOR_GHOST)
+	btn.add_theme_color_override("font_focus_color", GameConstants.COLOR_FG)
+	btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	
+	btn.mouse_entered.connect(func(): _animate_result_btn(btn, true))
+	btn.mouse_exited.connect(func(): _animate_result_btn(btn, false))
+	btn.button_down.connect(func(): _on_result_btn_down(btn))
+	btn.button_up.connect(func(): _on_result_btn_up(btn))
+	
+	return btn
+
+func _animate_result_btn(btn: Button, hover: bool):
+	btn.pivot_offset = btn.size / 2
+	var tween = create_tween()
+	tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	if hover:
+		tween.tween_property(btn, "scale", Vector2(1.08, 1.08), 0.2)
+	else:
+		tween.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.2)
+
+func _on_result_btn_down(btn: Button):
+	btn.pivot_offset = btn.size / 2
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+	tween.tween_property(btn, "scale", Vector2(0.94, 0.94), 0.05)
+	tween.tween_property(btn, "self_modulate", Color(0.8, 0.8, 0.8), 0.05)
+
+func _on_result_btn_up(btn: Button):
+	btn.pivot_offset = btn.size / 2
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var target_scale = Vector2(1.08, 1.08) if btn.is_hovered() else Vector2(1.0, 1.0)
+	tween.tween_property(btn, "scale", target_scale, 0.1)
+	tween.tween_property(btn, "self_modulate", Color.WHITE, 0.1)
+
+func _animate_result_entrance(container: Control, blur_mat: ShaderMaterial):
+	container.modulate.a = 0
+	
+	# Initial blur state
+	blur_mat.set_shader_parameter("blur_amount", 0.0)
+	
+	# Wait one frame to let the container finish layout and find the centered Y
+	await get_tree().process_frame
+	
+	var target_y = container.position.y
+	container.position.y += 80 # Offset for slide up
+	
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+	
+	# UI Animation
+	tween.tween_property(container, "modulate:a", 1.0, 0.5)
+	tween.tween_property(container, "position:y", target_y, 0.6)
+	
+	# Blur Animation
+	tween.tween_property(blur_mat, "shader_parameter/blur_amount", 5.0, 0.6)
+
+
+func _update_result_button_pivots():
+	for btn in result_buttons:
+		if is_instance_valid(btn):
+			btn.pivot_offset = btn.size / 2
+	
+	# Also update main content vbox pivot for scale animation
+	var center = result_layer.get_node_or_null("CenterContainer")
+	if center:
+		var vbox = center.get_child(0)
+		if vbox:
+			vbox.pivot_offset = vbox.size / 2
+
+func _on_retry_pressed():
+	get_tree().paused = false
+	is_result_showing = false
+	result_buttons.clear()
+	get_tree().reload_current_scene()
+
+func _on_title_pressed():
+	get_tree().paused = false
+	is_result_showing = false
+	result_buttons.clear()
+	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")

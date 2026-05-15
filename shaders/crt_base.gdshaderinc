@@ -68,23 +68,38 @@ vec2 get_pixelated_uv(vec2 uv, vec2 screen_res, float p_pixel_size) {
 }
 
 // Samples texture with chromatic aberration and blur (LOD)
+// When CRT is enabled, we interpolate between discrete LOD levels for a smooth blocky transition
 vec3 sample_crt_color(sampler2D tex, vec2 uv, float lod, float p_chroma) {
     if (!crt_enabled) return textureLod(tex, uv, lod).rgb;
 
-    // --- Manual Nearest Filtering for blocky blur ---
-    // Get the resolution of the mipmap we are sampling from
-    vec2 res = vec2(textureSize(tex, int(lod)));
-    // Snap the UV to the center of the nearest "pixel" at that LOD
-    vec2 snapped_uv = (floor(uv * res) + 0.5) / res;
+    float lod_f = floor(lod);
+    float lod_c = ceil(lod);
+    float f = fract(lod);
 
-    vec2 from_center = snapped_uv - 0.5;
-    float dist_from_center = length(from_center);
-    vec2 chroma_offset = from_center * p_chroma * 0.01 * (1.0 + dist_from_center * 3.0);
+    // Sample floor LOD
+    vec2 res_f = vec2(textureSize(tex, int(lod_f)));
+    vec2 snap_f = (floor(uv * res_f) + 0.5) / res_f;
+    vec2 off_f = (snap_f - 0.5) * p_chroma * 0.01 * (1.0 + length(snap_f - 0.5) * 3.0);
+    vec3 col_f = vec3(
+        textureLod(tex, snap_f + off_f, lod_f).r,
+        textureLod(tex, snap_f, lod_f).g,
+        textureLod(tex, snap_f - off_f, lod_f).b
+    );
 
-    float r = textureLod(tex, snapped_uv + chroma_offset, lod).r;
-    float g = textureLod(tex, snapped_uv, lod).g;
-    float b = textureLod(tex, snapped_uv - chroma_offset, lod).b;
-    return vec3(r, g, b);
+    // If lod is integer, just return floor sample
+    if (f < 0.001) return col_f;
+
+    // Sample ceil LOD
+    vec2 res_c = vec2(textureSize(tex, int(lod_c)));
+    vec2 snap_c = (floor(uv * res_c) + 0.5) / res_c;
+    vec2 off_c = (snap_c - 0.5) * p_chroma * 0.01 * (1.0 + length(snap_c - 0.5) * 3.0);
+    vec3 col_c = vec3(
+        textureLod(tex, snap_c + off_c, lod_c).r,
+        textureLod(tex, snap_c, lod_c).g,
+        textureLod(tex, snap_c - off_c, lod_c).b
+    );
+
+    return mix(col_f, col_c, f);
 }
 
 // Applies scanlines and vignette to the final RGB color

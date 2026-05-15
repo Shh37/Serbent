@@ -7,6 +7,11 @@ var direction = Vector2i.RIGHT
 var next_direction = Vector2i.RIGHT
 var input_queue = []
 
+# Result screen stats
+var max_length = 3 # Track the longest body length achieved
+var points_collected = 0 # Track total points collected
+var is_dead = false # Whether the game is over (result screen showing)
+
 var move_timer = 0.0
 var move_speed_normal = GameConstants.SNAKE_INITIAL_SPEED
 var move_speed_dash = move_speed_normal * GameConstants.SNAKE_DASH_MULTIPLIER
@@ -142,6 +147,10 @@ func _update_powerups(delta):
 var score = 0
 var pending_growth = 0
 
+func _update_max_length():
+	if body.size() > max_length:
+		max_length = body.size()
+
 func move_step():
 	old_body = body.duplicate()
 	if not input_queue.is_empty():
@@ -179,6 +188,7 @@ func move_step():
 			score_gain *= 2
 			
 		score += score_gain
+		points_collected += score_gain
 		pending_growth += growth
 		print("Score: ", score, " Length: ", body.size(), " Growth: +", growth)
 
@@ -199,6 +209,7 @@ func move_step():
 	
 	update_position_from_grid()
 	recalculate_speed()
+	_update_max_length()
 	# queue_redraw() is now called in _process
 
 func apply_powerup(type: GameConstants.PowerUpType):
@@ -372,10 +383,12 @@ func reverse_snake():
 	queue_redraw()
 
 func game_over():
-	if is_reversing: return # Prevent multiple calls
+	if is_reversing or is_dead: return # Prevent multiple calls
 	is_reversing = true
+	is_dead = true
 	
 	print("Game Over!")
+	_update_max_length()
 	
 	# Visual effect: Noticeable dark red flash and blur for game over
 	var red_tint = GameConstants.COLOR_DANGER.darkened(0.6)
@@ -383,8 +396,15 @@ func game_over():
 	var fx_tween = _play_screen_fx(5.0, red_tint, 1.5)
 	
 	await get_tree().create_timer(1.5, false).timeout
-		
-	get_tree().reload_current_scene()
+	
+	# Show result screen instead of reloading
+	var hud = get_tree().root.find_child("HUD", true, false)
+	if hud and hud.has_method("show_result_screen"):
+		var game_time = hud.game_time
+		hud.show_result_screen(body.size(), game_time, max_length, points_collected)
+		get_tree().paused = true
+	else:
+		get_tree().reload_current_scene()
 
 func _play_screen_fx(target_blur: float, target_tint: Color, duration: float) -> Tween:
 	var hud = get_tree().root.find_child("HUD", true, false)
