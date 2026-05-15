@@ -89,6 +89,9 @@ func spawn_points(used_positions: Dictionary):
 			attempts += 1
 
 func spawn_powerups(used_positions: Dictionary):
+	if not Config.beta_upgrades_enabled:
+		return
+		
 	# ~30% chance to spawn a powerup in a chunk
 	if randf() > 0.3:
 		return

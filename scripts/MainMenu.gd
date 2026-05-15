@@ -32,13 +32,20 @@ func _ready():
 	var crt_on_btn = $SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOn
 	var crt_off_btn = $SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOff
 	
+	var beta_label = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/Label
+	beta_label.add_theme_font_override("font", font_title)
+	beta_label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+	
+	var beta_on_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOn
+	var beta_off_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff
+	
 	var back_btn = $SettingsLayer/CenterContainer/VBoxContainer/BackButton
 	back_btn.add_theme_font_override("font", font_title)
 	
 	# Set colors using GameConstants (class_name)
 	title.add_theme_color_override("default_color", GameConstants.COLOR_FG)
 	
-	for btn in [play_btn, settings_btn, back_btn, crt_on_btn, crt_off_btn]:
+	for btn in [play_btn, settings_btn, back_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn]:
 		btn.add_theme_font_override("font", font_title)
 		btn.add_theme_color_override("font_color", GameConstants.COLOR_FG)
 		btn.add_theme_color_override("font_hover_color", GameConstants.COLOR_FG)
@@ -56,6 +63,8 @@ func _ready():
 	back_btn.pressed.connect(_on_back_pressed)
 	crt_on_btn.pressed.connect(func(): _on_crt_toggle_pressed(true))
 	crt_off_btn.pressed.connect(func(): _on_crt_toggle_pressed(false))
+	beta_on_btn.pressed.connect(func(): _on_beta_toggle_pressed(true))
+	beta_off_btn.pressed.connect(func(): _on_beta_toggle_pressed(false))
 	
 	# Sync shader visibility
 	_update_shader_visibility(Config.crt_enabled)
@@ -63,8 +72,11 @@ func _ready():
 	Config.crt_changed.connect(_update_shader_visibility)
 	Config.crt_changed.connect(_update_crt_buttons_style)
 	
+	_update_beta_buttons_style(Config.beta_upgrades_enabled)
+	Config.beta_upgrades_changed.connect(_update_beta_buttons_style)
+	
 	# Initial style
-	for btn in [play_btn, settings_btn, back_btn, crt_on_btn, crt_off_btn]:
+	for btn in [play_btn, settings_btn, back_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn]:
 		btn.pivot_offset = btn.size / 2
 
 func _on_play_pressed():
@@ -78,6 +90,20 @@ func _on_back_pressed():
 
 func _on_crt_toggle_pressed(enabled: bool):
 	Config.crt_enabled = enabled
+
+func _on_beta_toggle_pressed(enabled: bool):
+	Config.beta_upgrades_enabled = enabled
+
+func _update_beta_buttons_style(enabled: bool):
+	var beta_on_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOn
+	var beta_off_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff
+	
+	if enabled:
+		beta_on_btn.add_theme_color_override("font_color", GameConstants.COLOR_SNAKE) # Active green
+		beta_off_btn.add_theme_color_override("font_color", GameConstants.COLOR_GHOST) # Inactive gray
+	else:
+		beta_on_btn.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
+		beta_off_btn.add_theme_color_override("font_color", GameConstants.COLOR_DANGER) # Active red
 
 func _update_crt_buttons_style(enabled: bool):
 	var crt_on_btn = $SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOn
@@ -132,7 +158,9 @@ func _process(_delta):
 				$CenterContainer/VBoxContainer/ButtonContainer/SettingsButton,
 				$SettingsLayer/CenterContainer/VBoxContainer/BackButton,
 				$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOn,
-				$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOff]:
+				$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOff,
+				$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOn,
+				$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff]:
 		btn.pivot_offset = btn.size / 2
 	
 	# Subtle floating animation for the title

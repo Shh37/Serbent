@@ -157,6 +157,35 @@ theme_override_font_sizes/font_size = 40
 text = "OFF"
 flat = true
 
+[node name="BetaUpgradesSetting" type="VBoxContainer" parent="SettingsLayer/CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "BETA UPGRADES"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting"]
+layout_mode = 2
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="BetaOn" type="Button" parent="SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "ON"
+flat = true
+
+[node name="BetaOff" type="Button" parent="SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer"]
+custom_minimum_size = Vector2(160, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 40
+text = "OFF"
+flat = true
+
 [node name="BackButton" type="Button" parent="SettingsLayer/CenterContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 4
