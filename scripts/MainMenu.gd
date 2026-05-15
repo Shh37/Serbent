@@ -20,6 +20,9 @@ func _ready():
 	var settings_btn = $CenterContainer/VBoxContainer/ButtonContainer/SettingsButton
 	settings_btn.add_theme_font_override("font", font_title)
 	
+	var skins_btn = $CenterContainer/VBoxContainer/ButtonContainer/SkinsButton
+	skins_btn.add_theme_font_override("font", font_title)
+	
 	# Settings UI elements
 	var settings_label = $SettingsLayer/CenterContainer/VBoxContainer/Label
 	settings_label.add_theme_font_override("font", font_title)
@@ -42,24 +45,38 @@ func _ready():
 	var back_btn = $SettingsLayer/CenterContainer/VBoxContainer/BackButton
 	back_btn.add_theme_font_override("font", font_title)
 	
+	# Skin Layer UI elements
+	var skin_label = $SkinLayer/CenterContainer/VBoxContainer/Label
+	skin_label.add_theme_font_override("font", font_title)
+	skin_label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+	
+	var skin_back_btn = $SkinLayer/CenterContainer/VBoxContainer/BackButton
+	skin_back_btn.add_theme_font_override("font", font_title)
+	
 	# Color selection UI
-	var color_label = $CenterContainer/VBoxContainer/ColorContainer/ColorName
+	var color_label = $SkinLayer/CenterContainer/VBoxContainer/ColorContainer/ColorName
 	color_label.add_theme_font_override("font", font_title)
 	
-	var prev_color_btn = $CenterContainer/VBoxContainer/ColorContainer/PrevColor
-	var next_color_btn = $CenterContainer/VBoxContainer/ColorContainer/NextColor
+	var prev_color_btn = $SkinLayer/CenterContainer/VBoxContainer/ColorContainer/PrevColor
+	var next_color_btn = $SkinLayer/CenterContainer/VBoxContainer/ColorContainer/NextColor
 	
 	# Pattern selection UI
-	var pattern_label = $CenterContainer/VBoxContainer/PatternContainer/PatternName
+	var pattern_label = $SkinLayer/CenterContainer/VBoxContainer/PatternContainer/PatternName
 	pattern_label.add_theme_font_override("font", font_title)
 	
-	var prev_pattern_btn = $CenterContainer/VBoxContainer/PatternContainer/PrevPattern
-	var next_pattern_btn = $CenterContainer/VBoxContainer/PatternContainer/NextPattern
+	var prev_pattern_btn = $SkinLayer/CenterContainer/VBoxContainer/PatternContainer/PrevPattern
+	var next_pattern_btn = $SkinLayer/CenterContainer/VBoxContainer/PatternContainer/NextPattern
 	
 	# Set colors using GameConstants (class_name)
 	title.add_theme_color_override("default_color", GameConstants.COLOR_FG)
 	
-	for btn in [play_btn, settings_btn, back_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn]:
+	play_btn.pressed.connect(_on_play_pressed)
+	settings_btn.pressed.connect(_on_settings_pressed)
+	skins_btn.pressed.connect(_on_skins_pressed)
+	back_btn.pressed.connect(_on_back_pressed)
+	skin_back_btn.pressed.connect(_on_skin_back_pressed)
+	
+	for btn in [play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn]:
 		btn.add_theme_font_override("font", font_title)
 		btn.add_theme_color_override("font_color", GameConstants.COLOR_FG)
 		btn.add_theme_color_override("font_hover_color", GameConstants.COLOR_FG)
@@ -72,9 +89,6 @@ func _ready():
 		btn.button_down.connect(func(): _on_button_down(btn))
 		btn.button_up.connect(func(): _on_button_up(btn))
 	
-	play_btn.pressed.connect(_on_play_pressed)
-	settings_btn.pressed.connect(_on_settings_pressed)
-	back_btn.pressed.connect(_on_back_pressed)
 	crt_on_btn.pressed.connect(func(): _on_crt_toggle_pressed(true))
 	crt_off_btn.pressed.connect(func(): _on_crt_toggle_pressed(false))
 	beta_on_btn.pressed.connect(func(): _on_beta_toggle_pressed(true))
@@ -118,8 +132,14 @@ func _on_play_pressed():
 func _on_settings_pressed():
 	$SettingsLayer.visible = true
 
+func _on_skins_pressed():
+	$SkinLayer.visible = true
+
 func _on_back_pressed():
 	$SettingsLayer.visible = false
+
+func _on_skin_back_pressed():
+	$SkinLayer.visible = false
 
 func _on_crt_toggle_pressed(enabled: bool):
 	Config.crt_enabled = enabled
@@ -176,8 +196,8 @@ func _on_pattern_cycle_pressed(dir: int):
 	_update_appearance_display()
 
 func _update_appearance_display():
-	var color_name_label = $CenterContainer/VBoxContainer/ColorContainer/ColorName
-	var pattern_name_label = $CenterContainer/VBoxContainer/PatternContainer/PatternName
+	var color_name_label = $SkinLayer/CenterContainer/VBoxContainer/ColorContainer/ColorName
+	var pattern_name_label = $SkinLayer/CenterContainer/VBoxContainer/PatternContainer/PatternName
 	
 	var c_type = Config.selected_color
 	var p_type = Config.selected_pattern
@@ -225,6 +245,11 @@ func _update_shader_visibility(enabled: bool):
 	var settings_blur = $SettingsLayer/ColorRect
 	if settings_blur and settings_blur.material:
 		settings_blur.material.set_shader_parameter("crt_enabled", enabled)
+		
+	# Update skin background blur
+	var skin_blur = $SkinLayer/ColorRect
+	if skin_blur and skin_blur.material:
+		skin_blur.material.set_shader_parameter("crt_enabled", enabled)
 
 func _update_button_style(btn: Button, hover: bool):
 	var tween = create_tween()
@@ -252,12 +277,18 @@ func _on_button_up(btn: Button):
 func _process(_delta):
 	# Update pivot offsets
 	for btn in [$CenterContainer/VBoxContainer/ButtonContainer/PlayButton, 
+				$CenterContainer/VBoxContainer/ButtonContainer/SkinsButton,
 				$CenterContainer/VBoxContainer/ButtonContainer/SettingsButton,
 				$SettingsLayer/CenterContainer/VBoxContainer/BackButton,
+				$SkinLayer/CenterContainer/VBoxContainer/BackButton,
 				$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOn,
 				$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOff,
 				$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOn,
-				$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff]:
+				$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff,
+				$SkinLayer/CenterContainer/VBoxContainer/ColorContainer/PrevColor,
+				$SkinLayer/CenterContainer/VBoxContainer/ColorContainer/NextColor,
+				$SkinLayer/CenterContainer/VBoxContainer/PatternContainer/PrevPattern,
+				$SkinLayer/CenterContainer/VBoxContainer/PatternContainer/NextPattern]:
 		btn.pivot_offset = btn.size / 2
 	
 	# Subtle floating animation for the title

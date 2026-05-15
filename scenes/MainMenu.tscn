@@ -81,54 +81,6 @@ text = "[center][color=#d8a657]SER[/color][color=#a9b665]B[/color][color=#d8a657
 scroll_active = false
 autowrap_mode = 0
 
-[node name="ColorContainer" type="HBoxContainer" parent="CenterContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 40
-alignment = 1
-
-[node name="PrevColor" type="Button" parent="CenterContainer/VBoxContainer/ColorContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 60
-text = "<"
-flat = true
-
-[node name="ColorName" type="Label" parent="CenterContainer/VBoxContainer/ColorContainer"]
-custom_minimum_size = Vector2(400, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 50
-text = "BASIC"
-horizontal_alignment = 1
-
-[node name="NextColor" type="Button" parent="CenterContainer/VBoxContainer/ColorContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 60
-text = ">"
-flat = true
-
-[node name="PatternContainer" type="HBoxContainer" parent="CenterContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_constants/separation = 40
-alignment = 1
-
-[node name="PrevPattern" type="Button" parent="CenterContainer/VBoxContainer/PatternContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 60
-text = "<"
-flat = true
-
-[node name="PatternName" type="Label" parent="CenterContainer/VBoxContainer/PatternContainer"]
-custom_minimum_size = Vector2(400, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 50
-text = "SOLID"
-horizontal_alignment = 1
-
-[node name="NextPattern" type="Button" parent="CenterContainer/VBoxContainer/PatternContainer"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 60
-text = ">"
-flat = true
-
 [node name="ButtonContainer" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 30
@@ -138,6 +90,13 @@ layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 80
 text = "PLAY"
+flat = true
+
+[node name="SkinsButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 50
+text = "SKINS"
 flat = true
 
 [node name="SettingsButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
@@ -235,6 +194,89 @@ text = "OFF"
 flat = true
 
 [node name="BackButton" type="Button" parent="SettingsLayer/CenterContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 40
+text = "BACK"
+flat = true
+[node name="SkinLayer" type="CanvasLayer" parent="."]
+layer = 2
+visible = false
+
+[node name="ColorRect" type="ColorRect" parent="SkinLayer"]
+material = SubResource("ShaderMaterial_ui_blur")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CenterContainer" type="CenterContainer" parent="SkinLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="SkinLayer/CenterContainer"]
+layout_mode = 2
+theme_override_constants/separation = 80
+
+[node name="Label" type="Label" parent="SkinLayer/CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 80
+text = "SKIN SELECTION"
+horizontal_alignment = 1
+
+[node name="ColorContainer" type="HBoxContainer" parent="SkinLayer/CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="PrevColor" type="Button" parent="SkinLayer/CenterContainer/VBoxContainer/ColorContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 60
+text = "<"
+flat = true
+
+[node name="ColorName" type="Label" parent="SkinLayer/CenterContainer/VBoxContainer/ColorContainer"]
+custom_minimum_size = Vector2(400, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 50
+text = "BASIC"
+horizontal_alignment = 1
+
+[node name="NextColor" type="Button" parent="SkinLayer/CenterContainer/VBoxContainer/ColorContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 60
+text = ">"
+flat = true
+
+[node name="PatternContainer" type="HBoxContainer" parent="SkinLayer/CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="PrevPattern" type="Button" parent="SkinLayer/CenterContainer/VBoxContainer/PatternContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 60
+text = "<"
+flat = true
+
+[node name="PatternName" type="Label" parent="SkinLayer/CenterContainer/VBoxContainer/PatternContainer"]
+custom_minimum_size = Vector2(400, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 50
+text = "SOLID"
+horizontal_alignment = 1
+
+[node name="NextPattern" type="Button" parent="SkinLayer/CenterContainer/VBoxContainer/PatternContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 60
+text = ">"
+flat = true
+
+[node name="BackButton" type="Button" parent="SkinLayer/CenterContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 40
