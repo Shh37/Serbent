@@ -298,9 +298,13 @@ func _draw():
 		var pattern = Config.selected_pattern
 		
 		match pattern:
-			GameConstants.SkinPattern.STRIPE1:
+			GameConstants.SkinPattern.STRIPE11:
 				color = base_color if i % 2 == 0 else darker_color
-			GameConstants.SkinPattern.STRIPE2:
+			GameConstants.SkinPattern.STRIPE12:
+				color = base_color if i % 3 == 0 else darker_color
+			GameConstants.SkinPattern.STRIPE21:
+				color = base_color if i % 3 != 2 else darker_color
+			GameConstants.SkinPattern.STRIPE22:
 				color = base_color if (i / 2) % 2 == 0 else darker_color
 			GameConstants.SkinPattern.GRADIENT:
 				color = base_color.lerp(darker_color, float(i) / float(body.size()))

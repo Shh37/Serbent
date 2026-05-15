@@ -193,8 +193,10 @@ func _update_appearance_display():
 	
 	var pattern_names = {
 		GameConstants.SkinPattern.SOLID: "SOLID",
-		GameConstants.SkinPattern.STRIPE1: "STRIPE1",
-		GameConstants.SkinPattern.STRIPE2: "STRIPE2",
+		GameConstants.SkinPattern.STRIPE11: "STRIPE 1-1",
+		GameConstants.SkinPattern.STRIPE12: "STRIPE 1-2",
+		GameConstants.SkinPattern.STRIPE21: "STRIPE 2-1",
+		GameConstants.SkinPattern.STRIPE22: "STRIPE 2-2",
 		GameConstants.SkinPattern.GRADIENT: "GRADIENT"
 	}
 	pattern_name_label.text = pattern_names.get(p_type, "UNKNOWN")

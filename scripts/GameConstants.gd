@@ -23,7 +23,7 @@ const POINT_VALUE_NORMAL = 1
 enum PowerUpType { GHOST, TIME_STOP, DOUBLE_GROWTH }
 
 enum SkinColor { BASIC, MINT, OLIVE, MOSS, LIME }
-enum SkinPattern { SOLID, STRIPE1, STRIPE2, GRADIENT }
+enum SkinPattern { SOLID, STRIPE11, STRIPE12, STRIPE21, STRIPE22, GRADIENT }
 
 const SKIN_COLORS = {
 	SkinColor.BASIC: Color("#a9b665"),

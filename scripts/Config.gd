@@ -36,8 +36,10 @@ var unlocked_colors: Array = [
 
 var unlocked_patterns: Array = [
 	GameConstants.SkinPattern.SOLID,
-	GameConstants.SkinPattern.STRIPE1,
-	GameConstants.SkinPattern.STRIPE2,
+	GameConstants.SkinPattern.STRIPE11,
+	GameConstants.SkinPattern.STRIPE12,
+	GameConstants.SkinPattern.STRIPE21,
+	GameConstants.SkinPattern.STRIPE22,
 	GameConstants.SkinPattern.GRADIENT
 ]
 
