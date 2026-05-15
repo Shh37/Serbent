@@ -43,6 +43,11 @@ func _process(delta):
 	_update_bombs(delta)
 	queue_redraw()
 
+func set_snake_color(_color: Color):
+	# Optional: Change background elements to match skin flavor?
+	# For now, just a stub to prevent errors or for future decorative snake.
+	pass
+
 # --- Chunk management ---
 
 func _get_visible_chunk_range() -> Array:

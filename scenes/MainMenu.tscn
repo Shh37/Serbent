@@ -81,6 +81,54 @@ text = "[center][color=#d8a657]SER[/color][color=#a9b665]B[/color][color=#d8a657
 scroll_active = false
 autowrap_mode = 0
 
+[node name="ColorContainer" type="HBoxContainer" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="PrevColor" type="Button" parent="CenterContainer/VBoxContainer/ColorContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 60
+text = "<"
+flat = true
+
+[node name="ColorName" type="Label" parent="CenterContainer/VBoxContainer/ColorContainer"]
+custom_minimum_size = Vector2(400, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 50
+text = "BASIC"
+horizontal_alignment = 1
+
+[node name="NextColor" type="Button" parent="CenterContainer/VBoxContainer/ColorContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 60
+text = ">"
+flat = true
+
+[node name="PatternContainer" type="HBoxContainer" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="PrevPattern" type="Button" parent="CenterContainer/VBoxContainer/PatternContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 60
+text = "<"
+flat = true
+
+[node name="PatternName" type="Label" parent="CenterContainer/VBoxContainer/PatternContainer"]
+custom_minimum_size = Vector2(400, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 50
+text = "SOLID"
+horizontal_alignment = 1
+
+[node name="NextPattern" type="Button" parent="CenterContainer/VBoxContainer/PatternContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 60
+text = ">"
+flat = true
+
 [node name="ButtonContainer" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 30

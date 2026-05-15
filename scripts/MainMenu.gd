@@ -42,6 +42,20 @@ func _ready():
 	var back_btn = $SettingsLayer/CenterContainer/VBoxContainer/BackButton
 	back_btn.add_theme_font_override("font", font_title)
 	
+	# Color selection UI
+	var color_label = $CenterContainer/VBoxContainer/ColorContainer/ColorName
+	color_label.add_theme_font_override("font", font_title)
+	
+	var prev_color_btn = $CenterContainer/VBoxContainer/ColorContainer/PrevColor
+	var next_color_btn = $CenterContainer/VBoxContainer/ColorContainer/NextColor
+	
+	# Pattern selection UI
+	var pattern_label = $CenterContainer/VBoxContainer/PatternContainer/PatternName
+	pattern_label.add_theme_font_override("font", font_title)
+	
+	var prev_pattern_btn = $CenterContainer/VBoxContainer/PatternContainer/PrevPattern
+	var next_pattern_btn = $CenterContainer/VBoxContainer/PatternContainer/NextPattern
+	
 	# Set colors using GameConstants (class_name)
 	title.add_theme_color_override("default_color", GameConstants.COLOR_FG)
 	
@@ -65,6 +79,25 @@ func _ready():
 	crt_off_btn.pressed.connect(func(): _on_crt_toggle_pressed(false))
 	beta_on_btn.pressed.connect(func(): _on_beta_toggle_pressed(true))
 	beta_off_btn.pressed.connect(func(): _on_beta_toggle_pressed(false))
+	
+	prev_color_btn.pressed.connect(func(): _on_color_cycle_pressed(-1))
+	next_color_btn.pressed.connect(func(): _on_color_cycle_pressed(1))
+	
+	prev_pattern_btn.pressed.connect(func(): _on_pattern_cycle_pressed(-1))
+	next_pattern_btn.pressed.connect(func(): _on_pattern_cycle_pressed(1))
+	
+	for btn in [prev_color_btn, next_color_btn, prev_pattern_btn, next_pattern_btn]:
+		btn.add_theme_font_override("font", font_title)
+		btn.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+		btn.add_theme_color_override("font_hover_color", GameConstants.COLOR_SNAKE)
+		btn.add_theme_color_override("font_pressed_color", GameConstants.COLOR_GHOST)
+		btn.mouse_entered.connect(func(): _update_button_style(btn, true))
+		btn.mouse_exited.connect(func(): _update_button_style(btn, false))
+		btn.button_down.connect(func(): _on_button_down(btn))
+		btn.button_up.connect(func(): _on_button_up(btn))
+
+	# Sync initial appearance
+	_update_appearance_display()
 	
 	# Sync shader visibility
 	_update_shader_visibility(Config.crt_enabled)
@@ -115,6 +148,68 @@ func _update_crt_buttons_style(enabled: bool):
 	else:
 		crt_on_btn.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
 		crt_off_btn.add_theme_color_override("font_color", GameConstants.COLOR_DANGER) # Active red
+
+func _on_color_cycle_pressed(dir: int):
+	var colors = GameConstants.SkinColor.values()
+	var current_idx = colors.find(Config.selected_color)
+	
+	var next_idx = current_idx
+	for i in range(colors.size()):
+		next_idx = (next_idx + dir + colors.size()) % colors.size()
+		if colors[next_idx] in Config.unlocked_colors:
+			break
+			
+	Config.selected_color = colors[next_idx] as GameConstants.SkinColor
+	_update_appearance_display()
+
+func _on_pattern_cycle_pressed(dir: int):
+	var patterns = GameConstants.SkinPattern.values()
+	var current_idx = patterns.find(Config.selected_pattern)
+	
+	var next_idx = current_idx
+	for i in range(patterns.size()):
+		next_idx = (next_idx + dir + patterns.size()) % patterns.size()
+		if patterns[next_idx] in Config.unlocked_patterns:
+			break
+			
+	Config.selected_pattern = patterns[next_idx] as GameConstants.SkinPattern
+	_update_appearance_display()
+
+func _update_appearance_display():
+	var color_name_label = $CenterContainer/VBoxContainer/ColorContainer/ColorName
+	var pattern_name_label = $CenterContainer/VBoxContainer/PatternContainer/PatternName
+	
+	var c_type = Config.selected_color
+	var p_type = Config.selected_pattern
+	
+	var color_names = {
+		GameConstants.SkinColor.BASIC: "BASIC",
+		GameConstants.SkinColor.MINT: "MINT",
+		GameConstants.SkinColor.OLIVE: "OLIVE",
+		GameConstants.SkinColor.MOSS: "MOSS",
+		GameConstants.SkinColor.LIME: "LIME"
+	}
+	color_name_label.text = color_names.get(c_type, "UNKNOWN")
+	
+	var pattern_names = {
+		GameConstants.SkinPattern.SOLID: "SOLID",
+		GameConstants.SkinPattern.STRIPE1: "STRIPE1",
+		GameConstants.SkinPattern.STRIPE2: "STRIPE2",
+		GameConstants.SkinPattern.GRADIENT: "GRADIENT"
+	}
+	pattern_name_label.text = pattern_names.get(p_type, "UNKNOWN")
+	
+	var base_color = GameConstants.SKIN_COLORS[c_type]
+	color_name_label.add_theme_color_override("font_color", base_color)
+	
+	# For pattern label, maybe use the darker color
+	var darker_color = base_color.darkened(0.3)
+	pattern_name_label.add_theme_color_override("font_color", darker_color)
+	
+	# Visual feedback on background
+	var bg = $MenuBackground
+	if bg.has_method("set_snake_color"):
+		bg.set_snake_color(base_color)
 
 func _update_shader_visibility(enabled: bool):
 	# Update main menu edge blur

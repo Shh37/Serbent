@@ -271,30 +271,40 @@ func _draw():
 			var rect = Rect2(draw_pos, Vector2.ONE * GameConstants.CELL_SIZE)
 			draw_rect(rect, color)
 	
-	# 1. Draw Joints (static blocks at grid positions to fill gaps at corners)
-	# We draw joints for every connection to keep the body solid during turns
-	for i in range(body.size() - 1):
-		# The "corner" or intermediate point between segment i and i+1 is old_body[i]
-		if i < old_body.size():
-			var joint_pos = Vector2(old_body[i])
-			var draw_pos = joint_pos * GameConstants.CELL_SIZE - position
-			var rect = Rect2(draw_pos, Vector2.ONE * GameConstants.CELL_SIZE)
-			var color = GameConstants.COLOR_SNAKE
-			if active_powerups.has(GameConstants.PowerUpType.GHOST):
-				color = color.darkened(0.5)
-			# Fill with snake color (no border for joints to keep them seamless)
-			draw_rect(rect, color)
-
-
 	
-	# 2. Draw Segments (from tail to head so head is on top)
+	# 1. Draw Segments (from tail to head so head is on top)
 	for i in range(body.size() - 1, -1, -1):
 		var visual_pos = visual_positions[i]
-		var draw_pos = visual_pos * GameConstants.CELL_SIZE - position
-		var rect = Rect2(draw_pos, Vector2.ONE * GameConstants.CELL_SIZE)
+		var rect: Rect2
+		
+		# Draw a rectangle spanning from current visual position to the destination cell
+		# to seamlessly fill gaps and corners without static blocks.
+		if i > 0 and i - 1 < old_body.size():
+			var dest_pos = Vector2(old_body[i-1])
+			var min_x = min(visual_pos.x, dest_pos.x) * GameConstants.CELL_SIZE - position.x
+			var min_y = min(visual_pos.y, dest_pos.y) * GameConstants.CELL_SIZE - position.y
+			var max_x = max(visual_pos.x, dest_pos.x) * GameConstants.CELL_SIZE - position.x + GameConstants.CELL_SIZE
+			var max_y = max(visual_pos.y, dest_pos.y) * GameConstants.CELL_SIZE - position.y + GameConstants.CELL_SIZE
+			rect = Rect2(min_x, min_y, max_x - min_x, max_y - min_y)
+		else:
+			# The head (i=0) just draws at its current visual position
+			var draw_pos = visual_pos * GameConstants.CELL_SIZE - position
+			rect = Rect2(draw_pos, Vector2.ONE * GameConstants.CELL_SIZE)
 		
 		# Fill
-		var color = GameConstants.COLOR_SNAKE
+		var base_color = GameConstants.SKIN_COLORS[Config.selected_color]
+		var darker_color = base_color.darkened(0.3)
+		var color = base_color
+		var pattern = Config.selected_pattern
+		
+		match pattern:
+			GameConstants.SkinPattern.STRIPE1:
+				color = base_color if i % 2 == 0 else darker_color
+			GameConstants.SkinPattern.STRIPE2:
+				color = base_color if (i / 2) % 2 == 0 else darker_color
+			GameConstants.SkinPattern.GRADIENT:
+				color = base_color.lerp(darker_color, float(i) / float(body.size()))
+		
 		if i == 0:
 			# Brighter head for better visibility
 			color = color.lightened(0.2)
