@@ -193,7 +193,7 @@ func _ensure_ranking_button(button_container: VBoxContainer) -> Button:
 	btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	btn.add_theme_font_size_override("font_size", 50)
 	button_container.add_child(btn)
-	button_container.move_child(btn, 1)
+	button_container.move_child(btn, 2)
 	return btn
 
 func _ensure_ranking_layer():
