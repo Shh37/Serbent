@@ -218,7 +218,7 @@ func apply_powerup(type: GameConstants.PowerUpType):
 	
 	queue_redraw()
 
-func cut_snake(cut_index: int):
+func cut_snake(cut_index: int, hit_indices: Array = []):
 	if active_powerups.has(GameConstants.PowerUpType.GHOST) and cut_index > 0:
 		return # Ghost body protection
 		
@@ -229,9 +229,24 @@ func cut_snake(cut_index: int):
 		return
 		
 	if cut_index > 0 and cut_index < body.size():
-		# Save the severed part for a visual fade-out effect
-		var severed_part = body.slice(cut_index)
-		dead_parts.append({"segments": severed_part, "time": 2.0})
+		dead_parts.append({"segments": body.slice(cut_index), "time": 0.7})
+		
+		if hit_indices.is_empty():
+			hit_indices = [cut_index]
+		
+		var hit_lookup = {}
+		for hit_index in hit_indices:
+			hit_lookup[hit_index] = true
+		
+		var world = get_parent().get_node("World")
+		if world and world.has_method("spawn_point"):
+			var separated_count = 0
+			for i in range(cut_index, body.size()):
+				if hit_lookup.has(i):
+					continue
+				if separated_count % 2 == 0:
+					world.spawn_point(body[i])
+				separated_count += 1
 		
 		var segments_lost = body.size() - cut_index
 		# Keep only the part before the cut (head is at index 0)
@@ -274,9 +289,9 @@ func _draw():
 	
 	# 0. Draw Dead Parts (severed tail fading out)
 	for part in dead_parts:
-		var alpha = clamp(part.time / 1.0, 0.0, 1.0) # Fade out in the last 1 second
+		var alpha = clamp(part.time / 0.7, 0.0, 1.0)
 		var color = GameConstants.COLOR_GHOST
-		color.a = alpha * 0.6 # Apply transparency
+		color.a = alpha * 0.9
 		for segment in part.segments:
 			var draw_pos = Vector2(segment) * GameConstants.CELL_SIZE - position
 			var rect = Rect2(draw_pos, Vector2.ONE * GameConstants.CELL_SIZE)

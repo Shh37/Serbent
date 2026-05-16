@@ -104,7 +104,7 @@ func check_collision():
 				hit_indices.append(i)
 		
 		if not hit_indices.is_empty():
-			snake.cut_snake(hit_indices[0])
+			snake.cut_snake(hit_indices[0], hit_indices)
 
 func _draw():
 	var cell_size = GameConstants.CELL_SIZE

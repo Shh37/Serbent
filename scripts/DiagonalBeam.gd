@@ -101,10 +101,13 @@ func check_collision():
 	var snake = world.get_parent().get_node("Snake")
 	if snake and snake.has_method("cut_snake"):
 		var body = snake.body
+		var hit_indices = []
 		for i in range(body.size()):
 			if is_on_beam(body[i]):
-				snake.cut_snake(i)
-				break
+				hit_indices.append(i)
+		
+		if not hit_indices.is_empty():
+			snake.cut_snake(hit_indices[0], hit_indices)
 
 func _draw():
 	var cell_size = GameConstants.CELL_SIZE

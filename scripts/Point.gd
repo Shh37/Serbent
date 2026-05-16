@@ -46,3 +46,8 @@ func setup_local(p_local_pos: Vector2i):
 	grid_pos = p_local_pos
 	position = Vector2(grid_pos) * GameConstants.CELL_SIZE
 	queue_redraw()
+
+func setup_global(p_global_pos: Vector2i):
+	grid_pos = p_global_pos
+	position = Vector2(grid_pos) * GameConstants.CELL_SIZE
+	queue_redraw()

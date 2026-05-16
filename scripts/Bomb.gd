@@ -64,6 +64,7 @@ func check_collision():
 	var snake = world.get_parent().get_node("Snake")
 	if snake and snake.has_method("cut_snake"):
 		var body = snake.body
+		var hit_indices = []
 		
 		# Check if any segment is within the diamond-shaped explosion range
 		for i in range(body.size()):
@@ -71,8 +72,10 @@ func check_collision():
 			var dx = abs(pos.x - center_grid_pos.x)
 			var dy = abs(pos.y - center_grid_pos.y)
 			if dx + dy <= radius:
-				snake.cut_snake(i)
-				break
+				hit_indices.append(i)
+		
+		if not hit_indices.is_empty():
+			snake.cut_snake(hit_indices[0], hit_indices)
 
 func _draw():
 	var cell_size = GameConstants.CELL_SIZE

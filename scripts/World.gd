@@ -147,6 +147,28 @@ func spawn_random_bomb():
 func register_point(global_pos: Vector2i, point_node: Node):
 	points[global_pos] = point_node
 
+func spawn_point(global_pos: Vector2i) -> Node:
+	if points.has(global_pos):
+		return points[global_pos]
+		
+	var chunk_pos = Vector2i(
+		int(floor(float(global_pos.x) / float(GameConstants.CHUNK_SIZE))),
+		int(floor(float(global_pos.y) / float(GameConstants.CHUNK_SIZE)))
+	)
+	var point = Node2D.new()
+	point.set_script(load("res://scripts/Point.gd"))
+	
+	if active_chunks.has(chunk_pos):
+		var local_pos = global_pos - chunk_pos * GameConstants.CHUNK_SIZE
+		active_chunks[chunk_pos].add_child(point)
+		point.setup_local(local_pos)
+	else:
+		add_child(point)
+		point.setup_global(global_pos)
+	
+	register_point(global_pos, point)
+	return point
+
 func collect_point(global_pos: Vector2i) -> Node:
 	if points.has(global_pos):
 		var p = points[global_pos]
@@ -198,10 +220,6 @@ func check_hazard_collision(snake: Node):
 			
 			if beam.orientation == Beam.Orientation.HORIZONTAL:
 				if pos.y == beam.global_grid_index:
-					snake.cut_snake(1) # We use 1 here to check if head hit? No, cut_snake(index) cuts FROM index.
-					# Actually Beam.gd's check_collision uses snake.cut_snake(i).
-					# Here in World.gd, we are checking if the HEAD just moved into an active beam.
-					# If head hits, index 0, but cut_snake(0) is game over.
 					snake.cut_snake(0)
 					return
 			else:
@@ -267,6 +285,9 @@ func remove_points_in_chunk(cpos: Vector2i):
 			to_erase.append(ppos)
 			
 	for ppos in to_erase:
+		var point = points[ppos]
+		if is_instance_valid(point):
+			point.queue_free()
 		points.erase(ppos)
 
 func remove_thorns_in_chunk(cpos: Vector2i):
