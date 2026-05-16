@@ -23,15 +23,15 @@ func _ready():
 		# Reset to defaults immediately
 		edge_blur.material.set_shader_parameter("blur_strength", DEFAULT_BLUR)
 		edge_blur.material.set_shader_parameter("tint_color", DEFAULT_TINT)
-		
+
 	# Sync shader visibility
 	_update_shader_visibility(Config.crt_enabled)
 	Config.crt_changed.connect(_update_shader_visibility)
-	
+
 	# Wait for the scene to be fully loaded to find the snake
 	await get_tree().process_frame
 	snake = get_tree().root.find_child("Snake", true, false)
-	
+
 	_setup_centering()
 
 
@@ -39,14 +39,14 @@ func _setup_centering():
 	# Move Length/Time back to corners
 	var container = $Control/MarginContainer
 	container.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE, Control.PRESET_MODE_MINSIZE, 20)
-	
+
 	# Apply larger font size for HUD
 	var target_font_size = 48
 	if length_label.label_settings:
 		length_label.label_settings.font_size = target_font_size
 	else:
 		length_label.add_theme_font_size_override("font_size", target_font_size)
-		
+
 	if time_label.label_settings:
 		time_label.label_settings.font_size = target_font_size
 	else:
@@ -65,24 +65,24 @@ func _process(delta):
 	if is_result_showing:
 		_update_result_button_pivots()
 		return
-	
+
 	if snake and snake.is_reversing:
 		update_ui() # Keep updating UI (like length) but skip timer
 		return
-		
+
 	game_time += delta
 	update_ui()
 	_update_powerup_visuals()
 
 func _update_powerup_visuals():
 	if not (edge_blur and edge_blur.material): return
-	
+
 	if snake and not snake.active_powerups.is_empty():
 		var mixed_color = Color(0,0,0,0)
 		var mixed_blur = 0.0
 		var total_alpha = 0.0
 		var total_weight = 0.0
-		
+
 		for type in snake.active_powerups.keys():
 			var time_left = snake.active_powerups[type]
 			var base_color = Color.WHITE
@@ -90,41 +90,41 @@ func _update_powerup_visuals():
 				GameConstants.PowerUpType.GHOST: base_color = GameConstants.COLOR_POWERUP_GHOST
 				GameConstants.PowerUpType.TIME_STOP: base_color = GameConstants.COLOR_POWERUP_TIME
 				GameConstants.PowerUpType.DOUBLE_GROWTH: base_color = GameConstants.COLOR_POWERUP_GROWTH
-			
+
 			base_color = base_color.darkened(0.5)
 			var current_weight = 1.0
-			
+
 			if time_left <= 2.0:
 				var blink_speed = 15.0
 				current_weight = 0.7 + 0.3 * sin(game_time * blink_speed) # 0.4 to 1.0 (strong/weak)
 
 
-				
+
 			var current_alpha = 0.5 * current_weight
-			
+
 			mixed_color.r += base_color.r * current_alpha
 			mixed_color.g += base_color.g * current_alpha
 			mixed_color.b += base_color.b * current_alpha
 			total_alpha += current_alpha
-			
+
 			mixed_blur += 3.0 * current_weight # powerup blur target is 3.0
 			total_weight += current_weight
-			
+
 		var final_blur = DEFAULT_BLUR
 		var num_powerups = snake.active_powerups.size()
-		
+
 		if total_alpha > 0:
 			mixed_color.r /= total_alpha
 			mixed_color.g /= total_alpha
 			mixed_color.b /= total_alpha
 			mixed_color.a = min(total_alpha, 0.6)
-			
+
 			var avg_weight = total_weight / num_powerups
 			var avg_blur = mixed_blur / total_weight
 			final_blur = lerp(DEFAULT_BLUR, avg_blur, avg_weight)
 		else:
 			mixed_color.a = 0.0
-		
+
 		# "Hold" the colored surround effect
 		var mat = edge_blur.material as ShaderMaterial
 		mat.set_shader_parameter("blur_strength", final_blur)
@@ -143,18 +143,14 @@ func update_ui():
 	if snake:
 		length_label.text = "LENGTH: %d" % snake.body.size()
 		_update_powerups_ui()
-	
-	# Format time: MM:SS.cc (centiseconds)
-	var minutes = int(game_time) / 60
-	var seconds = int(game_time) % 60
-	var centiseconds = int((game_time - int(game_time)) * 100)
-	time_label.text = "TIME: %02d:%02d.%02d" % [minutes, seconds, centiseconds]
+
+	time_label.text = "TIME: %s" % Config.format_survival_time(game_time)
 
 func _update_powerups_ui():
 	# For simplicity, we'll clear and rebuild a small list or just use labels
 	# But we don't have many nodes. Let's just use a simple approach:
 	# Check if snake has powerups and show them in a specific color.
-	
+
 	# Actually, I'll just use the existing HBox and add/remove labels as needed?
 	# Better to have a dedicated container. I'll search for it or create it.
 	var pu_container = $Control.get_node_or_null("PowerUpContainer")
@@ -166,13 +162,13 @@ func _update_powerups_ui():
 		pu_container.grow_horizontal = Control.GROW_DIRECTION_BOTH
 		pu_container.position.y = 80
 
-	
+
 	# Clear existing
 	for child in pu_container.get_children():
 		child.queue_free()
-		
+
 	if not snake: return
-	
+
 	for type in snake.active_powerups.keys():
 		var time_left = snake.active_powerups[type]
 		var label = Label.new()
@@ -190,13 +186,13 @@ func _update_powerups_ui():
 			GameConstants.PowerUpType.DOUBLE_GROWTH:
 				type_name = "DOUBLE GROWTH"
 				color = GameConstants.COLOR_POWERUP_GROWTH
-		
+
 		label.text = "%s: %.1fs" % [type_name, time_left]
 		label.add_theme_color_override("font_color", color)
 		if main_font:
 			label.add_theme_font_override("font", main_font)
 		label.add_theme_font_size_override("font_size", 24)
-		
+
 		if time_left <= 2.0:
 			# Blink effect
 			var blink_speed = 15.0
@@ -205,7 +201,7 @@ func _update_powerups_ui():
 		else:
 			label.modulate.a = 1.0
 
-		
+
 		pu_container.add_child(label)
 
 
@@ -213,26 +209,26 @@ func _update_powerups_ui():
 func play_screen_fx(target_blur: float, target_tint: Color, duration: float) -> Tween:
 	if not (edge_blur and edge_blur.material):
 		return null
-		
+
 	if fx_tween:
 		fx_tween.kill()
-		
+
 	var blur_mat = edge_blur.material as ShaderMaterial
 	fx_tween = create_tween()
-	
+
 	var current_blur = blur_mat.get_shader_parameter("blur_strength")
 	var current_tint = blur_mat.get_shader_parameter("tint_color")
-	
+
 	# Intensify (Fast pop: 20% of duration)
 	fx_tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 	fx_tween.tween_method(func(v): blur_mat.set_shader_parameter("blur_strength", v), current_blur, target_blur, duration * 0.2)
 	fx_tween.parallel().tween_method(func(v): blur_mat.set_shader_parameter("tint_color", v), current_tint, target_tint, duration * 0.2)
-	
+
 	# Fade back to ABSOLUTE defaults (not current state)
 	fx_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	fx_tween.tween_method(func(v): blur_mat.set_shader_parameter("blur_strength", v), target_blur, DEFAULT_BLUR, duration * 0.8)
 	fx_tween.parallel().tween_method(func(v): blur_mat.set_shader_parameter("tint_color", v), target_tint, DEFAULT_TINT, duration * 0.8)
-	
+
 	return fx_tween
 
 # ============================================================
@@ -242,6 +238,14 @@ var result_layer: CanvasLayer
 var result_buttons: Array[Button] = []
 var is_result_showing = false
 var result_exit_in_progress = false
+var pending_ranking_length = 0
+var pending_ranking_survival = 0.0
+var ranking_added = false
+var ranking_add_button: Button
+var ranking_form_container: VBoxContainer
+var ranking_name_input: LineEdit
+var ranking_submit_button: Button
+var ranking_feedback_label: Label
 
 const RESULT_WIDTH = 660.0
 const RESULT_SEPARATOR_WIDTH = 620.0
@@ -253,14 +257,22 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	is_result_showing = true
 	result_exit_in_progress = false
 	result_buttons.clear()
-	
+	pending_ranking_length = longest_length
+	pending_ranking_survival = survival_time
+	ranking_added = false
+	ranking_add_button = null
+	ranking_form_container = null
+	ranking_name_input = null
+	ranking_submit_button = null
+	ranking_feedback_label = null
+
 	# Create the result overlay layer
 	result_layer = CanvasLayer.new()
 	result_layer.name = "ResultLayer"
 	result_layer.layer = 10
 	result_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(result_layer)
-	
+
 	# Blur background
 	var blur_bg = ColorRect.new()
 	blur_bg.name = "BlurBG"
@@ -275,7 +287,7 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	result_layer.add_child(blur_bg)
 	blur_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	blur_bg.mouse_filter = Control.MOUSE_FILTER_STOP
-	
+
 	var shade = ColorRect.new()
 	shade.name = "ResultShade"
 	shade.color = Color(GameConstants.COLOR_BG.r, GameConstants.COLOR_BG.g, GameConstants.COLOR_BG.b, 0.28)
@@ -283,13 +295,13 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	result_layer.add_child(shade)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	
+
 	# Center container
 	var center = CenterContainer.new()
 	center.name = "CenterContainer"
 	result_layer.add_child(center)
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	
+
 	# Main Content VBox
 	var content_vbox = VBoxContainer.new()
 	content_vbox.name = "ResultContent"
@@ -297,13 +309,13 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	content_vbox.add_theme_constant_override("separation", 22)
 	content_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.add_child(content_vbox)
-	
+
 	var anim_items: Array[Control] = []
-	
+
 	var visual_balance_spacer = Control.new()
 	visual_balance_spacer.custom_minimum_size = Vector2(0, 32)
 	content_vbox.add_child(visual_balance_spacer)
-	
+
 	# 1. Header
 	var header = Label.new()
 	header.text = "RESULTS"
@@ -313,7 +325,7 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	header.add_theme_color_override("font_color", GameConstants.COLOR_FG)
 	content_vbox.add_child(header)
 	anim_items.append(header)
-	
+
 	var subtitle = Label.new()
 	subtitle.text = "RUN TERMINATED"
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -323,63 +335,71 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	subtitle.modulate.a = 0.75
 	content_vbox.add_child(subtitle)
 	anim_items.append(subtitle)
-	
+
 	# Separator
 	var sep_top = _create_separator()
 	content_vbox.add_child(sep_top)
 	anim_items.append(sep_top)
-	
-	# Format survival time
-	var minutes = int(survival_time) / 60
-	var seconds = int(survival_time) % 60
-	var centiseconds = int((survival_time - int(survival_time)) * 100)
-	var time_str = "%02d:%02d.%02d" % [minutes, seconds, centiseconds]
-	
+
+	var time_str = Config.format_survival_time(survival_time)
+	var survival_rank = Config.get_survival_rank(survival_time, longest_length)
+	var length_rank = Config.get_length_rank(longest_length, survival_time)
+
 	# 2. Primary Stats
 	var hero_stats = HBoxContainer.new()
 	hero_stats.add_theme_constant_override("separation", 36)
 	hero_stats.alignment = BoxContainer.ALIGNMENT_CENTER
 	content_vbox.add_child(hero_stats)
-	
-	var time_card = _create_result_metric("SURVIVAL", time_str, GameConstants.COLOR_POINT, 34, 58)
+
+	var time_card = _create_result_metric("SURVIVAL", time_str, GameConstants.COLOR_POINT, 34, 58, "RANK #%d" % survival_rank)
 	hero_stats.add_child(time_card)
 	anim_items.append(time_card)
-	
-	var length_card = _create_result_metric("BEST LENGTH", str(longest_length), GameConstants.COLOR_ACCENT_BLUE, 34, 58)
+
+	var length_card = _create_result_metric("BEST LENGTH", str(longest_length), GameConstants.COLOR_ACCENT_BLUE, 34, 58, "RANK #%d" % length_rank)
 	hero_stats.add_child(length_card)
 	anim_items.append(length_card)
-	
+
 	# 3. Secondary Stats
 	var stats_vbox = VBoxContainer.new()
 	stats_vbox.add_theme_constant_override("separation", 10)
 	content_vbox.add_child(stats_vbox)
-	
+
 	anim_items.append(_add_result_row(stats_vbox, "FINAL LENGTH", str(final_length), 24, 34, GameConstants.COLOR_FG))
 	anim_items.append(_add_result_row(stats_vbox, "POINTS", str(total_points), 24, 34, GameConstants.COLOR_FG))
-	
+
 	# Separator
 	var sep_bottom = _create_separator()
 	content_vbox.add_child(sep_bottom)
 	anim_items.append(sep_bottom)
-	
+
 	# 4. Action Buttons
 	var action_vbox = VBoxContainer.new()
 	action_vbox.add_theme_constant_override("separation", 10)
 	action_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	content_vbox.add_child(action_vbox)
-	
+
+	ranking_add_button = _create_result_button("ADD RANKING", 34)
+	ranking_add_button.pressed.connect(_on_add_ranking_pressed)
+	action_vbox.add_child(ranking_add_button)
+	result_buttons.append(ranking_add_button)
+	anim_items.append(ranking_add_button)
+
+	ranking_form_container = _create_result_ranking_form()
+	action_vbox.add_child(ranking_form_container)
+	ranking_form_container.visible = false
+
 	var retry_btn = _create_result_button("RETRY", 54)
 	retry_btn.pressed.connect(_on_retry_pressed)
 	action_vbox.add_child(retry_btn)
 	result_buttons.append(retry_btn)
 	anim_items.append(retry_btn)
-	
+
 	var title_btn = _create_result_button("MAIN MENU", 36)
 	title_btn.pressed.connect(_on_title_pressed)
 	action_vbox.add_child(title_btn)
 	result_buttons.append(title_btn)
 	anim_items.append(title_btn)
-	
+
 	# Animate entrance
 	_animate_result_entrance(content_vbox, blur_bg, shade, blur_mat, anim_items)
 
@@ -388,7 +408,7 @@ func _add_result_row(parent: Control, label_text: String, value_text: String, la
 	hbox.custom_minimum_size = Vector2(RESULT_SEPARATOR_WIDTH, 0)
 	hbox.add_theme_constant_override("separation", 40)
 	parent.add_child(hbox)
-	
+
 	var label = Label.new()
 	label.text = label_text
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -396,7 +416,7 @@ func _add_result_row(parent: Control, label_text: String, value_text: String, la
 	label.add_theme_font_size_override("font_size", label_size)
 	label.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
 	hbox.add_child(label)
-	
+
 	var value = Label.new()
 	value.text = value_text
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -405,24 +425,39 @@ func _add_result_row(parent: Control, label_text: String, value_text: String, la
 	value.add_theme_font_size_override("font_size", value_size)
 	value.add_theme_color_override("font_color", value_color)
 	hbox.add_child(value)
-	
+
 	return hbox
 
-func _create_result_metric(label_text: String, value_text: String, accent_color: Color, label_size: int, value_size: int) -> VBoxContainer:
+func _create_result_metric(label_text: String, value_text: String, accent_color: Color, label_size: int, value_size: int, rank_text: String = "") -> VBoxContainer:
 	var box = VBoxContainer.new()
 	box.custom_minimum_size = Vector2((RESULT_SEPARATOR_WIDTH - 36) * 0.5, 0)
 	box.add_theme_constant_override("separation", 12)
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	
+
+	var label_row = HBoxContainer.new()
+	label_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	label_row.add_theme_constant_override("separation", 12)
+	box.add_child(label_row)
+
 	var label = Label.new()
 	label.text = label_text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_override("font", main_font)
 	label.add_theme_font_size_override("font_size", label_size)
 	label.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
-	box.add_child(label)
-	
+	label_row.add_child(label)
+
+	if not rank_text.is_empty():
+		var rank_label = Label.new()
+		rank_label.text = rank_text
+		rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		rank_label.add_theme_font_override("font", main_font)
+		rank_label.add_theme_font_size_override("font_size", max(18, label_size - 10))
+		rank_label.add_theme_color_override("font_color", accent_color)
+		rank_label.modulate.a = 0.88
+		label_row.add_child(rank_label)
+
 	var value = Label.new()
 	value.text = value_text
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -430,8 +465,75 @@ func _create_result_metric(label_text: String, value_text: String, accent_color:
 	value.add_theme_font_size_override("font_size", value_size)
 	value.add_theme_color_override("font_color", accent_color)
 	box.add_child(value)
-	
+
 	return box
+
+func _create_result_ranking_form() -> VBoxContainer:
+	var form = VBoxContainer.new()
+	form.name = "RankingForm"
+	form.custom_minimum_size = Vector2(RESULT_SEPARATOR_WIDTH, 0)
+	form.add_theme_constant_override("separation", 8)
+	form.alignment = BoxContainer.ALIGNMENT_CENTER
+	form.process_mode = Node.PROCESS_MODE_ALWAYS
+
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	form.add_child(row)
+
+	ranking_name_input = LineEdit.new()
+	ranking_name_input.placeholder_text = "NAME"
+	ranking_name_input.max_length = Config.PLAYER_NAME_MAX_LENGTH
+	ranking_name_input.custom_minimum_size = Vector2(260, 48)
+	ranking_name_input.process_mode = Node.PROCESS_MODE_ALWAYS
+	_style_result_line_edit(ranking_name_input)
+	ranking_name_input.text_submitted.connect(func(_submitted_text): _on_submit_ranking_pressed())
+	row.add_child(ranking_name_input)
+
+	ranking_submit_button = _create_result_button("SUBMIT", 30)
+	ranking_submit_button.pressed.connect(_on_submit_ranking_pressed)
+	row.add_child(ranking_submit_button)
+	result_buttons.append(ranking_submit_button)
+
+	ranking_feedback_label = Label.new()
+	ranking_feedback_label.text = ""
+	ranking_feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ranking_feedback_label.add_theme_font_override("font", main_font)
+	ranking_feedback_label.add_theme_font_size_override("font_size", 22)
+	ranking_feedback_label.add_theme_color_override("font_color", GameConstants.COLOR_SNAKE)
+	form.add_child(ranking_feedback_label)
+
+	return form
+
+func _style_result_line_edit(input: LineEdit):
+	input.add_theme_font_override("font", main_font)
+	input.add_theme_font_size_override("font_size", 28)
+	input.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+	input.add_theme_color_override("font_placeholder_color", GameConstants.COLOR_GHOST)
+	input.add_theme_color_override("caret_color", GameConstants.COLOR_POINT)
+	input.add_theme_color_override("selection_color", GameConstants.COLOR_ACCENT_BLUE.darkened(0.45))
+
+func _on_add_ranking_pressed():
+	if ranking_added or not ranking_form_container:
+		return
+	if ranking_add_button:
+		ranking_add_button.visible = false
+	ranking_form_container.visible = true
+	await get_tree().process_frame
+	if ranking_name_input:
+		ranking_name_input.grab_focus()
+
+func _on_submit_ranking_pressed():
+	if ranking_added or not ranking_name_input:
+		return
+	var entry = Config.add_ranking_entry(ranking_name_input.text, pending_ranking_length, pending_ranking_survival)
+	ranking_added = true
+	ranking_name_input.text = entry.get("name", "PLAYER")
+	ranking_name_input.editable = false
+	if ranking_submit_button:
+		ranking_submit_button.disabled = true
+	if ranking_feedback_label:
+		ranking_feedback_label.text = "SAVED"
 
 func _create_separator() -> ColorRect:
 	var sep = ColorRect.new()
@@ -454,12 +556,12 @@ func _create_result_button(text: String, font_size: int) -> Button:
 	btn.add_theme_color_override("font_focus_color", GameConstants.COLOR_FG)
 	btn.process_mode = Node.PROCESS_MODE_ALWAYS
 	btn.focus_mode = Control.FOCUS_ALL
-	
+
 	btn.mouse_entered.connect(func(): _animate_result_btn(btn, true))
 	btn.mouse_exited.connect(func(): _animate_result_btn(btn, false))
 	btn.button_down.connect(func(): _on_result_btn_down(btn))
 	btn.button_up.connect(func(): _on_result_btn_up(btn))
-	
+
 	return btn
 
 func _animate_result_btn(btn: Button, hover: bool):
@@ -500,39 +602,39 @@ func _on_result_btn_up(btn: Button):
 func _animate_result_entrance(container: Control, blur_bg: ColorRect, shade: ColorRect, blur_mat: ShaderMaterial, anim_items: Array[Control]):
 	container.modulate.a = 0
 	container.scale = Vector2(0.96, 0.96)
-	
+
 	# Keep the shader color stable during fade-in; animate only opacity/blur strength.
 	blur_bg.modulate.a = 0.0
 	shade.modulate.a = 0.0
 	blur_mat.set_shader_parameter("blur_amount", 2.0)
-	
+
 	for i in range(anim_items.size()):
 		var item = anim_items[i]
 		item.modulate.a = 0.0
 		item.position.y += 26.0
-	
+
 	# Wait one frame to let the container finish layout and find the centered Y
 	await get_tree().process_frame
-	
+
 	var target_y = container.position.y
 	container.position.y += 38 # Offset for slide up
 	container.pivot_offset = container.size / 2
-	
+
 	var tween = create_tween()
 	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tween.set_parallel(true)
 	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
-	
+
 	# UI Animation
 	tween.tween_property(container, "modulate:a", 1.0, 0.32)
 	tween.tween_property(container, "position:y", target_y, 0.52)
 	tween.tween_property(container, "scale", Vector2.ONE, 0.52)
-	
+
 	# Blur Animation
 	tween.tween_property(blur_bg, "modulate:a", 1.0, 0.45)
 	tween.tween_property(shade, "modulate:a", 1.0, 0.45)
 	tween.tween_property(blur_mat, "shader_parameter/blur_amount", 5.0, 0.65)
-	
+
 	for i in range(anim_items.size()):
 		var item = anim_items[i]
 		var target_item_y = item.position.y - 26.0
@@ -544,7 +646,7 @@ func _update_result_button_pivots():
 	for btn in result_buttons:
 		if is_instance_valid(btn):
 			btn.pivot_offset = btn.size / 2
-	
+
 	# Also update main content vbox pivot for scale animation
 	if not result_layer:
 		return
@@ -577,34 +679,34 @@ func _animate_result_exit():
 	for btn in result_buttons:
 		if is_instance_valid(btn):
 			btn.disabled = true
-	
+
 	if not result_layer:
 		return
-	
+
 	var center = result_layer.get_node_or_null("CenterContainer")
 	var content = center.get_child(0) if center and center.get_child_count() > 0 else null
 	var blur_bg = result_layer.get_node_or_null("BlurBG")
 	var blur_mat = blur_bg.material as ShaderMaterial if blur_bg and blur_bg.material else null
-	
+
 	var tween = create_tween()
 	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tween.set_parallel(true)
 	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN)
-	
+
 	if content:
 		content.pivot_offset = content.size / 2
 		tween.tween_property(content, "modulate:a", 0.0, 0.18)
 		tween.tween_property(content, "scale", Vector2(0.96, 0.96), 0.18)
 		tween.tween_property(content, "position:y", content.position.y - 22.0, 0.18)
-	
+
 	if result_layer:
 		var fade_out = tween.tween_property(result_layer, "modulate:a", 0.0, 0.28)
 		if fade_out:
 			fade_out.set_delay(0.08)
-	
+
 	if blur_mat:
 		var blur_out = tween.tween_property(blur_mat, "shader_parameter/blur_amount", 0.0, 0.28)
 		if blur_out:
 			blur_out.set_delay(0.02)
-	
+
 	await tween.finished
