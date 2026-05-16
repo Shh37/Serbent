@@ -11,6 +11,8 @@ var ranking_empty_label: Label
 var ranking_length_sort_btn: Button
 var ranking_survival_sort_btn: Button
 var ranking_back_btn: Button
+var ranking_scroll: ScrollContainer
+var ranking_scroll_velocity: float = 0.0
 
 func _ready():
 	font_title = load("res://assets/Shikakufuto_Free.ttf")
@@ -159,6 +161,20 @@ func _on_crt_toggle_pressed(enabled: bool):
 func _on_beta_toggle_pressed(enabled: bool):
 	Config.beta_upgrades_enabled = enabled
 
+func _on_ranking_scroll_input(event: InputEvent):
+	if event is InputEventMouseButton:
+		if event.pressed:
+			ranking_scroll_velocity = 0
+		
+		var impulse = 1200.0
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
+			ranking_scroll_velocity -= impulse
+			accept_event()
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
+			ranking_scroll_velocity += impulse
+			accept_event()
+
+
 func _update_beta_buttons_style(enabled: bool):
 	var beta_on_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOn
 	var beta_off_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff
@@ -201,7 +217,8 @@ func _ensure_ranking_layer():
 	if existing:
 		ranking_length_sort_btn = existing.get_node("CenterContainer/VBoxContainer/SortButtons/LengthSortButton") as Button
 		ranking_survival_sort_btn = existing.get_node("CenterContainer/VBoxContainer/SortButtons/SurvivalSortButton") as Button
-		ranking_rows_container = existing.get_node("CenterContainer/VBoxContainer/Table/Rows") as VBoxContainer
+		ranking_rows_container = existing.get_node("CenterContainer/VBoxContainer/Table/ScrollContainer/MarginContainer/Rows") as VBoxContainer
+		ranking_scroll = existing.get_node("CenterContainer/VBoxContainer/Table/ScrollContainer") as ScrollContainer
 		ranking_empty_label = existing.get_node("CenterContainer/VBoxContainer/Table/EmptyLabel") as Label
 		ranking_back_btn = existing.get_node("CenterContainer/VBoxContainer/BackButton") as Button
 		return
@@ -232,7 +249,7 @@ func _ensure_ranking_layer():
 
 	var vbox = VBoxContainer.new()
 	vbox.name = "VBoxContainer"
-	vbox.custom_minimum_size = Vector2(900, 0)
+	vbox.custom_minimum_size = Vector2(1000, 0)
 	vbox.add_theme_constant_override("separation", 22)
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.add_child(vbox)
@@ -262,28 +279,72 @@ func _ensure_ranking_layer():
 
 	var table = VBoxContainer.new()
 	table.name = "Table"
-	table.custom_minimum_size = Vector2(860, 0)
+	table.custom_minimum_size = Vector2(1000, 0)
 	table.add_theme_constant_override("separation", 8)
 	vbox.add_child(table)
+
+	var header_margin = MarginContainer.new()
+	header_margin.name = "HeaderMargin"
+	header_margin.add_theme_constant_override("margin_right", 52) # 40 (row margin) + 12 (scrollbar)
+	table.add_child(header_margin)
 
 	var header = HBoxContainer.new()
 	header.name = "Header"
 	header.add_theme_constant_override("separation", 22)
-	table.add_child(header)
+	header_margin.add_child(header)
 	header.add_child(_create_ranking_cell("#", 80, HORIZONTAL_ALIGNMENT_CENTER, 24, GameConstants.COLOR_GHOST))
 	header.add_child(_create_ranking_cell("NAME", 250, HORIZONTAL_ALIGNMENT_LEFT, 24, GameConstants.COLOR_GHOST, true))
 	header.add_child(_create_ranking_cell("BEST LENGTH", 200, HORIZONTAL_ALIGNMENT_RIGHT, 24, GameConstants.COLOR_GHOST))
 	header.add_child(_create_ranking_cell("SURVIVAL", 200, HORIZONTAL_ALIGNMENT_RIGHT, 24, GameConstants.COLOR_GHOST))
 
+	ranking_scroll = ScrollContainer.new()
+	ranking_scroll.name = "ScrollContainer"
+	ranking_scroll.custom_minimum_size = Vector2(1000, 400)
+	ranking_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	ranking_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	
+	# Custom Scrollbar Styling
+	var scrollbar = ranking_scroll.get_v_scroll_bar()
+	var grabber_sb = StyleBoxFlat.new()
+	grabber_sb.bg_color = GameConstants.COLOR_FG
+	grabber_sb.set_corner_radius_all(0) # Boxy/Square
+	grabber_sb.expand_margin_left = 2
+	grabber_sb.expand_margin_right = 2
+	
+	var track_sb = StyleBoxFlat.new()
+	track_sb.bg_color = GameConstants.COLOR_BLOCK_BORDER
+	track_sb.set_corner_radius_all(0) # Boxy/Square
+	track_sb.expand_margin_left = 2
+	track_sb.expand_margin_right = 2
+	
+	scrollbar.add_theme_stylebox_override("grabber", grabber_sb)
+	scrollbar.add_theme_stylebox_override("grabber_highlight", grabber_sb)
+	scrollbar.add_theme_stylebox_override("grabber_pressed", grabber_sb)
+	scrollbar.add_theme_stylebox_override("scroll", track_sb)
+	scrollbar.custom_minimum_size.x = 12 # Thinner track
+	
+	ranking_scroll.gui_input.connect(_on_ranking_scroll_input)
+	
+	table.add_child(ranking_scroll)
+
+	var margin = MarginContainer.new()
+	margin.name = "MarginContainer"
+	margin.add_theme_constant_override("margin_right", 40) # Space between rows and scrollbar
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ranking_scroll.add_child(margin)
+
 	ranking_rows_container = VBoxContainer.new()
 	ranking_rows_container.name = "Rows"
 	ranking_rows_container.add_theme_constant_override("separation", 4)
-	table.add_child(ranking_rows_container)
+	ranking_rows_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_child(ranking_rows_container)
 
 	ranking_empty_label = Label.new()
 	ranking_empty_label.name = "EmptyLabel"
 	ranking_empty_label.text = "NO RANKINGS YET"
 	ranking_empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ranking_empty_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	ranking_empty_label.custom_minimum_size = Vector2(0, 400)
 	ranking_empty_label.add_theme_font_override("font", font_title)
 	ranking_empty_label.add_theme_font_size_override("font_size", 30)
 	ranking_empty_label.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
@@ -324,17 +385,28 @@ func _refresh_ranking_display():
 	_update_ranking_sort_buttons_style()
 	var entries = Config.get_rankings(ranking_sort_key)
 	ranking_empty_label.visible = entries.is_empty()
+	if ranking_scroll:
+		ranking_scroll.visible = not entries.is_empty()
+
+	var last_score: float = -1.0
+	var current_display_rank: int = 0
 
 	for i in range(entries.size()):
 		var entry = entries[i]
+		var current_score: float = float(entry.get("best_length", 0)) if ranking_sort_key == "length" else float(entry.get("survival_time", 0.0))
+
+		if i == 0 or not is_equal_approx(current_score, last_score):
+			current_display_rank = i + 1
+		last_score = current_score
+
 		var row = HBoxContainer.new()
 		row.add_theme_constant_override("separation", 22)
-		row.custom_minimum_size = Vector2(860, 36)
+		row.custom_minimum_size = Vector2(840, 36)
 		ranking_rows_container.add_child(row)
 
-		var rank_color = GameConstants.COLOR_POINT if i == 0 else GameConstants.COLOR_FG
+		var rank_color = GameConstants.COLOR_POINT if current_display_rank <= 3 else GameConstants.COLOR_FG
 		var value_color = GameConstants.COLOR_FG
-		row.add_child(_create_ranking_cell(str(i + 1), 80, HORIZONTAL_ALIGNMENT_CENTER, 28, rank_color))
+		row.add_child(_create_ranking_cell(str(current_display_rank), 80, HORIZONTAL_ALIGNMENT_CENTER, 28, rank_color))
 		row.add_child(_create_ranking_cell(str(entry.get("name", "PLAYER")), 250, HORIZONTAL_ALIGNMENT_LEFT, 28, value_color, true))
 		row.add_child(_create_ranking_cell(str(int(entry.get("best_length", 0))), 200, HORIZONTAL_ALIGNMENT_RIGHT, 28, GameConstants.COLOR_ACCENT_BLUE))
 		row.add_child(_create_ranking_cell(Config.format_survival_time(float(entry.get("survival_time", 0.0))), 200, HORIZONTAL_ALIGNMENT_RIGHT, 28, GameConstants.COLOR_POINT))
@@ -611,6 +683,20 @@ func _process(_delta):
 	for btn in skin_buttons:
 		if is_instance_valid(btn):
 			btn.pivot_offset = btn.size / 2
+
+	# Update ranking smooth scroll
+	if ranking_scroll and ranking_scroll.visible and abs(ranking_scroll_velocity) > 0.1:
+		var old_v = ranking_scroll.scroll_vertical
+		ranking_scroll.scroll_vertical += int(ranking_scroll_velocity * _delta)
+		
+		# Clamp and bounce/stop if at limits
+		var max_scroll = ranking_scroll.get_v_scroll_bar().max_value - ranking_scroll.size.y
+		if ranking_scroll.scroll_vertical <= 0 or ranking_scroll.scroll_vertical >= max_scroll:
+			ranking_scroll_velocity = 0
+		
+		ranking_scroll_velocity *= 0.92 # Friction
+	else:
+		ranking_scroll_velocity = 0
 
 	# Subtle floating animation for the title
 	var title = $CenterContainer/VBoxContainer/TitleContainer/Title

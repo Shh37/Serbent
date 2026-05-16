@@ -5,7 +5,7 @@ signal beta_upgrades_changed(enabled: bool)
 signal rankings_changed()
 
 const RANKING_FILE = "user://rankings.json"
-const RANKING_DISPLAY_LIMIT = 10
+const RANKING_DISPLAY_LIMIT = 200
 const RANKING_STORAGE_LIMIT_PER_SORT = 200
 const PLAYER_NAME_MAX_LENGTH = 12
 
