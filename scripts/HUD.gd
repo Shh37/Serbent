@@ -241,11 +241,17 @@ func play_screen_fx(target_blur: float, target_tint: Color, duration: float) -> 
 var result_layer: CanvasLayer
 var result_buttons: Array[Button] = []
 var is_result_showing = false
+var result_exit_in_progress = false
+
+const RESULT_WIDTH = 660.0
+const RESULT_SEPARATOR_WIDTH = 620.0
+const RESULT_STAGGER = 0.065
 
 func show_result_screen(final_length: int, survival_time: float, longest_length: int, total_points: int):
 	if is_result_showing:
 		return
 	is_result_showing = true
+	result_exit_in_progress = false
 	result_buttons.clear()
 	
 	# Create the result overlay layer
@@ -262,40 +268,66 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	var blur_mat = ShaderMaterial.new()
 	blur_mat.shader = blur_shader
 	blur_mat.set_shader_parameter("blur_amount", 5.0)
-	blur_mat.set_shader_parameter("tint_color", Color(0.0823529, 0.0823529, 0.0823529, 0.6))
+	blur_mat.set_shader_parameter("tint_color", Color(0.0823529, 0.0823529, 0.0823529, 0.55))
 	blur_mat.set_shader_parameter("crt_enabled", Config.crt_enabled)
 	blur_bg.material = blur_mat
+	blur_bg.modulate.a = 0.0
 	result_layer.add_child(blur_bg)
 	blur_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	blur_bg.mouse_filter = Control.MOUSE_FILTER_STOP
 	
+	var shade = ColorRect.new()
+	shade.name = "ResultShade"
+	shade.color = Color(GameConstants.COLOR_BG.r, GameConstants.COLOR_BG.g, GameConstants.COLOR_BG.b, 0.28)
+	shade.modulate.a = 0.0
+	result_layer.add_child(shade)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
 	# Center container
 	var center = CenterContainer.new()
+	center.name = "CenterContainer"
 	result_layer.add_child(center)
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	
 	# Main Content VBox
 	var content_vbox = VBoxContainer.new()
-	content_vbox.add_theme_constant_override("separation", 35)
+	content_vbox.name = "ResultContent"
+	content_vbox.custom_minimum_size = Vector2(RESULT_WIDTH, 0)
+	content_vbox.add_theme_constant_override("separation", 22)
 	content_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.add_child(content_vbox)
+	
+	var anim_items: Array[Control] = []
+	
+	var visual_balance_spacer = Control.new()
+	visual_balance_spacer.custom_minimum_size = Vector2(0, 32)
+	content_vbox.add_child(visual_balance_spacer)
 	
 	# 1. Header
 	var header = Label.new()
 	header.text = "RESULTS"
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	header.add_theme_font_override("font", main_font)
-	header.add_theme_font_size_override("font_size", 80)
+	header.add_theme_font_size_override("font_size", 88)
 	header.add_theme_color_override("font_color", GameConstants.COLOR_FG)
 	content_vbox.add_child(header)
+	anim_items.append(header)
+	
+	var subtitle = Label.new()
+	subtitle.text = "RUN TERMINATED"
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.add_theme_font_override("font", main_font)
+	subtitle.add_theme_font_size_override("font_size", 22)
+	subtitle.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
+	subtitle.modulate.a = 0.75
+	content_vbox.add_child(subtitle)
+	anim_items.append(subtitle)
 	
 	# Separator
-	content_vbox.add_child(_create_separator())
-	
-	# 2. Stats Container
-	var stats_vbox = VBoxContainer.new()
-	stats_vbox.add_theme_constant_override("separation", 15)
-	content_vbox.add_child(stats_vbox)
+	var sep_top = _create_separator()
+	content_vbox.add_child(sep_top)
+	anim_items.append(sep_top)
 	
 	# Format survival time
 	var minutes = int(survival_time) / 60
@@ -303,18 +335,36 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	var centiseconds = int((survival_time - int(survival_time)) * 100)
 	var time_str = "%02d:%02d.%02d" % [minutes, seconds, centiseconds]
 	
-	# Horizontal Stat Rows
-	_add_result_row(stats_vbox, "SURVIVAL TIME", time_str, 28, 44, GameConstants.COLOR_POINT)
-	_add_result_row(stats_vbox, "LONGEST LENGTH", str(longest_length), 28, 44, GameConstants.COLOR_POINT)
-	_add_result_row(stats_vbox, "FINAL LENGTH", str(final_length), 22, 28, GameConstants.COLOR_FG)
-	_add_result_row(stats_vbox, "POINTS", str(total_points), 22, 28, GameConstants.COLOR_FG)
+	# 2. Primary Stats
+	var hero_stats = HBoxContainer.new()
+	hero_stats.add_theme_constant_override("separation", 36)
+	hero_stats.alignment = BoxContainer.ALIGNMENT_CENTER
+	content_vbox.add_child(hero_stats)
+	
+	var time_card = _create_result_metric("SURVIVAL", time_str, GameConstants.COLOR_POINT, 34, 58)
+	hero_stats.add_child(time_card)
+	anim_items.append(time_card)
+	
+	var length_card = _create_result_metric("BEST LENGTH", str(longest_length), GameConstants.COLOR_ACCENT_BLUE, 34, 58)
+	hero_stats.add_child(length_card)
+	anim_items.append(length_card)
+	
+	# 3. Secondary Stats
+	var stats_vbox = VBoxContainer.new()
+	stats_vbox.add_theme_constant_override("separation", 10)
+	content_vbox.add_child(stats_vbox)
+	
+	anim_items.append(_add_result_row(stats_vbox, "FINAL LENGTH", str(final_length), 24, 34, GameConstants.COLOR_FG))
+	anim_items.append(_add_result_row(stats_vbox, "POINTS", str(total_points), 24, 34, GameConstants.COLOR_FG))
 	
 	# Separator
-	content_vbox.add_child(_create_separator())
+	var sep_bottom = _create_separator()
+	content_vbox.add_child(sep_bottom)
+	anim_items.append(sep_bottom)
 	
-	# 3. Action Buttons
+	# 4. Action Buttons
 	var action_vbox = VBoxContainer.new()
-	action_vbox.add_theme_constant_override("separation", 15)
+	action_vbox.add_theme_constant_override("separation", 10)
 	action_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	content_vbox.add_child(action_vbox)
 	
@@ -322,18 +372,20 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	retry_btn.pressed.connect(_on_retry_pressed)
 	action_vbox.add_child(retry_btn)
 	result_buttons.append(retry_btn)
+	anim_items.append(retry_btn)
 	
 	var title_btn = _create_result_button("MAIN MENU", 36)
 	title_btn.pressed.connect(_on_title_pressed)
 	action_vbox.add_child(title_btn)
 	result_buttons.append(title_btn)
+	anim_items.append(title_btn)
 	
 	# Animate entrance
-	_animate_result_entrance(content_vbox, blur_mat)
+	_animate_result_entrance(content_vbox, blur_bg, shade, blur_mat, anim_items)
 
-func _add_result_row(parent: Control, label_text: String, value_text: String, label_size: int, value_size: int, value_color: Color):
+func _add_result_row(parent: Control, label_text: String, value_text: String, label_size: int, value_size: int, value_color: Color) -> HBoxContainer:
 	var hbox = HBoxContainer.new()
-	hbox.custom_minimum_size = Vector2(550, 0)
+	hbox.custom_minimum_size = Vector2(RESULT_SEPARATOR_WIDTH, 0)
 	hbox.add_theme_constant_override("separation", 40)
 	parent.add_child(hbox)
 	
@@ -353,10 +405,37 @@ func _add_result_row(parent: Control, label_text: String, value_text: String, la
 	value.add_theme_font_size_override("font_size", value_size)
 	value.add_theme_color_override("font_color", value_color)
 	hbox.add_child(value)
+	
+	return hbox
+
+func _create_result_metric(label_text: String, value_text: String, accent_color: Color, label_size: int, value_size: int) -> VBoxContainer:
+	var box = VBoxContainer.new()
+	box.custom_minimum_size = Vector2((RESULT_SEPARATOR_WIDTH - 36) * 0.5, 0)
+	box.add_theme_constant_override("separation", 12)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	var label = Label.new()
+	label.text = label_text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_override("font", main_font)
+	label.add_theme_font_size_override("font_size", label_size)
+	label.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
+	box.add_child(label)
+	
+	var value = Label.new()
+	value.text = value_text
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	value.add_theme_font_override("font", main_font)
+	value.add_theme_font_size_override("font_size", value_size)
+	value.add_theme_color_override("font_color", accent_color)
+	box.add_child(value)
+	
+	return box
 
 func _create_separator() -> ColorRect:
 	var sep = ColorRect.new()
-	sep.custom_minimum_size = Vector2(550, 2)
+	sep.custom_minimum_size = Vector2(RESULT_SEPARATOR_WIDTH, 2)
 	sep.color = GameConstants.COLOR_GHOST
 	sep.color.a = 0.25
 	sep.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -374,6 +453,7 @@ func _create_result_button(text: String, font_size: int) -> Button:
 	btn.add_theme_color_override("font_pressed_color", GameConstants.COLOR_GHOST)
 	btn.add_theme_color_override("font_focus_color", GameConstants.COLOR_FG)
 	btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	btn.focus_mode = Control.FOCUS_ALL
 	
 	btn.mouse_entered.connect(func(): _animate_result_btn(btn, true))
 	btn.mouse_exited.connect(func(): _animate_result_btn(btn, false))
@@ -383,8 +463,11 @@ func _create_result_button(text: String, font_size: int) -> Button:
 	return btn
 
 func _animate_result_btn(btn: Button, hover: bool):
+	if result_exit_in_progress:
+		return
 	btn.pivot_offset = btn.size / 2
 	var tween = create_tween()
+	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	if hover:
 		tween.tween_property(btn, "scale", Vector2(1.08, 1.08), 0.2)
@@ -392,44 +475,69 @@ func _animate_result_btn(btn: Button, hover: bool):
 		tween.tween_property(btn, "scale", Vector2(1.0, 1.0), 0.2)
 
 func _on_result_btn_down(btn: Button):
+	if result_exit_in_progress:
+		return
 	btn.pivot_offset = btn.size / 2
 	var tween = create_tween()
+	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tween.set_parallel(true)
 	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 	tween.tween_property(btn, "scale", Vector2(0.94, 0.94), 0.05)
 	tween.tween_property(btn, "self_modulate", Color(0.8, 0.8, 0.8), 0.05)
 
 func _on_result_btn_up(btn: Button):
+	if result_exit_in_progress:
+		return
 	btn.pivot_offset = btn.size / 2
 	var tween = create_tween()
+	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tween.set_parallel(true)
 	tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	var target_scale = Vector2(1.08, 1.08) if btn.is_hovered() else Vector2(1.0, 1.0)
 	tween.tween_property(btn, "scale", target_scale, 0.1)
 	tween.tween_property(btn, "self_modulate", Color.WHITE, 0.1)
 
-func _animate_result_entrance(container: Control, blur_mat: ShaderMaterial):
+func _animate_result_entrance(container: Control, blur_bg: ColorRect, shade: ColorRect, blur_mat: ShaderMaterial, anim_items: Array[Control]):
 	container.modulate.a = 0
+	container.scale = Vector2(0.96, 0.96)
 	
-	# Initial blur state
-	blur_mat.set_shader_parameter("blur_amount", 0.0)
+	# Keep the shader color stable during fade-in; animate only opacity/blur strength.
+	blur_bg.modulate.a = 0.0
+	shade.modulate.a = 0.0
+	blur_mat.set_shader_parameter("blur_amount", 2.0)
+	
+	for i in range(anim_items.size()):
+		var item = anim_items[i]
+		item.modulate.a = 0.0
+		item.position.y += 26.0
 	
 	# Wait one frame to let the container finish layout and find the centered Y
 	await get_tree().process_frame
 	
 	var target_y = container.position.y
-	container.position.y += 80 # Offset for slide up
+	container.position.y += 38 # Offset for slide up
+	container.pivot_offset = container.size / 2
 	
 	var tween = create_tween()
+	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tween.set_parallel(true)
 	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 	
 	# UI Animation
-	tween.tween_property(container, "modulate:a", 1.0, 0.5)
-	tween.tween_property(container, "position:y", target_y, 0.6)
+	tween.tween_property(container, "modulate:a", 1.0, 0.32)
+	tween.tween_property(container, "position:y", target_y, 0.52)
+	tween.tween_property(container, "scale", Vector2.ONE, 0.52)
 	
 	# Blur Animation
-	tween.tween_property(blur_mat, "shader_parameter/blur_amount", 5.0, 0.6)
+	tween.tween_property(blur_bg, "modulate:a", 1.0, 0.45)
+	tween.tween_property(shade, "modulate:a", 1.0, 0.45)
+	tween.tween_property(blur_mat, "shader_parameter/blur_amount", 5.0, 0.65)
+	
+	for i in range(anim_items.size()):
+		var item = anim_items[i]
+		var target_item_y = item.position.y - 26.0
+		tween.tween_property(item, "modulate:a", 1.0, 0.28).set_delay(0.14 + i * RESULT_STAGGER)
+		tween.tween_property(item, "position:y", target_item_y, 0.38).set_delay(0.14 + i * RESULT_STAGGER)
 
 
 func _update_result_button_pivots():
@@ -438,20 +546,65 @@ func _update_result_button_pivots():
 			btn.pivot_offset = btn.size / 2
 	
 	# Also update main content vbox pivot for scale animation
+	if not result_layer:
+		return
 	var center = result_layer.get_node_or_null("CenterContainer")
 	if center:
-		var vbox = center.get_child(0)
+		var vbox = center.get_child(0) if center.get_child_count() > 0 else null
 		if vbox:
 			vbox.pivot_offset = vbox.size / 2
 
 func _on_retry_pressed():
+	if result_exit_in_progress:
+		return
+	await _animate_result_exit()
 	get_tree().paused = false
 	is_result_showing = false
 	result_buttons.clear()
 	get_tree().reload_current_scene()
 
 func _on_title_pressed():
+	if result_exit_in_progress:
+		return
+	await _animate_result_exit()
 	get_tree().paused = false
 	is_result_showing = false
 	result_buttons.clear()
 	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+
+func _animate_result_exit():
+	result_exit_in_progress = true
+	for btn in result_buttons:
+		if is_instance_valid(btn):
+			btn.disabled = true
+	
+	if not result_layer:
+		return
+	
+	var center = result_layer.get_node_or_null("CenterContainer")
+	var content = center.get_child(0) if center and center.get_child_count() > 0 else null
+	var blur_bg = result_layer.get_node_or_null("BlurBG")
+	var blur_mat = blur_bg.material as ShaderMaterial if blur_bg and blur_bg.material else null
+	
+	var tween = create_tween()
+	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN)
+	
+	if content:
+		content.pivot_offset = content.size / 2
+		tween.tween_property(content, "modulate:a", 0.0, 0.18)
+		tween.tween_property(content, "scale", Vector2(0.96, 0.96), 0.18)
+		tween.tween_property(content, "position:y", content.position.y - 22.0, 0.18)
+	
+	if result_layer:
+		var fade_out = tween.tween_property(result_layer, "modulate:a", 0.0, 0.28)
+		if fade_out:
+			fade_out.set_delay(0.08)
+	
+	if blur_mat:
+		var blur_out = tween.tween_property(blur_mat, "shader_parameter/blur_amount", 0.0, 0.28)
+		if blur_out:
+			blur_out.set_delay(0.02)
+	
+	await tween.finished
