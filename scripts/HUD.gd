@@ -40,11 +40,17 @@ func _setup_centering():
 	var container = $Control/MarginContainer
 	container.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE, Control.PRESET_MODE_MINSIZE, 20)
 	
-	# Reset font overrides for length/time to default
-	length_label.remove_theme_font_override("font")
-	time_label.remove_theme_font_override("font")
-	length_label.remove_theme_font_size_override("font_size")
-	time_label.remove_theme_font_size_override("font_size")
+	# Apply larger font size for HUD
+	var target_font_size = 48
+	if length_label.label_settings:
+		length_label.label_settings.font_size = target_font_size
+	else:
+		length_label.add_theme_font_size_override("font_size", target_font_size)
+		
+	if time_label.label_settings:
+		time_label.label_settings.font_size = target_font_size
+	else:
+		time_label.add_theme_font_size_override("font_size", target_font_size)
 
 
 
@@ -138,11 +144,11 @@ func update_ui():
 		length_label.text = "LENGTH: %d" % snake.body.size()
 		_update_powerups_ui()
 	
-	# Format time: MM:SS.mmm
+	# Format time: MM:SS.cc (centiseconds)
 	var minutes = int(game_time) / 60
 	var seconds = int(game_time) % 60
-	var milliseconds = int((game_time - int(game_time)) * 1000)
-	time_label.text = "TIME: %02d:%02d.%03d" % [minutes, seconds, milliseconds]
+	var centiseconds = int((game_time - int(game_time)) * 100)
+	time_label.text = "TIME: %02d:%02d.%02d" % [minutes, seconds, centiseconds]
 
 func _update_powerups_ui():
 	# For simplicity, we'll clear and rebuild a small list or just use labels
@@ -294,8 +300,8 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	# Format survival time
 	var minutes = int(survival_time) / 60
 	var seconds = int(survival_time) % 60
-	var milliseconds = int((survival_time - int(survival_time)) * 1000)
-	var time_str = "%02d:%02d.%03d" % [minutes, seconds, milliseconds]
+	var centiseconds = int((survival_time - int(survival_time)) * 100)
+	var time_str = "%02d:%02d.%02d" % [minutes, seconds, centiseconds]
 	
 	# Horizontal Stat Rows
 	_add_result_row(stats_vbox, "SURVIVAL TIME", time_str, 28, 44, GameConstants.COLOR_POINT)

@@ -6,7 +6,7 @@
 
 [sub_resource type="LabelSettings" id="LabelSettings_1"]
 font = ExtResource("2_font")
-font_size = 32
+font_size = 48
 font_color = Color(0.831373, 0.745098, 0.596078, 1)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1"]
@@ -39,7 +39,7 @@ grow_vertical = 2
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 72.0
+offset_bottom = 100.0
 grow_horizontal = 2
 theme_override_constants/margin_left = 32
 theme_override_constants/margin_top = 32
