@@ -15,8 +15,11 @@ var ranking_scroll: ScrollContainer
 var ranking_scroll_velocity: float = 0.0
 var skin_requirement_label: Label
 var skin_requirement_tween: Tween
+var menu_overlay_transition_in_progress = false
 const SKIN_BUTTON_SIZE = Vector2(260, 66)
 const SKIN_BUTTON_FONT_SIZE = 32
+const MENU_OVERLAY_STAGGER = 0.055
+const MENU_OVERLAY_CENTER_TOP_INSET = 56.0
 
 func _ready():
 	font_title = load("res://assets/Shikakufuto_Free.ttf")
@@ -41,6 +44,7 @@ func _ready():
 	skins_btn.add_theme_font_override("font", font_title)
 
 	_ensure_ranking_layer()
+	_apply_menu_overlay_centering()
 
 	# Settings UI elements
 	var settings_label = $SettingsLayer/CenterContainer/VBoxContainer/Label
@@ -134,23 +138,23 @@ func _on_play_pressed():
 	get_tree().change_scene_to_file("res://scenes/Main.tscn")
 
 func _on_settings_pressed():
-	$SettingsLayer.visible = true
+	await _show_menu_overlay($SettingsLayer)
 
 func _on_skins_pressed():
-	$SkinLayer.visible = true
+	await _show_menu_overlay($SkinLayer)
 
 func _on_ranking_pressed():
 	_refresh_ranking_display()
-	$RankingLayer.visible = true
+	await _show_menu_overlay($RankingLayer)
 
 func _on_back_pressed():
-	$SettingsLayer.visible = false
+	await _hide_menu_overlay($SettingsLayer)
 
 func _on_skin_back_pressed():
-	$SkinLayer.visible = false
+	await _hide_menu_overlay($SkinLayer)
 
 func _on_ranking_back_pressed():
-	$RankingLayer.visible = false
+	await _hide_menu_overlay($RankingLayer)
 
 func _on_ranking_sort_pressed(sort_key: String):
 	ranking_sort_key = sort_key
@@ -174,6 +178,181 @@ func _on_ranking_scroll_input(event: InputEvent):
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
 			ranking_scroll_velocity += impulse
 			accept_event()
+
+func _apply_menu_overlay_centering():
+	for center in [
+		$SettingsLayer/CenterContainer,
+		$SkinLayer/CenterContainer,
+		$RankingLayer/CenterContainer
+	]:
+		if center:
+			center.offset_top = MENU_OVERLAY_CENTER_TOP_INSET
+			center.offset_bottom = 0.0
+
+func _show_menu_overlay(layer: CanvasLayer):
+	if menu_overlay_transition_in_progress or not layer or layer.visible:
+		return
+
+	menu_overlay_transition_in_progress = true
+	layer.visible = true
+
+	var blur_bg = layer.get_node_or_null("ColorRect") as ColorRect
+	var shade = _ensure_overlay_shade(layer)
+	var center = layer.get_node_or_null("CenterContainer") as CenterContainer
+	var content = center.get_child(0) as Control if center and center.get_child_count() > 0 else null
+	var blur_mat = _get_unique_overlay_blur_material(blur_bg)
+	var anim_items = _get_overlay_anim_items(layer, content)
+
+	if blur_bg:
+		blur_bg.modulate.a = 0.0
+	if shade:
+		shade.modulate.a = 0.0
+	if blur_mat:
+		blur_mat.set_shader_parameter("blur_amount", 2.0)
+		blur_mat.set_shader_parameter("tint_color", Color(0.0823529, 0.0823529, 0.0823529, 0.55))
+	if content:
+		content.modulate.a = 0.0
+		content.scale = Vector2(0.96, 0.96)
+
+	for item in anim_items:
+		item.modulate.a = 0.0
+		item.position.y += 26.0
+
+	await get_tree().process_frame
+
+	var target_y = content.position.y if content else 0.0
+	if content:
+		content.position.y += 38.0
+		content.pivot_offset = content.size / 2
+
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+
+	if content:
+		tween.tween_property(content, "modulate:a", 1.0, 0.32)
+		tween.tween_property(content, "position:y", target_y, 0.52)
+		tween.tween_property(content, "scale", Vector2.ONE, 0.52)
+	if blur_bg:
+		tween.tween_property(blur_bg, "modulate:a", 1.0, 0.45)
+	if shade:
+		tween.tween_property(shade, "modulate:a", 1.0, 0.45)
+	if blur_mat:
+		tween.tween_property(blur_mat, "shader_parameter/blur_amount", 5.0, 0.65)
+
+	for i in range(anim_items.size()):
+		var item = anim_items[i]
+		var target_item_y = item.position.y - 26.0
+		tween.tween_property(item, "modulate:a", 1.0, 0.28).set_delay(0.14 + i * MENU_OVERLAY_STAGGER)
+		tween.tween_property(item, "position:y", target_item_y, 0.38).set_delay(0.14 + i * MENU_OVERLAY_STAGGER)
+
+	await tween.finished
+	menu_overlay_transition_in_progress = false
+
+func _hide_menu_overlay(layer: CanvasLayer):
+	if menu_overlay_transition_in_progress or not layer or not layer.visible:
+		return
+
+	menu_overlay_transition_in_progress = true
+
+	var blur_bg = layer.get_node_or_null("ColorRect") as ColorRect
+	var shade = layer.get_node_or_null("ResultShade") as ColorRect
+	var center = layer.get_node_or_null("CenterContainer") as CenterContainer
+	var content = center.get_child(0) as Control if center and center.get_child_count() > 0 else null
+	var blur_mat = _get_unique_overlay_blur_material(blur_bg)
+	var original_y = content.position.y if content else 0.0
+	if blur_mat:
+		blur_mat.set_shader_parameter("blur_amount", 5.0)
+
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN)
+
+	if content:
+		content.pivot_offset = content.size / 2
+		tween.tween_property(content, "modulate:a", 0.0, 0.18)
+		tween.tween_property(content, "scale", Vector2(0.96, 0.96), 0.18)
+		tween.tween_property(content, "position:y", content.position.y - 22.0, 0.18)
+	if blur_bg:
+		tween.tween_property(blur_bg, "modulate:a", 0.0, 0.26)
+	if shade:
+		tween.tween_property(shade, "modulate:a", 0.0, 0.26)
+	if blur_mat:
+		tween.tween_property(blur_mat, "shader_parameter/blur_amount", 0.0, 0.28).set_delay(0.02)
+
+	await tween.finished
+
+	if content:
+		content.position.y = original_y
+		content.scale = Vector2.ONE
+		content.modulate.a = 1.0
+	if blur_bg:
+		blur_bg.modulate.a = 1.0
+	if shade:
+		shade.modulate.a = 1.0
+	if blur_mat:
+		blur_mat.set_shader_parameter("blur_amount", 5.0)
+
+	layer.visible = false
+	menu_overlay_transition_in_progress = false
+
+func _get_overlay_anim_items(layer: CanvasLayer, content: Control) -> Array[Control]:
+	var items: Array[Control] = []
+	if not content:
+		return items
+	if layer.name == "SkinLayer":
+		return _get_skin_overlay_anim_items(content)
+	for child in content.get_children():
+		if child is Control:
+			items.append(child)
+	return items
+
+func _get_skin_overlay_anim_items(content: Control) -> Array[Control]:
+	var items: Array[Control] = []
+	var title = content.get_node_or_null("Label") as Control
+	var selection_row = content.get_node_or_null("HBoxContainer") as HBoxContainer
+	var selection = selection_row.get_node_or_null("SelectionContainer") as VBoxContainer if selection_row else null
+	var preview = selection_row.get_node_or_null("PreviewContainer") as Control if selection_row else null
+	var back = content.get_node_or_null("BackButton") as Control
+
+	if title:
+		items.append(title)
+	if selection:
+		for node_name in ["ColorLabel", "ColorGrid", "PatternLabel", "PatternGrid"]:
+			var item = selection.get_node_or_null(node_name) as Control
+			if item:
+				items.append(item)
+	if preview:
+		items.append(preview)
+	if back:
+		items.append(back)
+	return items
+
+func _get_unique_overlay_blur_material(blur_bg: ColorRect) -> ShaderMaterial:
+	if not blur_bg or not blur_bg.material:
+		return null
+	if not bool(blur_bg.get_meta("transition_material_unique", false)):
+		blur_bg.material = blur_bg.material.duplicate()
+		blur_bg.set_meta("transition_material_unique", true)
+	return blur_bg.material as ShaderMaterial
+
+func _ensure_overlay_shade(layer: CanvasLayer) -> ColorRect:
+	var existing = layer.get_node_or_null("ResultShade") as ColorRect
+	if existing:
+		return existing
+
+	var shade = ColorRect.new()
+	shade.name = "ResultShade"
+	shade.color = Color(GameConstants.COLOR_BG.r, GameConstants.COLOR_BG.g, GameConstants.COLOR_BG.b, 0.28)
+	shade.modulate.a = 0.0
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(shade)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	var center = layer.get_node_or_null("CenterContainer")
+	if center:
+		layer.move_child(shade, center.get_index())
+	return shade
 
 func _setup_standard_button(btn: Button):
 	_apply_standard_button_size(btn)
