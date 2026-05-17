@@ -225,7 +225,14 @@ func format_survival_time(seconds_value: float) -> String:
 	var centiseconds = int((seconds_value - int(seconds_value)) * 100)
 	return "%02d:%02d.%02d" % [minutes, seconds, centiseconds]
 
+func can_add_ranking_entry() -> bool:
+	return not beta_upgrades_enabled
+
 func add_ranking_entry(player_name: String, best_length: int, survival_time: float) -> Dictionary:
+	if not can_add_ranking_entry():
+		push_warning("Ranking entries are disabled while beta upgrades are enabled.")
+		return {}
+
 	var now = int(Time.get_unix_time_from_system())
 	var entry = {
 		"id": "%d_%d" % [now, Time.get_ticks_usec()],

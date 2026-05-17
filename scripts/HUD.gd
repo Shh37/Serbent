@@ -443,15 +443,16 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	action_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	content_vbox.add_child(action_vbox)
 
-	ranking_add_button = _create_result_button("ADD RANKING", 34)
-	ranking_add_button.pressed.connect(_on_add_ranking_pressed)
-	action_vbox.add_child(ranking_add_button)
-	result_buttons.append(ranking_add_button)
-	anim_items.append(ranking_add_button)
+	if Config.can_add_ranking_entry():
+		ranking_add_button = _create_result_button("ADD RANKING", 34)
+		ranking_add_button.pressed.connect(_on_add_ranking_pressed)
+		action_vbox.add_child(ranking_add_button)
+		result_buttons.append(ranking_add_button)
+		anim_items.append(ranking_add_button)
 
-	ranking_form_container = _create_result_ranking_form()
-	action_vbox.add_child(ranking_form_container)
-	ranking_form_container.visible = false
+		ranking_form_container = _create_result_ranking_form()
+		action_vbox.add_child(ranking_form_container)
+		ranking_form_container.visible = false
 
 	var retry_btn = _create_result_button("RETRY", 54)
 	retry_btn.pressed.connect(_on_retry_pressed)
@@ -662,7 +663,7 @@ func _style_result_line_edit(input: LineEdit):
 	input.add_theme_color_override("selection_color", GameConstants.COLOR_ACCENT_BLUE.darkened(0.45))
 
 func _on_add_ranking_pressed():
-	if ranking_added or not ranking_form_container:
+	if ranking_added or not ranking_form_container or not Config.can_add_ranking_entry():
 		return
 	if ranking_add_button:
 		ranking_add_button.visible = false
@@ -672,9 +673,11 @@ func _on_add_ranking_pressed():
 		ranking_name_input.grab_focus()
 
 func _on_submit_ranking_pressed():
-	if ranking_added or not ranking_name_input:
+	if ranking_added or not ranking_name_input or not Config.can_add_ranking_entry():
 		return
 	var entry = Config.add_ranking_entry(ranking_name_input.text, pending_ranking_length, pending_ranking_survival)
+	if entry.is_empty():
+		return
 	ranking_added = true
 	ranking_name_input.text = entry.get("name", "PLAYER")
 	ranking_name_input.editable = false
