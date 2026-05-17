@@ -400,8 +400,12 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	anim_items.append(sep_top)
 
 	var time_str = Config.format_survival_time(survival_time)
-	var survival_rank = Config.get_survival_rank(survival_time, longest_length)
-	var length_rank = Config.get_length_rank(longest_length, survival_time)
+	var ranking_enabled = Config.can_add_ranking_entry()
+	var survival_rank_text = ""
+	var length_rank_text = ""
+	if ranking_enabled:
+		survival_rank_text = "RANK #%d" % Config.get_survival_rank(survival_time, longest_length)
+		length_rank_text = "RANK #%d" % Config.get_length_rank(longest_length, survival_time)
 	var newly_unlocked_skins = Config.unlock_skins_for_run(longest_length, survival_time)
 
 	# 2. Primary Stats
@@ -410,11 +414,11 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	hero_stats.alignment = BoxContainer.ALIGNMENT_CENTER
 	content_vbox.add_child(hero_stats)
 
-	var time_card = _create_result_metric("SURVIVAL", time_str, GameConstants.COLOR_RANKING_SURVIVAL, 34, 58, "RANK #%d" % survival_rank)
+	var time_card = _create_result_metric("SURVIVAL", time_str, GameConstants.COLOR_RANKING_SURVIVAL, 34, 58, survival_rank_text)
 	hero_stats.add_child(time_card)
 	anim_items.append(time_card)
 
-	var length_card = _create_result_metric("BEST LENGTH", str(longest_length), GameConstants.COLOR_RANKING_LENGTH, 34, 58, "RANK #%d" % length_rank)
+	var length_card = _create_result_metric("BEST LENGTH", str(longest_length), GameConstants.COLOR_RANKING_LENGTH, 34, 58, length_rank_text)
 	hero_stats.add_child(length_card)
 	anim_items.append(length_card)
 
