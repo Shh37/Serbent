@@ -95,10 +95,7 @@ func _ready():
 
 	for btn in [play_btn, ranking_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn]:
 		btn.add_theme_font_override("font", font_title)
-		btn.add_theme_color_override("font_color", GameConstants.COLOR_FG)
-		btn.add_theme_color_override("font_hover_color", GameConstants.COLOR_FG)
-		btn.add_theme_color_override("font_pressed_color", GameConstants.COLOR_GHOST)
-		btn.add_theme_color_override("font_focus_color", GameConstants.COLOR_FG)
+		_setup_standard_button(btn)
 
 		# Connect signals
 		btn.mouse_entered.connect(func(): _update_button_style(btn, true))
@@ -128,7 +125,7 @@ func _ready():
 	Config.beta_upgrades_changed.connect(_update_beta_buttons_style)
 
 	# Initial style
-	for btn in [play_btn, ranking_btn, settings_btn, back_btn, ranking_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn]:
+	for btn in [play_btn, ranking_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn]:
 		btn.pivot_offset = btn.size / 2
 
 func _on_play_pressed():
@@ -176,28 +173,73 @@ func _on_ranking_scroll_input(event: InputEvent):
 			ranking_scroll_velocity += impulse
 			accept_event()
 
+func _setup_standard_button(btn: Button):
+	_apply_standard_button_size(btn)
+	_apply_standard_button_palette(btn)
+	btn.focus_mode = Control.FOCUS_ALL
+
+func _apply_standard_button_size(btn: Button):
+	var min_width = 0.0
+	match btn.text:
+		"PLAY":
+			min_width = btn.custom_minimum_size.x
+		"ON", "OFF":
+			min_width = 160.0
+		"BEST LENGTH", "SURVIVAL":
+			min_width = 280.0
+		"BACK":
+			min_width = 220.0
+		_:
+			min_width = 300.0
+
+	if min_width > 0.0:
+		btn.custom_minimum_size = Vector2(max(btn.custom_minimum_size.x, min_width), btn.custom_minimum_size.y)
+
+func _apply_button_colors(btn: Button, normal: Color, hover: Color, pressed: Color):
+	btn.add_theme_color_override("font_color", normal)
+	btn.add_theme_color_override("font_hover_color", hover)
+	btn.add_theme_color_override("font_pressed_color", pressed)
+	btn.add_theme_color_override("font_focus_color", normal)
+	btn.add_theme_color_override("font_disabled_color", GameConstants.COLOR_GHOST)
+
+func _get_button_accent_color() -> Color:
+	return GameConstants.SKIN_COLORS.get(Config.selected_color, GameConstants.COLOR_BUTTON_HOVER)
+
+func _apply_standard_button_palette(btn: Button):
+	var accent_color = _get_button_accent_color()
+	_apply_button_colors(
+		btn,
+		GameConstants.COLOR_BUTTON_NORMAL,
+		accent_color,
+		accent_color.darkened(GameConstants.BUTTON_PRESSED_DARKEN)
+	)
+
+func _apply_selected_button_colors(btn: Button, selected: bool, selected_color: Color, selected_hover: Color, selected_pressed: Color):
+	if selected:
+		_apply_button_colors(btn, selected_color, selected_hover, selected_pressed)
+	else:
+		_apply_standard_button_palette(btn)
+
+func _apply_metric_button_colors(btn: Button, selected: bool, metric_color: Color, metric_hover: Color, metric_pressed: Color):
+	if selected:
+		_apply_button_colors(btn, metric_color, metric_hover, metric_pressed)
+	else:
+		_apply_button_colors(btn, GameConstants.COLOR_BUTTON_NORMAL, metric_hover, metric_pressed)
+
 
 func _update_beta_buttons_style(enabled: bool):
 	var beta_on_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOn
 	var beta_off_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff
 
-	if enabled:
-		beta_on_btn.add_theme_color_override("font_color", GameConstants.COLOR_SNAKE) # Active green
-		beta_off_btn.add_theme_color_override("font_color", GameConstants.COLOR_GHOST) # Inactive gray
-	else:
-		beta_on_btn.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
-		beta_off_btn.add_theme_color_override("font_color", GameConstants.COLOR_DANGER) # Active red
+	_apply_selected_button_colors(beta_on_btn, enabled, GameConstants.COLOR_TOGGLE_ON, GameConstants.COLOR_TOGGLE_ON_HOVER, GameConstants.COLOR_TOGGLE_ON_PRESSED)
+	_apply_selected_button_colors(beta_off_btn, not enabled, GameConstants.COLOR_TOGGLE_OFF, GameConstants.COLOR_TOGGLE_OFF_HOVER, GameConstants.COLOR_TOGGLE_OFF_PRESSED)
 
 func _update_crt_buttons_style(enabled: bool):
 	var crt_on_btn = $SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOn
 	var crt_off_btn = $SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOff
 
-	if enabled:
-		crt_on_btn.add_theme_color_override("font_color", GameConstants.COLOR_SNAKE) # Active green
-		crt_off_btn.add_theme_color_override("font_color", GameConstants.COLOR_GHOST) # Inactive gray
-	else:
-		crt_on_btn.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
-		crt_off_btn.add_theme_color_override("font_color", GameConstants.COLOR_DANGER) # Active red
+	_apply_selected_button_colors(crt_on_btn, enabled, GameConstants.COLOR_TOGGLE_ON, GameConstants.COLOR_TOGGLE_ON_HOVER, GameConstants.COLOR_TOGGLE_ON_PRESSED)
+	_apply_selected_button_colors(crt_off_btn, not enabled, GameConstants.COLOR_TOGGLE_OFF, GameConstants.COLOR_TOGGLE_OFF_HOVER, GameConstants.COLOR_TOGGLE_OFF_PRESSED)
 
 func _ensure_ranking_button(button_container: VBoxContainer) -> Button:
 	var existing = button_container.get_node_or_null("RankingButton") as Button
@@ -296,8 +338,8 @@ func _ensure_ranking_layer():
 	header_margin.add_child(header)
 	header.add_child(_create_ranking_cell("#", 80, HORIZONTAL_ALIGNMENT_CENTER, 24, GameConstants.COLOR_GHOST))
 	header.add_child(_create_ranking_cell("NAME", 250, HORIZONTAL_ALIGNMENT_LEFT, 24, GameConstants.COLOR_GHOST, true))
-	header.add_child(_create_ranking_cell("BEST LENGTH", 200, HORIZONTAL_ALIGNMENT_RIGHT, 24, GameConstants.COLOR_GHOST))
-	header.add_child(_create_ranking_cell("SURVIVAL", 200, HORIZONTAL_ALIGNMENT_RIGHT, 24, GameConstants.COLOR_GHOST))
+	header.add_child(_create_ranking_cell("BEST LENGTH", 200, HORIZONTAL_ALIGNMENT_RIGHT, 24, GameConstants.COLOR_RANKING_LENGTH))
+	header.add_child(_create_ranking_cell("SURVIVAL", 200, HORIZONTAL_ALIGNMENT_RIGHT, 24, GameConstants.COLOR_RANKING_SURVIVAL))
 
 	ranking_scroll = ScrollContainer.new()
 	ranking_scroll.name = "ScrollContainer"
@@ -410,15 +452,27 @@ func _refresh_ranking_display():
 		var value_color = GameConstants.COLOR_FG
 		row.add_child(_create_ranking_cell(str(current_display_rank), 80, HORIZONTAL_ALIGNMENT_CENTER, 28, rank_color))
 		row.add_child(_create_ranking_cell(str(entry.get("name", "PLAYER")), 250, HORIZONTAL_ALIGNMENT_LEFT, 28, value_color, true))
-		row.add_child(_create_ranking_cell(str(int(entry.get("best_length", 0))), 200, HORIZONTAL_ALIGNMENT_RIGHT, 28, GameConstants.COLOR_ACCENT_BLUE))
-		row.add_child(_create_ranking_cell(Config.format_survival_time(float(entry.get("survival_time", 0.0))), 200, HORIZONTAL_ALIGNMENT_RIGHT, 28, GameConstants.COLOR_POINT))
+		row.add_child(_create_ranking_cell(str(int(entry.get("best_length", 0))), 200, HORIZONTAL_ALIGNMENT_RIGHT, 28, GameConstants.COLOR_RANKING_LENGTH))
+		row.add_child(_create_ranking_cell(Config.format_survival_time(float(entry.get("survival_time", 0.0))), 200, HORIZONTAL_ALIGNMENT_RIGHT, 28, GameConstants.COLOR_RANKING_SURVIVAL))
 
 func _update_ranking_sort_buttons_style():
 	if not ranking_length_sort_btn or not ranking_survival_sort_btn:
 		return
 	var length_active = ranking_sort_key == "length"
-	ranking_length_sort_btn.add_theme_color_override("font_color", GameConstants.COLOR_ACCENT_BLUE if length_active else GameConstants.COLOR_GHOST)
-	ranking_survival_sort_btn.add_theme_color_override("font_color", GameConstants.COLOR_POINT if not length_active else GameConstants.COLOR_GHOST)
+	_apply_metric_button_colors(
+		ranking_length_sort_btn,
+		length_active,
+		GameConstants.COLOR_RANKING_LENGTH,
+		GameConstants.COLOR_RANKING_LENGTH_HOVER,
+		GameConstants.COLOR_RANKING_LENGTH_PRESSED
+	)
+	_apply_metric_button_colors(
+		ranking_survival_sort_btn,
+		not length_active,
+		GameConstants.COLOR_RANKING_SURVIVAL,
+		GameConstants.COLOR_RANKING_SURVIVAL_HOVER,
+		GameConstants.COLOR_RANKING_SURVIVAL_PRESSED
+	)
 
 func _populate_skin_grids():
 	var color_grid = $SkinLayer/CenterContainer/VBoxContainer/HBoxContainer/SelectionContainer/ColorGrid
@@ -434,7 +488,7 @@ func _populate_skin_grids():
 	}
 	for c_type in GameConstants.SkinColor.values():
 		var btn = Button.new()
-		btn.custom_minimum_size = Vector2(210, 45)
+		btn.custom_minimum_size = Vector2(240, 54)
 		btn.flat = true
 		btn.pressed.connect(func(): _on_color_selected(c_type))
 
@@ -466,7 +520,7 @@ func _populate_skin_grids():
 	}
 	for p_type in GameConstants.SkinPattern.values():
 		var btn = Button.new()
-		btn.custom_minimum_size = Vector2(210, 45)
+		btn.custom_minimum_size = Vector2(240, 54)
 		btn.flat = true
 		btn.pressed.connect(func(): _on_pattern_selected(p_type))
 
@@ -489,6 +543,8 @@ func _populate_skin_grids():
 		btn.set_meta("base_text", pattern_names.get(p_type, "???"))
 
 func _setup_skin_button(btn: Button):
+	btn.set_meta("is_skin_pressed", false)
+	btn.focus_mode = Control.FOCUS_ALL
 	btn.mouse_entered.connect(func(): _update_button_style(btn, true))
 	btn.mouse_exited.connect(func(): _update_button_style(btn, false))
 	btn.button_down.connect(func(): _on_button_down(btn))
@@ -573,6 +629,14 @@ func get_pattern_bbcode(text: String, pattern: GameConstants.SkinPattern, base_c
 	bbcode += "[color=#" + prefix_color + "] <[/color]"
 	return bbcode
 
+func _get_skin_button_display_color(btn: Button, base_color: Color) -> Color:
+	var display_color = base_color
+	if btn.is_hovered():
+		display_color = display_color.lightened(GameConstants.BUTTON_SKIN_HOVER_LIGHTEN)
+	if bool(btn.get_meta("is_skin_pressed", false)):
+		display_color = display_color.darkened(GameConstants.BUTTON_PRESSED_DARKEN)
+	return display_color
+
 func _update_appearance_display():
 	var c_type = Config.selected_color
 	var p_type = Config.selected_pattern
@@ -593,11 +657,8 @@ func _update_appearance_display():
 			var disp_text = text_str
 			var prefix_color = base_color.to_html(false) if is_selected else "00000000"
 
-			var color_to_use = GameConstants.SKIN_COLORS[btn_c] if is_unlocked else GameConstants.COLOR_BG.lightened(0.1)
-			var hover_color = color_to_use.lightened(0.2)
-
-			if btn.is_hovered():
-				color_to_use = hover_color
+			var color_to_use = GameConstants.SKIN_COLORS[btn_c] if is_unlocked else GameConstants.COLOR_SKIN_LOCKED
+			color_to_use = _get_skin_button_display_color(btn, color_to_use)
 
 			rtl.text = "[color=#" + prefix_color + "]> [/color][color=#" + color_to_use.to_html(false) + "]" + disp_text + "[/color][color=#" + prefix_color + "] <[/color]"
 
@@ -616,11 +677,10 @@ func _update_appearance_display():
 			var prefix_color = base_color.to_html(false) if is_selected else "00000000"
 
 			if not is_unlocked:
-				rtl.text = "[color=#" + prefix_color + "]> [/color][color=#" + GameConstants.COLOR_BG.lightened(0.1).to_html(false) + "]" + disp_text + "[/color][color=#" + prefix_color + "] <[/color]"
+				var locked_color = _get_skin_button_display_color(btn, GameConstants.COLOR_SKIN_LOCKED)
+				rtl.text = "[color=#" + prefix_color + "]> [/color][color=#" + locked_color.to_html(false) + "]" + disp_text + "[/color][color=#" + prefix_color + "] <[/color]"
 			else:
-				var active_color = base_color
-				if btn.is_hovered():
-					active_color = active_color.lightened(0.2)
+				var active_color = _get_skin_button_display_color(btn, base_color)
 				rtl.text = get_pattern_bbcode(disp_text, btn_p, active_color, prefix_color)
 
 	# Update Preview
@@ -629,7 +689,7 @@ func _update_appearance_display():
 		preview.color_type = c_type
 		preview.pattern_type = p_type
 
-	# Update menu buttons hover color to match selected color
+	# Keep standard buttons on the shared Gruvbox interaction palette.
 	var standard_btns = [
 		$CenterContainer/VBoxContainer/ButtonContainer/PlayButton,
 		$CenterContainer/VBoxContainer/ButtonContainer/RankingButton,
@@ -643,7 +703,10 @@ func _update_appearance_display():
 	]
 	for btn in standard_btns:
 		if btn:
-			btn.add_theme_color_override("font_hover_color", base_color)
+			_apply_standard_button_palette(btn)
+	_update_ranking_sort_buttons_style()
+	_update_crt_buttons_style(Config.crt_enabled)
+	_update_beta_buttons_style(Config.beta_upgrades_enabled)
 
 	# Visual feedback on background
 	var bg = $MenuBackground
@@ -691,6 +754,10 @@ func _update_button_style(btn: Button, hover: bool):
 		_update_appearance_display()
 
 func _on_button_down(btn: Button):
+	if btn in skin_buttons:
+		btn.set_meta("is_skin_pressed", true)
+		_update_appearance_display()
+
 	var tween = create_tween()
 	tween.set_parallel(true)
 	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
@@ -698,6 +765,10 @@ func _on_button_down(btn: Button):
 	tween.tween_property(btn, "self_modulate", Color(0.85, 0.85, 0.85), 0.05)
 
 func _on_button_up(btn: Button):
+	if btn in skin_buttons:
+		btn.set_meta("is_skin_pressed", false)
+		_update_appearance_display()
+
 	var tween = create_tween()
 	tween.set_parallel(true)
 	tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)

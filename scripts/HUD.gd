@@ -410,11 +410,11 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	hero_stats.alignment = BoxContainer.ALIGNMENT_CENTER
 	content_vbox.add_child(hero_stats)
 
-	var time_card = _create_result_metric("SURVIVAL", time_str, GameConstants.COLOR_POINT, 34, 58, "RANK #%d" % survival_rank)
+	var time_card = _create_result_metric("SURVIVAL", time_str, GameConstants.COLOR_RANKING_SURVIVAL, 34, 58, "RANK #%d" % survival_rank)
 	hero_stats.add_child(time_card)
 	anim_items.append(time_card)
 
-	var length_card = _create_result_metric("BEST LENGTH", str(longest_length), GameConstants.COLOR_POINT, 34, 58, "RANK #%d" % length_rank)
+	var length_card = _create_result_metric("BEST LENGTH", str(longest_length), GameConstants.COLOR_RANKING_LENGTH, 34, 58, "RANK #%d" % length_rank)
 	hero_stats.add_child(length_card)
 	anim_items.append(length_card)
 
@@ -696,12 +696,10 @@ func _create_result_button(text: String, font_size: int) -> Button:
 	btn.text = text
 	btn.flat = true
 	btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	btn.custom_minimum_size = Vector2(_get_result_button_min_width(text), btn.custom_minimum_size.y)
 	btn.add_theme_font_override("font", main_font)
 	btn.add_theme_font_size_override("font_size", font_size)
-	btn.add_theme_color_override("font_color", GameConstants.COLOR_FG)
-	btn.add_theme_color_override("font_hover_color", GameConstants.COLOR_FG)
-	btn.add_theme_color_override("font_pressed_color", GameConstants.COLOR_GHOST)
-	btn.add_theme_color_override("font_focus_color", GameConstants.COLOR_FG)
+	_apply_result_button_colors(btn)
 	btn.process_mode = Node.PROCESS_MODE_ALWAYS
 	btn.focus_mode = Control.FOCUS_ALL
 
@@ -711,6 +709,26 @@ func _create_result_button(text: String, font_size: int) -> Button:
 	btn.button_up.connect(func(): _on_result_btn_up(btn))
 
 	return btn
+
+func _get_result_button_min_width(text: String) -> float:
+	match text:
+		"SUBMIT":
+			return 190.0
+		"RETRY":
+			return 260.0
+		_:
+			return 320.0
+
+func _apply_result_button_colors(btn: Button):
+	var accent_color = _get_result_button_accent_color()
+	btn.add_theme_color_override("font_color", GameConstants.COLOR_BUTTON_NORMAL)
+	btn.add_theme_color_override("font_hover_color", accent_color)
+	btn.add_theme_color_override("font_pressed_color", accent_color.darkened(GameConstants.BUTTON_PRESSED_DARKEN))
+	btn.add_theme_color_override("font_focus_color", GameConstants.COLOR_BUTTON_NORMAL)
+	btn.add_theme_color_override("font_disabled_color", GameConstants.COLOR_GHOST)
+
+func _get_result_button_accent_color() -> Color:
+	return GameConstants.SKIN_COLORS.get(Config.selected_color, GameConstants.COLOR_BUTTON_HOVER)
 
 func _animate_result_btn(btn: Button, hover: bool):
 	if result_exit_in_progress:
