@@ -404,8 +404,8 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	var survival_rank_text = ""
 	var length_rank_text = ""
 	if ranking_enabled:
-		survival_rank_text = "RANK #%d" % Config.get_survival_rank(survival_time, longest_length)
-		length_rank_text = "RANK #%d" % Config.get_length_rank(longest_length, survival_time)
+		survival_rank_text = "#%d" % Config.get_survival_rank(survival_time, longest_length)
+		length_rank_text = "#%d" % Config.get_length_rank(longest_length, survival_time)
 	var newly_unlocked_skins = Config.unlock_skins_for_run(longest_length, survival_time)
 
 	# 2. Primary Stats
@@ -476,12 +476,14 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 func _add_result_row(parent: Control, label_text: String, value_text: String, label_size: int, value_size: int, value_color: Color) -> HBoxContainer:
 	var hbox = HBoxContainer.new()
 	hbox.custom_minimum_size = Vector2(RESULT_SEPARATOR_WIDTH, 0)
-	hbox.add_theme_constant_override("separation", 40)
+	hbox.add_theme_constant_override("separation", 30)
+	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	parent.add_child(hbox)
 
 	var label = Label.new()
 	label.text = label_text
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.custom_minimum_size = Vector2(230, 0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	label.add_theme_font_override("font", main_font)
 	label.add_theme_font_size_override("font_size", label_size)
 	label.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
@@ -489,8 +491,8 @@ func _add_result_row(parent: Control, label_text: String, value_text: String, la
 
 	var value = Label.new()
 	value.text = value_text
-	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	value.custom_minimum_size = Vector2(160, 0)
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	value.add_theme_font_override("font", main_font)
 	value.add_theme_font_size_override("font_size", value_size)
 	value.add_theme_color_override("font_color", value_color)
