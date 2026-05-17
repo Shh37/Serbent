@@ -15,6 +15,8 @@ var ranking_scroll: ScrollContainer
 var ranking_scroll_velocity: float = 0.0
 var skin_requirement_label: Label
 var skin_requirement_tween: Tween
+const SKIN_BUTTON_SIZE = Vector2(260, 66)
+const SKIN_BUTTON_FONT_SIZE = 32
 
 func _ready():
 	font_title = load("res://assets/Shikakufuto_Free.ttf")
@@ -218,7 +220,7 @@ func _apply_selected_button_colors(btn: Button, selected: bool, selected_color: 
 	if selected:
 		_apply_button_colors(btn, selected_color, selected_hover, selected_pressed)
 	else:
-		_apply_standard_button_palette(btn)
+		_apply_button_colors(btn, GameConstants.COLOR_BUTTON_NORMAL, selected_hover, selected_pressed)
 
 func _apply_metric_button_colors(btn: Button, selected: bool, metric_color: Color, metric_hover: Color, metric_pressed: Color):
 	if selected:
@@ -488,7 +490,7 @@ func _populate_skin_grids():
 	}
 	for c_type in GameConstants.SkinColor.values():
 		var btn = Button.new()
-		btn.custom_minimum_size = Vector2(240, 54)
+		btn.custom_minimum_size = SKIN_BUTTON_SIZE
 		btn.flat = true
 		btn.pressed.connect(func(): _on_color_selected(c_type))
 
@@ -499,7 +501,7 @@ func _populate_skin_grids():
 		rtl.bbcode_enabled = true
 		rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		rtl.add_theme_font_override("normal_font", font_title)
-		rtl.add_theme_font_size_override("normal_font_size", 26)
+		rtl.add_theme_font_size_override("normal_font_size", SKIN_BUTTON_FONT_SIZE)
 		rtl.fit_content = true
 		rtl.autowrap_mode = TextServer.AUTOWRAP_OFF
 		center.add_child(rtl)
@@ -520,7 +522,7 @@ func _populate_skin_grids():
 	}
 	for p_type in GameConstants.SkinPattern.values():
 		var btn = Button.new()
-		btn.custom_minimum_size = Vector2(240, 54)
+		btn.custom_minimum_size = SKIN_BUTTON_SIZE
 		btn.flat = true
 		btn.pressed.connect(func(): _on_pattern_selected(p_type))
 
@@ -531,7 +533,7 @@ func _populate_skin_grids():
 		rtl.bbcode_enabled = true
 		rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		rtl.add_theme_font_override("normal_font", font_title)
-		rtl.add_theme_font_size_override("normal_font_size", 26)
+		rtl.add_theme_font_size_override("normal_font_size", SKIN_BUTTON_FONT_SIZE)
 		rtl.fit_content = true
 		rtl.autowrap_mode = TextServer.AUTOWRAP_OFF
 		center.add_child(rtl)

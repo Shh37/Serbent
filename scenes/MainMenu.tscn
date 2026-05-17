@@ -231,7 +231,7 @@ horizontal_alignment = 1
 
 [node name="HBoxContainer" type="HBoxContainer" parent="SkinLayer/CenterContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 100
+theme_override_constants/separation = 60
 alignment = 1
 
 [node name="SelectionContainer" type="VBoxContainer" parent="SkinLayer/CenterContainer/VBoxContainer/HBoxContainer"]
@@ -246,7 +246,7 @@ horizontal_alignment = 1
 
 [node name="ColorGrid" type="GridContainer" parent="SkinLayer/CenterContainer/VBoxContainer/HBoxContainer/SelectionContainer"]
 layout_mode = 2
-theme_override_constants/h_separation = 10
+theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 10
 columns = 3
 
@@ -258,7 +258,7 @@ horizontal_alignment = 1
 
 [node name="PatternGrid" type="GridContainer" parent="SkinLayer/CenterContainer/VBoxContainer/HBoxContainer/SelectionContainer"]
 layout_mode = 2
-theme_override_constants/h_separation = 10
+theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 10
 columns = 3
 
