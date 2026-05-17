@@ -7,6 +7,12 @@ extends CanvasLayer
 var snake: Node2D
 var game_time = 0.0
 var fx_tween: Tween
+var run_unlocked_skins = {
+	"colors": [],
+	"patterns": []
+}
+var flashed_length_unlock_thresholds = []
+var flashed_time_unlock_thresholds = []
 
 # Shader defaults
 const DEFAULT_BLUR = 4.0
@@ -39,6 +45,8 @@ func _setup_centering():
 	# Move Length/Time back to corners
 	var container = $Control/MarginContainer
 	container.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE, Control.PRESET_MODE_MINSIZE, 20)
+	_prepare_hud_label_color(length_label)
+	_prepare_hud_label_color(time_label)
 
 	# Apply larger font size for HUD
 	var target_font_size = 48
@@ -72,7 +80,57 @@ func _process(delta):
 
 	game_time += delta
 	update_ui()
+	_check_skin_unlocks()
 	_update_powerup_visuals()
+
+func _check_skin_unlocks():
+	if not snake:
+		return
+
+	var current_length = max(int(snake.max_length), snake.body.size())
+	for unlock in Config.COLOR_UNLOCKS:
+		var threshold = int(unlock.get("threshold", 0))
+		if threshold <= 0:
+			continue
+		if current_length >= threshold and not (threshold in flashed_length_unlock_thresholds):
+			flashed_length_unlock_thresholds.append(threshold)
+			if Config.unlock_color(unlock.get("type")):
+				run_unlocked_skins["colors"].append(unlock)
+			_flash_unlock_condition_label(length_label)
+
+	for unlock in Config.PATTERN_UNLOCKS:
+		var threshold = float(unlock.get("threshold", 0.0))
+		if threshold <= 0.0:
+			continue
+		if game_time >= threshold and not (threshold in flashed_time_unlock_thresholds):
+			flashed_time_unlock_thresholds.append(threshold)
+			if Config.unlock_pattern(unlock.get("type")):
+				run_unlocked_skins["patterns"].append(unlock)
+			_flash_unlock_condition_label(time_label)
+
+func _prepare_hud_label_color(label: Label):
+	if not label:
+		return
+	if label.label_settings:
+		label.label_settings = label.label_settings.duplicate()
+		label.label_settings.font_color = GameConstants.COLOR_FG
+	else:
+		label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+
+func _flash_unlock_condition_label(label: Label):
+	if not label:
+		return
+	_set_hud_label_color(label, GameConstants.COLOR_POINT)
+	var tween = create_tween()
+	tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_interval(0.65)
+	tween.tween_method(func(color): _set_hud_label_color(label, color), GameConstants.COLOR_POINT, GameConstants.COLOR_FG, 0.35)
+
+func _set_hud_label_color(label: Label, color: Color):
+	if label.label_settings:
+		label.label_settings.font_color = color
+	else:
+		label.add_theme_color_override("font_color", color)
 
 func _update_powerup_visuals():
 	if not (edge_blur and edge_blur.material): return
@@ -344,6 +402,7 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	var time_str = Config.format_survival_time(survival_time)
 	var survival_rank = Config.get_survival_rank(survival_time, longest_length)
 	var length_rank = Config.get_length_rank(longest_length, survival_time)
+	var newly_unlocked_skins = Config.unlock_skins_for_run(longest_length, survival_time)
 
 	# 2. Primary Stats
 	var hero_stats = HBoxContainer.new()
@@ -355,7 +414,7 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	hero_stats.add_child(time_card)
 	anim_items.append(time_card)
 
-	var length_card = _create_result_metric("BEST LENGTH", str(longest_length), GameConstants.COLOR_ACCENT_BLUE, 34, 58, "RANK #%d" % length_rank)
+	var length_card = _create_result_metric("BEST LENGTH", str(longest_length), GameConstants.COLOR_POINT, 34, 58, "RANK #%d" % length_rank)
 	hero_stats.add_child(length_card)
 	anim_items.append(length_card)
 
@@ -366,6 +425,12 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 
 	anim_items.append(_add_result_row(stats_vbox, "FINAL LENGTH", str(final_length), 24, 34, GameConstants.COLOR_FG))
 	anim_items.append(_add_result_row(stats_vbox, "POINTS", str(total_points), 24, 34, GameConstants.COLOR_FG))
+
+	_merge_run_unlocks(newly_unlocked_skins)
+	var unlock_panel = _create_result_unlock_panel(run_unlocked_skins)
+	if unlock_panel:
+		content_vbox.add_child(unlock_panel)
+		anim_items.append(unlock_panel)
 
 	# Separator
 	var sep_bottom = _create_separator()
@@ -427,6 +492,89 @@ func _add_result_row(parent: Control, label_text: String, value_text: String, la
 	hbox.add_child(value)
 
 	return hbox
+
+func _merge_run_unlocks(newly_unlocked_skins: Dictionary):
+	for unlock in newly_unlocked_skins.get("colors", []):
+		if not _unlock_list_has_type(run_unlocked_skins["colors"], unlock.get("type", -1)):
+			run_unlocked_skins["colors"].append(unlock)
+	for unlock in newly_unlocked_skins.get("patterns", []):
+		if not _unlock_list_has_type(run_unlocked_skins["patterns"], unlock.get("type", -1)):
+			run_unlocked_skins["patterns"].append(unlock)
+
+func _unlock_list_has_type(unlocks: Array, type: int) -> bool:
+	for unlock in unlocks:
+		if int(unlock.get("type", -1)) == type:
+			return true
+	return false
+
+func _create_result_unlock_panel(newly_unlocked_skins: Dictionary) -> HBoxContainer:
+	var color_unlocks = newly_unlocked_skins.get("colors", [])
+	var pattern_unlocks = newly_unlocked_skins.get("patterns", [])
+	if color_unlocks.is_empty() and pattern_unlocks.is_empty():
+		return null
+
+	var box = HBoxContainer.new()
+	box.custom_minimum_size = Vector2(RESULT_SEPARATOR_WIDTH, 0)
+	box.add_theme_constant_override("separation", 18)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+
+	var title = Label.new()
+	title.text = "NEW SKINS UNLOCKED: "
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	title.add_theme_font_override("font", main_font)
+	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_color_override("font_color", GameConstants.COLOR_POINT)
+	box.add_child(title)
+
+	var value = Label.new()
+	value.text = _format_result_unlocks(color_unlocks, pattern_unlocks)
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	value.add_theme_font_override("font", main_font)
+	value.add_theme_font_size_override("font_size", 28)
+	value.add_theme_color_override("font_color", GameConstants.COLOR_POINT)
+	box.add_child(value)
+
+	return box
+
+func _format_result_unlocks(color_unlocks: Array, pattern_unlocks: Array) -> String:
+	var parts = []
+	if not color_unlocks.is_empty():
+		parts.append("COLOR " + _join_unlock_names(color_unlocks))
+	if not pattern_unlocks.is_empty():
+		parts.append("PATTERN " + _join_unlock_names(pattern_unlocks))
+	return " / ".join(parts)
+
+func _create_result_unlock_row(label_text: String, value_text: String, value_color: Color) -> HBoxContainer:
+	var row = HBoxContainer.new()
+	row.custom_minimum_size = Vector2(RESULT_SEPARATOR_WIDTH, 0)
+	row.add_theme_constant_override("separation", 24)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+
+	var label = Label.new()
+	label.text = label_text
+	label.custom_minimum_size = Vector2(150, 0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	label.add_theme_font_override("font", main_font)
+	label.add_theme_font_size_override("font_size", 22)
+	label.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
+	row.add_child(label)
+
+	var value = Label.new()
+	value.text = value_text
+	value.custom_minimum_size = Vector2(430, 0)
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	value.add_theme_font_override("font", main_font)
+	value.add_theme_font_size_override("font_size", 24)
+	value.add_theme_color_override("font_color", value_color)
+	row.add_child(value)
+
+	return row
+
+func _join_unlock_names(unlocks: Array) -> String:
+	var names = []
+	for unlock in unlocks:
+		names.append(str(unlock.get("name", "???")))
+	return ", ".join(names)
 
 func _create_result_metric(label_text: String, value_text: String, accent_color: Color, label_size: int, value_size: int, rank_text: String = "") -> VBoxContainer:
 	var box = VBoxContainer.new()

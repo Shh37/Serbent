@@ -13,6 +13,8 @@ var ranking_survival_sort_btn: Button
 var ranking_back_btn: Button
 var ranking_scroll: ScrollContainer
 var ranking_scroll_velocity: float = 0.0
+var skin_requirement_label: Label
+var skin_requirement_tween: Tween
 
 func _ready():
 	font_title = load("res://assets/Shikakufuto_Free.ttf")
@@ -497,11 +499,50 @@ func _on_color_selected(c_type):
 	if c_type in Config.unlocked_colors:
 		Config.selected_color = c_type
 		_update_appearance_display()
+	else:
+		_show_skin_requirement("%s: %s" % [Config.get_skin_color_name(c_type), Config.get_color_unlock_requirement(c_type)])
 
 func _on_pattern_selected(p_type):
 	if p_type in Config.unlocked_patterns:
 		Config.selected_pattern = p_type
 		_update_appearance_display()
+	else:
+		_show_skin_requirement("%s: %s" % [Config.get_skin_pattern_name(p_type), Config.get_pattern_unlock_requirement(p_type)])
+
+func _show_skin_requirement(text: String):
+	var label = _ensure_skin_requirement_label()
+	label.text = text
+	label.modulate.a = 0.0
+	label.position.y = -96.0
+
+	if skin_requirement_tween:
+		skin_requirement_tween.kill()
+
+	skin_requirement_tween = create_tween()
+	skin_requirement_tween.set_parallel(true)
+	skin_requirement_tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+	skin_requirement_tween.tween_property(label, "modulate:a", 1.0, 0.12)
+	skin_requirement_tween.tween_property(label, "position:y", -120.0, 0.18)
+	skin_requirement_tween.chain().tween_interval(1.15)
+	skin_requirement_tween.chain().set_parallel(true)
+	skin_requirement_tween.tween_property(label, "modulate:a", 0.0, 0.22)
+	skin_requirement_tween.tween_property(label, "position:y", -144.0, 0.22)
+
+func _ensure_skin_requirement_label() -> Label:
+	if skin_requirement_label:
+		return skin_requirement_label
+
+	skin_requirement_label = Label.new()
+	skin_requirement_label.name = "SkinRequirement"
+	skin_requirement_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	skin_requirement_label.custom_minimum_size = Vector2(560, 0)
+	skin_requirement_label.add_theme_font_override("font", font_title)
+	skin_requirement_label.add_theme_font_size_override("font_size", 28)
+	skin_requirement_label.add_theme_color_override("font_color", GameConstants.COLOR_POINT)
+	skin_requirement_label.modulate.a = 0.0
+	$SkinLayer.add_child(skin_requirement_label)
+	skin_requirement_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_MINSIZE)
+	return skin_requirement_label
 
 func get_pattern_bbcode(text: String, pattern: GameConstants.SkinPattern, base_color: Color, prefix_color: String) -> String:
 	var darker_color = base_color.darkened(0.3)
@@ -547,6 +588,7 @@ func _update_appearance_display():
 
 			var is_selected = (btn_c == c_type)
 			var is_unlocked = (btn_c in Config.unlocked_colors)
+			btn.disabled = false
 
 			var disp_text = text_str
 			var prefix_color = base_color.to_html(false) if is_selected else "00000000"
@@ -568,6 +610,7 @@ func _update_appearance_display():
 
 			var is_selected = (btn_p == p_type)
 			var is_unlocked = (btn_p in Config.unlocked_patterns)
+			btn.disabled = false
 
 			var disp_text = text_str
 			var prefix_color = base_color.to_html(false) if is_selected else "00000000"
