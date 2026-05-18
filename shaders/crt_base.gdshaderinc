@@ -11,6 +11,9 @@ uniform float glitch_threshold : hint_range(0.0, 1.0) = 0.995;
 uniform vec2 glitch_block_size = vec2(12.0, 8.0);
 uniform float pixel_size : hint_range(1.0, 16.0) = 4.0;
 uniform float scanline_intensity : hint_range(0.0, 0.2) = 0.05;
+uniform float scanline_scroll_speed : hint_range(-120.0, 120.0) = -8.0;
+uniform float scanline_spacing : hint_range(2.0, 16.0) = 7.0;
+uniform float scanline_width : hint_range(0.1, 0.9) = 0.42;
 uniform float vignette_intensity : hint_range(0.0, 1.0) = 0.4;
 uniform float vignette_opacity : hint_range(0.0, 1.0) = 0.5;
 
@@ -107,9 +110,11 @@ vec3 apply_crt_effects(vec3 color, vec2 uv, vec2 screen_res) {
     if (!crt_enabled) return color;
     vec3 result = color;
 
-    // Scanlines
-    float scanline = sin(uv.y * screen_res.y * 1.5) * scanline_intensity;
-    result -= scanline;
+    // Scanlines drift in screen pixels so world/camera movement cannot cancel them out.
+    float scanline_y = uv.y * screen_res.y + TIME * scanline_scroll_speed;
+    float scanline_phase = fract(scanline_y / scanline_spacing);
+    float scanline = 1.0 - smoothstep(scanline_width, scanline_width + 0.25, scanline_phase);
+    result *= 1.0 - scanline * scanline_intensity;
 
     // Radial Vignette
     float v_dist = length(uv - 0.5) * 1.414;
