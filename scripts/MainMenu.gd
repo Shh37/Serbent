@@ -797,7 +797,7 @@ func get_pattern_bbcode(text: String, pattern: GameConstants.SkinPattern, base_c
 			GameConstants.SkinPattern.STRIPE21:
 				char_color = base_color if i % 3 != 2 else darker_color
 			GameConstants.SkinPattern.STRIPE22:
-				char_color = base_color if (i / 2) % 2 == 0 else darker_color
+				char_color = base_color if floori(float(i) * 0.5) % 2 == 0 else darker_color
 			GameConstants.SkinPattern.GRADIENT:
 				var t = float(i) / float(max(1, text.length() - 1))
 				char_color = base_color.lerp(darker_color, t)
@@ -981,7 +981,6 @@ func _process(_delta):
 
 	# Update ranking smooth scroll
 	if ranking_scroll and ranking_scroll.visible and abs(ranking_scroll_velocity) > 0.1:
-		var old_v = ranking_scroll.scroll_vertical
 		ranking_scroll.scroll_vertical += int(ranking_scroll_velocity * _delta)
 		
 		# Clamp and bounce/stop if at limits
@@ -1000,7 +999,7 @@ func _process(_delta):
 	# Update blur shader uniforms
 	_update_blur_regions(title, $CenterContainer/VBoxContainer/ButtonContainer/PlayButton)
 
-func _update_blur_regions(title: Control, play_btn: Control):
+func _update_blur_regions(_title: Control, play_btn: Control):
 	var blur_rect = $EdgeBlur
 	if not blur_rect or not blur_rect.material or not blur_rect.visible:
 		return

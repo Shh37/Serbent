@@ -331,7 +331,7 @@ func _draw():
 			GameConstants.SkinPattern.STRIPE21:
 				color = base_color if i % 3 != 2 else darker_color
 			GameConstants.SkinPattern.STRIPE22:
-				color = base_color if (i / 2) % 2 == 0 else darker_color
+				color = base_color if floori(float(i) * 0.5) % 2 == 0 else darker_color
 			GameConstants.SkinPattern.GRADIENT:
 				color = base_color.lerp(darker_color, float(i) / float(body.size()))
 		
@@ -408,7 +408,7 @@ func game_over():
 	# Visual effect: Noticeable dark red flash and blur for game over
 	var red_tint = GameConstants.COLOR_DANGER.darkened(0.6)
 	red_tint.a = 0.6
-	var fx_tween = _play_screen_fx(5.0, red_tint, 1.5)
+	_play_screen_fx(5.0, red_tint, 1.5)
 	
 	await get_tree().create_timer(1.5, false).timeout
 	

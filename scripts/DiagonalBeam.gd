@@ -94,7 +94,8 @@ func is_on_beam(grid_pos: Vector2i) -> bool:
 		v_base = grid_pos.x - grid_pos.y - offset_k
 		
 	var z_offset = get_zigzag_offset(u)
-	return abs(v_base - z_offset) <= thickness / 2
+	var half_thickness = floori(float(thickness) * 0.5)
+	return abs(v_base - z_offset) <= half_thickness
 
 func check_collision():
 	var world = get_parent()

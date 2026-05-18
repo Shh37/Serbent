@@ -19,7 +19,8 @@ func _ready():
 
 func reset_snake():
 	# Start at a safe middle position
-	var head = Vector2i(path_size / 2, path_size / 2)
+	var half_path_size = floori(float(path_size) * 0.5)
+	var head = Vector2i(half_path_size, half_path_size)
 	body = []
 	for i in range(8):
 		body.append(head) # Just stack it at start or move it back
@@ -114,7 +115,7 @@ func _draw():
 			GameConstants.SkinPattern.STRIPE21:
 				color = base_color if i % 3 != 2 else darker_color
 			GameConstants.SkinPattern.STRIPE22:
-				color = base_color if (i / 2) % 2 == 0 else darker_color
+				color = base_color if floori(float(i) * 0.5) % 2 == 0 else darker_color
 			GameConstants.SkinPattern.GRADIENT:
 				color = base_color.lerp(darker_color, float(i) / float(body.size()))
 				

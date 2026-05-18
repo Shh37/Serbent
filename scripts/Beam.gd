@@ -86,12 +86,13 @@ func get_zigzag_offset(pos_along_beam: int) -> int:
 	return 0
 
 func is_on_beam(grid_pos: Vector2i) -> bool:
+	var half_thickness = floori(float(thickness) * 0.5)
 	if orientation == Orientation.HORIZONTAL:
 		var z_offset = get_zigzag_offset(grid_pos.x)
-		return abs(grid_pos.y - (global_grid_index + z_offset)) <= thickness / 2
+		return abs(grid_pos.y - (global_grid_index + z_offset)) <= half_thickness
 	else:
 		var z_offset = get_zigzag_offset(grid_pos.y)
-		return abs(grid_pos.x - (global_grid_index + z_offset)) <= thickness / 2
+		return abs(grid_pos.x - (global_grid_index + z_offset)) <= half_thickness
 
 func check_collision():
 	var world = get_parent()
@@ -124,11 +125,12 @@ func _draw():
 	var center_grid = Vector2i(snake.position / cell_size) if snake else Vector2i.ZERO
 	
 	var range_val = 40
+	var half_thickness = floori(float(thickness) * 0.5)
 	for i in range(-range_val, range_val):
 		var pos_along = (center_grid.x if orientation == Orientation.HORIZONTAL else center_grid.y) + i
 		var z_offset = get_zigzag_offset(pos_along)
 		
-		for t_offset in range(-thickness / 2, thickness / 2 + 1):
+		for t_offset in range(-half_thickness, half_thickness + 1):
 			var rect: Rect2
 			if orientation == Orientation.HORIZONTAL:
 				var grid_y = global_grid_index + z_offset + t_offset

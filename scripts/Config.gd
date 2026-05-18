@@ -166,8 +166,8 @@ func load_skin_unlocks():
 
 	var loaded_selected_color = int(parsed.get("selected_color", GameConstants.SkinColor.BASIC))
 	var loaded_selected_pattern = int(parsed.get("selected_pattern", GameConstants.SkinPattern.SOLID))
-	selected_color = loaded_selected_color if loaded_selected_color in unlocked_colors else GameConstants.SkinColor.BASIC
-	selected_pattern = loaded_selected_pattern if loaded_selected_pattern in unlocked_patterns else GameConstants.SkinPattern.SOLID
+	selected_color = (loaded_selected_color if loaded_selected_color in unlocked_colors else GameConstants.SkinColor.BASIC) as GameConstants.SkinColor
+	selected_pattern = (loaded_selected_pattern if loaded_selected_pattern in unlocked_patterns else GameConstants.SkinPattern.SOLID) as GameConstants.SkinPattern
 
 	if not selected_color in unlocked_colors:
 		selected_color = GameConstants.SkinColor.BASIC
@@ -220,7 +220,7 @@ func sanitize_player_name(raw_name: String) -> String:
 	return clean_name
 
 func format_survival_time(seconds_value: float) -> String:
-	var minutes = int(seconds_value) / 60
+	var minutes = floori(seconds_value / 60.0)
 	var seconds = int(seconds_value) % 60
 	var centiseconds = int((seconds_value - int(seconds_value)) * 100)
 	return "%02d:%02d.%02d" % [minutes, seconds, centiseconds]

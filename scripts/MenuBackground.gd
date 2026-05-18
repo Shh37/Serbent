@@ -433,6 +433,8 @@ func _draw_beams():
 			color.a = 0.5 if b["show"] else 0.15
 		var center_grid = Vector2i((-scroll_offset + viewport_size * 0.5) / CELL)
 		var range_val = 40
+		var thickness = int(b["thickness"])
+		var half_thickness = floori(float(thickness) * 0.5)
 		for i in range(-range_val, range_val):
 			var pos_along: int
 			if b["orientation"] == 0:  # H
@@ -440,7 +442,7 @@ func _draw_beams():
 			else:
 				pos_along = center_grid.y + i
 			var z_off = _beam_zigzag_offset(pos_along, b["zigzag"])
-			for t_off in range(-b["thickness"] / 2, b["thickness"] / 2 + 1):
+			for t_off in range(-half_thickness, half_thickness + 1):
 				var rect: Rect2
 				if b["orientation"] == 0:
 					var gy = b["index"] + z_off + t_off
@@ -460,7 +462,8 @@ func _is_on_diag_beam(grid_pos: Vector2i, b: Dictionary) -> bool:
 		u = grid_pos.x + grid_pos.y
 		v_base = grid_pos.x - grid_pos.y - b["k"]
 	var z_off = _beam_zigzag_offset(u, b["zigzag"])
-	return abs(v_base - z_off) <= b["thickness"] / 2
+	var half_thickness = floori(float(b["thickness"]) * 0.5)
+	return abs(v_base - z_off) <= half_thickness
 
 func _draw_diag_beams():
 	for b in deco_diag_beams:

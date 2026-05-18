@@ -860,7 +860,8 @@ func _animate_result_exit():
 
 	var center = result_layer.get_node_or_null("CenterContainer")
 	var content = center.get_child(0) if center and center.get_child_count() > 0 else null
-	var blur_bg = result_layer.get_node_or_null("BlurBG")
+	var blur_bg = result_layer.get_node_or_null("BlurBG") as ColorRect
+	var shade = result_layer.get_node_or_null("ResultShade") as ColorRect
 	var blur_mat = blur_bg.material as ShaderMaterial if blur_bg and blur_bg.material else null
 
 	var tween = create_tween()
@@ -874,10 +875,15 @@ func _animate_result_exit():
 		tween.tween_property(content, "scale", Vector2(0.96, 0.96), 0.18)
 		tween.tween_property(content, "position:y", content.position.y - 22.0, 0.18)
 
-	if result_layer:
-		var fade_out = tween.tween_property(result_layer, "modulate:a", 0.0, 0.28)
-		if fade_out:
-			fade_out.set_delay(0.08)
+	if blur_bg:
+		var blur_fade_out = tween.tween_property(blur_bg, "modulate:a", 0.0, 0.28)
+		if blur_fade_out:
+			blur_fade_out.set_delay(0.08)
+
+	if shade:
+		var shade_fade_out = tween.tween_property(shade, "modulate:a", 0.0, 0.28)
+		if shade_fade_out:
+			shade_fade_out.set_delay(0.08)
 
 	if blur_mat:
 		var blur_out = tween.tween_property(blur_mat, "shader_parameter/blur_amount", 0.0, 0.28)
@@ -885,3 +891,7 @@ func _animate_result_exit():
 			blur_out.set_delay(0.02)
 
 	await tween.finished
+
+	if result_layer and is_instance_valid(result_layer):
+		result_layer.queue_free()
+	result_layer = null
