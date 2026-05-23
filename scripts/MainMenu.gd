@@ -38,16 +38,17 @@ func _ready():
 	play_btn.add_theme_font_override("font", font_title)
 
 	var button_container = $CenterContainer/VBoxContainer/ButtonContainer
-	var ranking_btn = _ensure_ranking_button(button_container)
+	var options_grid = button_container.get_node("OptionsGrid")
+	var ranking_btn = _ensure_ranking_button(options_grid)
 	ranking_btn.add_theme_font_override("font", font_title)
 
-	how_to_play_btn = $CenterContainer/VBoxContainer/ButtonContainer/HowToPlayButton
+	how_to_play_btn = $CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/HowToPlayButton
 	how_to_play_btn.add_theme_font_override("font", font_title)
 
-	var settings_btn = $CenterContainer/VBoxContainer/ButtonContainer/SettingsButton
+	var settings_btn = $CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/SettingsButton
 	settings_btn.add_theme_font_override("font", font_title)
 
-	var skins_btn = $CenterContainer/VBoxContainer/ButtonContainer/SkinsButton
+	var skins_btn = $CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/SkinsButton
 	skins_btn.add_theme_font_override("font", font_title)
 
 	_ensure_ranking_layer()
@@ -569,10 +570,10 @@ func _apply_localized_texts():
 	var body_font = _get_body_font()
 
 	$CenterContainer/VBoxContainer/ButtonContainer/PlayButton.text = Config.tr_text("play")
-	$CenterContainer/VBoxContainer/ButtonContainer/RankingButton.text = Config.tr_text("ranking")
-	$CenterContainer/VBoxContainer/ButtonContainer/SkinsButton.text = Config.tr_text("skins")
-	$CenterContainer/VBoxContainer/ButtonContainer/HowToPlayButton.text = Config.tr_text("how_to_play")
-	$CenterContainer/VBoxContainer/ButtonContainer/SettingsButton.text = Config.tr_text("settings")
+	$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/RankingButton.text = Config.tr_text("ranking")
+	$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/SkinsButton.text = Config.tr_text("skins")
+	$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/HowToPlayButton.text = Config.tr_text("how_to_play")
+	$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/SettingsButton.text = Config.tr_text("settings")
 
 	$SettingsLayer/CenterContainer/VBoxContainer/Label.text = Config.tr_text("settings")
 	$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/Label.text = Config.tr_text("crt_shader")
@@ -649,8 +650,8 @@ func _update_ranking_header():
 	header.get_child(2).text = Config.tr_text("best_length")
 	header.get_child(3).text = Config.tr_text("survival")
 
-func _ensure_ranking_button(button_container: VBoxContainer) -> Button:
-	var existing = button_container.get_node_or_null("RankingButton") as Button
+func _ensure_ranking_button(options_grid: GridContainer) -> Button:
+	var existing = options_grid.get_node_or_null("RankingButton") as Button
 	if existing:
 		return existing
 
@@ -660,8 +661,8 @@ func _ensure_ranking_button(button_container: VBoxContainer) -> Button:
 	btn.flat = true
 	btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	btn.add_theme_font_size_override("font_size", 50)
-	button_container.add_child(btn)
-	button_container.move_child(btn, 2)
+	options_grid.add_child(btn)
+	options_grid.move_child(btn, 1)
 	return btn
 
 func _ensure_ranking_layer():
@@ -1100,10 +1101,10 @@ func _update_appearance_display():
 	# Keep standard buttons on the shared Gruvbox interaction palette.
 	var standard_btns = [
 		$CenterContainer/VBoxContainer/ButtonContainer/PlayButton,
-		$CenterContainer/VBoxContainer/ButtonContainer/RankingButton,
-		$CenterContainer/VBoxContainer/ButtonContainer/SkinsButton,
-		$CenterContainer/VBoxContainer/ButtonContainer/HowToPlayButton,
-		$CenterContainer/VBoxContainer/ButtonContainer/SettingsButton,
+		$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/RankingButton,
+		$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/SkinsButton,
+		$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/HowToPlayButton,
+		$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/SettingsButton,
 		$SettingsLayer/CenterContainer/VBoxContainer/BackButton,
 		$SkinLayer/CenterContainer/VBoxContainer/BackButton,
 		ranking_back_btn,
@@ -1202,10 +1203,10 @@ func _on_button_up(btn: Button):
 func _process(_delta):
 	# Update pivot offsets
 	for btn in [$CenterContainer/VBoxContainer/ButtonContainer/PlayButton,
-				$CenterContainer/VBoxContainer/ButtonContainer/RankingButton,
-				$CenterContainer/VBoxContainer/ButtonContainer/SkinsButton,
-				$CenterContainer/VBoxContainer/ButtonContainer/HowToPlayButton,
-				$CenterContainer/VBoxContainer/ButtonContainer/SettingsButton,
+				$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/RankingButton,
+				$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/SkinsButton,
+				$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/HowToPlayButton,
+				$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/SettingsButton,
 				$SettingsLayer/CenterContainer/VBoxContainer/BackButton,
 				$SkinLayer/CenterContainer/VBoxContainer/BackButton,
 				ranking_back_btn,
@@ -1243,9 +1244,9 @@ func _process(_delta):
 	title.position.y = title_pos.y + sin(Time.get_ticks_msec() * 0.002) * 8.0
 
 	# Update blur shader uniforms
-	_update_blur_regions(title, $CenterContainer/VBoxContainer/ButtonContainer/PlayButton)
+	_update_blur_regions(title, $CenterContainer/VBoxContainer/ButtonContainer)
 
-func _update_blur_regions(_title: Control, play_btn: Control):
+func _update_blur_regions(_title: Control, button_container: Control):
 	var blur_rect = $EdgeBlur
 	if not blur_rect or not blur_rect.material or not blur_rect.visible:
 		return
@@ -1269,8 +1270,8 @@ func _update_blur_regions(_title: Control, play_btn: Control):
 	mat.set_shader_parameter("title_center", t_center)
 	mat.set_shader_parameter("title_size", t_size)
 
-	# Button: get global rect and convert to UV (0..1)
-	var b_rect = play_btn.get_global_rect()
+	# Buttons: get global rect and convert to UV (0..1)
+	var b_rect = button_container.get_global_rect()
 	var b_center = Vector2(
 		(b_rect.position.x + b_rect.size.x * 0.5) / vp_size.x,
 		(b_rect.position.y + b_rect.size.y * 0.5) / vp_size.y

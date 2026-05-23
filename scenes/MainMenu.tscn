@@ -84,7 +84,8 @@ autowrap_mode = 0
 
 [node name="ButtonContainer" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 30
+theme_override_constants/separation = 24
+alignment = 1
 
 [node name="PlayButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
 layout_mode = 2
@@ -93,21 +94,35 @@ theme_override_font_sizes/font_size = 80
 text = "PLAY"
 flat = true
 
-[node name="SkinsButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
+[node name="OptionsGrid" type="GridContainer" parent="CenterContainer/VBoxContainer/ButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/h_separation = 42
+theme_override_constants/v_separation = 26
+columns = 2
+
+[node name="SkinsButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid"]
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 50
 text = "SKINS"
 flat = true
 
-[node name="HowToPlayButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
+[node name="RankingButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 50
+text = "RANKING"
+flat = true
+
+[node name="HowToPlayButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid"]
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 50
 text = "HOW TO PLAY"
 flat = true
 
-[node name="SettingsButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
+[node name="SettingsButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid"]
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 50
