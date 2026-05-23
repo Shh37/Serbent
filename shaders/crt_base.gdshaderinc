@@ -3,7 +3,7 @@
 // --- Uniforms ---
 uniform bool crt_enabled = true;
 
-uniform float curvature : hint_range(0.0, 20.0) = 3.0;
+uniform float curvature : hint_range(0.0, 20.0) = 6.0;
 uniform float chroma_strength : hint_range(0.0, 5.0) = 0.7;
 uniform float glitch_intensity : hint_range(0.0, 0.1) = 0.01;
 uniform float glitch_rate : hint_range(1.0, 30.0) = 2.0;
