@@ -2,14 +2,117 @@ extends Node
 
 signal crt_changed(enabled: bool)
 signal beta_upgrades_changed(enabled: bool)
+signal language_changed(language: String)
 signal rankings_changed()
 signal skin_unlocks_changed()
 
+const SETTINGS_FILE = "user://settings.json"
 const RANKING_FILE = "user://rankings.json"
 const SKIN_UNLOCK_FILE = "user://skin_unlocks.json"
 const RANKING_DISPLAY_LIMIT = 200
 const RANKING_STORAGE_LIMIT_PER_SORT = 200
 const PLAYER_NAME_MAX_LENGTH = 12
+const LANGUAGE_EN = "en"
+const LANGUAGE_JA = "ja"
+
+const TEXT = {
+	LANGUAGE_EN: {
+		"play": "PLAY",
+		"ranking": "RANKING",
+		"skins": "SKINS",
+		"how_to_play": "HOW TO PLAY",
+		"settings": "SETTINGS",
+		"crt_shader": "CRT SHADER",
+		"beta_upgrades": "BETA UPGRADES",
+		"language": "LANGUAGE",
+		"on": "ON",
+		"off": "OFF",
+		"back": "BACK",
+		"english": "ENGLISH",
+		"japanese": "JAPANESE",
+		"skin_selection": "SKIN SELECTION",
+		"colors": "COLORS",
+		"patterns": "PATTERNS",
+		"controls": "CONTROLS",
+		"rules": "RULES",
+		"body_severing": "BODY SEVERING",
+		"skin_unlocks": "SKIN UNLOCKS",
+		"ranking_empty": "NO RANKINGS YET",
+		"name": "NAME",
+		"best_length": "BEST LENGTH",
+		"survival": "SURVIVAL",
+		"length": "LENGTH",
+		"time": "TIME",
+		"results": "RESULTS",
+		"run_terminated": "RUN TERMINATED",
+		"final_length": "FINAL LENGTH",
+		"points": "POINTS",
+		"new_skins_unlocked": "NEW SKINS UNLOCKED: ",
+		"color": "COLOR",
+		"pattern": "PATTERN",
+		"add_ranking": "ADD RANKING",
+		"submit": "SUBMIT",
+		"retry": "RETRY",
+		"main_menu": "MAIN MENU",
+		"saved": "SAVED",
+		"unknown": "UNKNOWN",
+		"phantom": "PHANTOM",
+		"time_stop": "TIME STOP",
+		"double_growth": "DOUBLE GROWTH",
+		"how_controls": "- [color=#ea6962]Arrow Keys / WASD[/color] : Turn Snake\n- [color=#ea6962]Opposite Key[/color] : Reverse Snake\n- [color=#ea6962]SPACE (hold) / Double Tap[/color] : Dash",
+		"how_rules": "- Goal: Survive [color=#ea6962]longer[/color] and achieve [color=#d8a657]max length[/color]!\n- Eat yellow [color=#d8a657]Points[/color] to grow and score.\n- Collision with [color=#ea6962]Thorns[/color] or your [color=#{snake_color}]own body[/color] is Game Over.",
+		"how_severing": "- [color=#ea6962]Bombs/Beams[/color] sever your body - you [color=#7daea3]keep playing[/color]!\n- Severed parts turn into [color=#d8a657]Points[/color].",
+		"how_unlocks": "- [color=#d8a657]Colors[/color]: reach target body lengths.\n- [color=#ea6962]Patterns[/color]: reach target survival times."
+	},
+	LANGUAGE_JA: {
+		"play": "あそぶ",
+		"ranking": "ランキング",
+		"skins": "スキン",
+		"how_to_play": "あそびかた",
+		"settings": "せってい",
+		"crt_shader": "CRTシェーダー",
+		"beta_upgrades": "ベータアップグレード",
+		"language": "言語",
+		"on": "オン",
+		"off": "オフ",
+		"back": "もどる",
+		"english": "えいご",
+		"japanese": "日本語",
+		"skin_selection": "スキン",
+		"colors": "いろ",
+		"patterns": "もよう",
+		"controls": "そうさ",
+		"rules": "ルール",
+		"body_severing": "体が切れる",
+		"skin_unlocks": "スキンかいほう",
+		"ranking_empty": "ランキングなし",
+		"name": "なまえ",
+		"best_length": "いちばん長いとき",
+		"survival": "生きたじかん",
+		"length": "長さ",
+		"time": "タイム",
+		"results": "けっか",
+		"run_terminated": "ゲームおわり",
+		"final_length": "おわったときの長さ",
+		"points": "ポイント",
+		"new_skins_unlocked": "あたらしいスキン: ",
+		"color": "いろ",
+		"pattern": "もよう",
+		"add_ranking": "ランキングにのせる",
+		"submit": "おくる",
+		"retry": "リトライ",
+		"main_menu": "メニュー",
+		"saved": "ほぞんした",
+		"unknown": "ふめい",
+		"phantom": "ゆうれい",
+		"time_stop": "ときとめ",
+		"double_growth": "2ばい",
+		"how_controls": "- [color=#ea6962]矢印キー / WASD[/color] : 曲がる\n- [color=#ea6962]反対キー[/color] : 引き返す\n- [color=#ea6962]SPACE長押し / 2回タップ[/color] : ダッシュ",
+		"how_rules": "- [color=#ea6962]長く[/color]生きて [color=#d8a657]いちばん長いとき[/color]を伸ばす\n- [color=#d8a657]ポイント[/color]を食べると 体が伸びて スコアが増える\n- [color=#ea6962]トゲ[/color]や [color=#{snake_color}]自分の体[/color]に 当たると おわり",
+		"how_severing": "- [color=#ea6962]ばくだん/ビーム[/color]で 体が切れる\n  [color=#7daea3]続けられる[/color]\n- 切れた体は [color=#d8a657]ポイント[/color]になる",
+		"how_unlocks": "- [color=#d8a657]色[/color]: 体の長さで 増える\n- [color=#ea6962]もよう[/color]: 生きたじかんで 増える"
+	}
+}
 
 const COLOR_UNLOCKS = [
 	{"type": GameConstants.SkinColor.BASIC, "threshold": 0, "name": "BASIC"},
@@ -29,22 +132,90 @@ const PATTERN_UNLOCKS = [
 	{"type": GameConstants.SkinPattern.GRADIENT, "threshold": 150.0, "name": "GRAD"}
 ]
 
+var settings_loaded = false
+
 var crt_enabled: bool = true :
 	set(value):
 		crt_enabled = value
 		crt_changed.emit(value)
+		if settings_loaded:
+			save_settings()
 
 var beta_upgrades_enabled: bool = false :
 	set(value):
 		beta_upgrades_enabled = value
 		beta_upgrades_changed.emit(value)
+		if settings_loaded:
+			save_settings()
+
+var language: String = LANGUAGE_JA :
+	set(value):
+		var normalized = normalize_language(value)
+		if language == normalized:
+			return
+		language = normalized
+		language_changed.emit(language)
+		if settings_loaded:
+			save_settings()
 
 var ranking_entries: Array = []
 var skin_unlocks_loaded = false
 
 func _ready():
+	load_settings()
 	load_rankings()
 	load_skin_unlocks()
+
+func normalize_language(value: String) -> String:
+	return LANGUAGE_JA if value == LANGUAGE_JA else LANGUAGE_EN
+
+func is_japanese() -> bool:
+	return language == LANGUAGE_JA
+
+func tr_text(key: String) -> String:
+	var table = TEXT.get(language, TEXT[LANGUAGE_EN])
+	return str(table.get(key, TEXT[LANGUAGE_EN].get(key, key)))
+
+func tr_rich_text(key: String, replacements: Dictionary = {}) -> String:
+	var text = tr_text(key)
+	for replace_key in replacements.keys():
+		text = text.replace("{%s}" % str(replace_key), str(replacements[replace_key]))
+	return text
+
+func load_settings():
+	settings_loaded = false
+	if not FileAccess.file_exists(SETTINGS_FILE):
+		settings_loaded = true
+		save_settings()
+		return
+
+	var file = FileAccess.open(SETTINGS_FILE, FileAccess.READ)
+	if not file:
+		settings_loaded = true
+		return
+
+	var parsed = JSON.parse_string(file.get_as_text())
+	if typeof(parsed) != TYPE_DICTIONARY:
+		settings_loaded = true
+		save_settings()
+		return
+
+	crt_enabled = bool(parsed.get("crt_enabled", true))
+	beta_upgrades_enabled = bool(parsed.get("beta_upgrades_enabled", false))
+	language = normalize_language(str(parsed.get("language", LANGUAGE_JA)))
+	settings_loaded = true
+
+func save_settings():
+	var file = FileAccess.open(SETTINGS_FILE, FileAccess.WRITE)
+	if not file:
+		push_warning("Could not save settings to %s" % SETTINGS_FILE)
+		return
+
+	file.store_string(JSON.stringify({
+		"crt_enabled": crt_enabled,
+		"beta_upgrades_enabled": beta_upgrades_enabled,
+		"language": language
+	}, "\t"))
 
 signal skin_changed()
 
@@ -132,14 +303,14 @@ func get_pattern_unlock_info(type: GameConstants.SkinPattern) -> Dictionary:
 func get_color_unlock_requirement(type: GameConstants.SkinColor) -> String:
 	var unlock = get_color_unlock_info(type)
 	if unlock.is_empty():
-		return "UNKNOWN"
-	return "LENGTH %d" % int(unlock.get("threshold", 0))
+		return tr_text("unknown")
+	return "%s %d" % [tr_text("length"), int(unlock.get("threshold", 0))]
 
 func get_pattern_unlock_requirement(type: GameConstants.SkinPattern) -> String:
 	var unlock = get_pattern_unlock_info(type)
 	if unlock.is_empty():
-		return "UNKNOWN"
-	return "TIME %s" % format_survival_time(float(unlock.get("threshold", 0.0)))
+		return tr_text("unknown")
+	return "%s %s" % [tr_text("time"), format_survival_time(float(unlock.get("threshold", 0.0)))]
 
 func load_skin_unlocks():
 	skin_unlocks_loaded = false

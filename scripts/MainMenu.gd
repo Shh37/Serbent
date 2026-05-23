@@ -16,6 +16,8 @@ var ranking_scroll_velocity: float = 0.0
 var skin_requirement_label: Label
 var how_to_play_btn: Button
 var how_to_play_back_btn: Button
+var language_en_btn: Button
+var language_ja_btn: Button
 var skin_requirement_tween: Tween
 var menu_overlay_transition_in_progress = false
 const SKIN_BUTTON_SIZE = Vector2(260, 66)
@@ -110,6 +112,8 @@ func _ready():
 	var beta_on_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOn
 	var beta_off_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff
 
+	_ensure_language_setting()
+
 	var back_btn = $SettingsLayer/CenterContainer/VBoxContainer/BackButton
 	back_btn.add_theme_font_override("font", font_title)
 
@@ -146,7 +150,7 @@ func _ready():
 	ranking_length_sort_btn.pressed.connect(func(): _on_ranking_sort_pressed("length"))
 	ranking_survival_sort_btn.pressed.connect(func(): _on_ranking_sort_pressed("survival"))
 
-	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn]:
+	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn, language_en_btn, language_ja_btn]:
 		btn.add_theme_font_override("font", font_title)
 		_setup_standard_button(btn)
 
@@ -160,13 +164,17 @@ func _ready():
 	crt_off_btn.pressed.connect(func(): _on_crt_toggle_pressed(false))
 	beta_on_btn.pressed.connect(func(): _on_beta_toggle_pressed(true))
 	beta_off_btn.pressed.connect(func(): _on_beta_toggle_pressed(false))
+	language_en_btn.pressed.connect(func(): _on_language_pressed(Config.LANGUAGE_EN))
+	language_ja_btn.pressed.connect(func(): _on_language_pressed(Config.LANGUAGE_JA))
 
 	# Signals for dynamically created skin buttons are connected in _populate_skin_grids
 
 	# Sync initial appearance
+	_apply_localized_texts()
 	_update_appearance_display()
 	_refresh_ranking_display()
 	Config.rankings_changed.connect(_refresh_ranking_display)
+	Config.language_changed.connect(func(_language): _apply_localized_texts())
 
 	# Sync shader visibility
 	_update_shader_visibility(Config.crt_enabled)
@@ -176,9 +184,11 @@ func _ready():
 
 	_update_beta_buttons_style(Config.beta_upgrades_enabled)
 	Config.beta_upgrades_changed.connect(_update_beta_buttons_style)
+	_update_language_buttons_style(Config.language)
+	Config.language_changed.connect(_update_language_buttons_style)
 
 	# Initial style
-	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn]:
+	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn, language_en_btn, language_ja_btn]:
 		btn.pivot_offset = btn.size / 2
 
 func _on_play_pressed():
@@ -218,6 +228,9 @@ func _on_crt_toggle_pressed(enabled: bool):
 
 func _on_beta_toggle_pressed(enabled: bool):
 	Config.beta_upgrades_enabled = enabled
+
+func _on_language_pressed(language: String):
+	Config.language = language
 
 func _on_ranking_scroll_input(event: InputEvent):
 	if event is InputEventMouseButton:
@@ -439,16 +452,16 @@ func _setup_standard_button(btn: Button):
 
 func _apply_standard_button_size(btn: Button):
 	var min_width = 0.0
-	match btn.text:
-		"PLAY":
+	match btn.name:
+		"PlayButton":
 			min_width = btn.custom_minimum_size.x
-		"ON", "OFF":
+		"CRTOn", "CRTOff", "BetaOn", "BetaOff", "LanguageEnglish", "LanguageJapanese":
 			min_width = 160.0
-		"BEST LENGTH", "SURVIVAL":
+		"LengthSortButton", "SurvivalSortButton":
 			min_width = 280.0
-		"BACK":
+		"BackButton":
 			min_width = 220.0
-		"HOW TO PLAY":
+		"HowToPlayButton":
 			min_width = 360.0
 		_:
 			min_width = 300.0
@@ -501,6 +514,140 @@ func _update_crt_buttons_style(enabled: bool):
 
 	_apply_selected_button_colors(crt_on_btn, enabled, GameConstants.COLOR_TOGGLE_ON, GameConstants.COLOR_TOGGLE_ON_HOVER, GameConstants.COLOR_TOGGLE_ON_PRESSED)
 	_apply_selected_button_colors(crt_off_btn, not enabled, GameConstants.COLOR_TOGGLE_OFF, GameConstants.COLOR_TOGGLE_OFF_HOVER, GameConstants.COLOR_TOGGLE_OFF_PRESSED)
+
+func _update_language_buttons_style(language: String):
+	if not language_en_btn or not language_ja_btn:
+		return
+	_apply_selected_button_colors(language_en_btn, language == Config.LANGUAGE_EN, GameConstants.COLOR_TOGGLE_ON, GameConstants.COLOR_TOGGLE_ON_HOVER, GameConstants.COLOR_TOGGLE_ON_PRESSED)
+	_apply_selected_button_colors(language_ja_btn, language == Config.LANGUAGE_JA, GameConstants.COLOR_TOGGLE_ON, GameConstants.COLOR_TOGGLE_ON_HOVER, GameConstants.COLOR_TOGGLE_ON_PRESSED)
+
+func _ensure_language_setting():
+	var vbox = $SettingsLayer/CenterContainer/VBoxContainer
+	var existing = vbox.get_node_or_null("LanguageSetting") as VBoxContainer
+	if existing:
+		language_en_btn = existing.get_node("HBoxContainer/LanguageEnglish") as Button
+		language_ja_btn = existing.get_node("HBoxContainer/LanguageJapanese") as Button
+		return
+
+	var setting = VBoxContainer.new()
+	setting.name = "LanguageSetting"
+	setting.add_theme_constant_override("separation", 8)
+
+	var label = Label.new()
+	label.name = "Label"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_override("font", font_title)
+	label.add_theme_font_size_override("font_size", 40)
+	label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+	setting.add_child(label)
+
+	var row = HBoxContainer.new()
+	row.name = "HBoxContainer"
+	row.add_theme_constant_override("separation", 24)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	setting.add_child(row)
+
+	language_en_btn = Button.new()
+	language_en_btn.name = "LanguageEnglish"
+	language_en_btn.flat = true
+	language_en_btn.add_theme_font_size_override("font_size", 36)
+	row.add_child(language_en_btn)
+
+	language_ja_btn = Button.new()
+	language_ja_btn.name = "LanguageJapanese"
+	language_ja_btn.flat = true
+	language_ja_btn.add_theme_font_size_override("font_size", 36)
+	row.add_child(language_ja_btn)
+
+	var back_btn = vbox.get_node_or_null("BackButton")
+	vbox.add_child(setting)
+	if back_btn:
+		vbox.move_child(setting, back_btn.get_index())
+
+func _apply_localized_texts():
+	var title_font = font_title
+	var body_font = _get_body_font()
+
+	$CenterContainer/VBoxContainer/ButtonContainer/PlayButton.text = Config.tr_text("play")
+	$CenterContainer/VBoxContainer/ButtonContainer/RankingButton.text = Config.tr_text("ranking")
+	$CenterContainer/VBoxContainer/ButtonContainer/SkinsButton.text = Config.tr_text("skins")
+	$CenterContainer/VBoxContainer/ButtonContainer/HowToPlayButton.text = Config.tr_text("how_to_play")
+	$CenterContainer/VBoxContainer/ButtonContainer/SettingsButton.text = Config.tr_text("settings")
+
+	$SettingsLayer/CenterContainer/VBoxContainer/Label.text = Config.tr_text("settings")
+	$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/Label.text = Config.tr_text("crt_shader")
+	$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOn.text = Config.tr_text("on")
+	$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOff.text = Config.tr_text("off")
+	$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/Label.text = Config.tr_text("beta_upgrades")
+	$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOn.text = Config.tr_text("on")
+	$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff.text = Config.tr_text("off")
+	$SettingsLayer/CenterContainer/VBoxContainer/LanguageSetting/Label.text = Config.tr_text("language")
+	language_en_btn.text = Config.tr_text("english")
+	language_ja_btn.text = Config.tr_text("japanese")
+	$SettingsLayer/CenterContainer/VBoxContainer/BackButton.text = Config.tr_text("back")
+
+	$SkinLayer/CenterContainer/VBoxContainer/Label.text = Config.tr_text("skin_selection")
+	$SkinLayer/CenterContainer/VBoxContainer/HBoxContainer/SelectionContainer/ColorLabel.text = Config.tr_text("colors")
+	$SkinLayer/CenterContainer/VBoxContainer/HBoxContainer/SelectionContainer/PatternLabel.text = Config.tr_text("patterns")
+	$SkinLayer/CenterContainer/VBoxContainer/BackButton.text = Config.tr_text("back")
+
+	$HowToPlayLayer/CenterContainer/VBoxContainer/Label.text = Config.tr_text("how_to_play")
+	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsLabel.text = Config.tr_text("controls")
+	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesLabel.text = Config.tr_text("rules")
+	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringLabel.text = Config.tr_text("body_severing")
+	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/UnlocksLabel.text = Config.tr_text("skin_unlocks")
+	$HowToPlayLayer/CenterContainer/VBoxContainer/BackButton.text = Config.tr_text("back")
+
+	for rich_text in [
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsText,
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesText,
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringText,
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/UnlocksText
+	]:
+		rich_text.add_theme_font_override("normal_font", body_font)
+
+	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsText.text = Config.tr_text("how_controls")
+	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringText.text = Config.tr_text("how_severing")
+	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/UnlocksText.text = Config.tr_text("how_unlocks")
+
+	var ranking_layer = get_node_or_null("RankingLayer")
+	if ranking_layer:
+		ranking_layer.get_node("CenterContainer/VBoxContainer/Label").text = Config.tr_text("ranking")
+		ranking_length_sort_btn.text = Config.tr_text("best_length")
+		ranking_survival_sort_btn.text = Config.tr_text("survival")
+		ranking_empty_label.text = Config.tr_text("ranking_empty")
+		_update_ranking_header()
+		ranking_back_btn.text = Config.tr_text("back")
+
+	for label in [
+		$SettingsLayer/CenterContainer/VBoxContainer/Label,
+		$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/Label,
+		$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/Label,
+		$SettingsLayer/CenterContainer/VBoxContainer/LanguageSetting/Label,
+		$SkinLayer/CenterContainer/VBoxContainer/Label,
+		$SkinLayer/CenterContainer/VBoxContainer/HBoxContainer/SelectionContainer/ColorLabel,
+		$SkinLayer/CenterContainer/VBoxContainer/HBoxContainer/SelectionContainer/PatternLabel,
+		$HowToPlayLayer/CenterContainer/VBoxContainer/Label,
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsLabel,
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesLabel,
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringLabel,
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/UnlocksLabel
+	]:
+		label.add_theme_font_override("font", title_font)
+
+	_update_appearance_display()
+	_refresh_ranking_display()
+
+func _get_body_font() -> Font:
+	return font_text
+
+func _update_ranking_header():
+	var header = get_node_or_null("RankingLayer/CenterContainer/VBoxContainer/Table/HeaderMargin/Header")
+	if not header or header.get_child_count() < 4:
+		return
+	header.get_child(1).text = Config.tr_text("name")
+	header.get_child(2).text = Config.tr_text("best_length")
+	header.get_child(3).text = Config.tr_text("survival")
 
 func _ensure_ranking_button(button_container: VBoxContainer) -> Button:
 	var existing = button_container.get_node_or_null("RankingButton") as Button
@@ -962,7 +1109,9 @@ func _update_appearance_display():
 		ranking_back_btn,
 		ranking_length_sort_btn,
 		ranking_survival_sort_btn,
-		how_to_play_back_btn
+		how_to_play_back_btn,
+		language_en_btn,
+		language_ja_btn
 	]
 	for btn in standard_btns:
 		if btn:
@@ -970,12 +1119,13 @@ func _update_appearance_display():
 	_update_ranking_sort_buttons_style()
 	_update_crt_buttons_style(Config.crt_enabled)
 	_update_beta_buttons_style(Config.beta_upgrades_enabled)
+	_update_language_buttons_style(Config.language)
 
 	# Dynamic skin color update for Rules text inside "HOW TO PLAY"
 	var rules_txt = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesText
 	if rules_txt:
 		var snake_html = base_color.to_html(false)
-		rules_txt.text = "• Goal: Survive [color=#ea6962]longer[/color] and achieve [color=#d8a657]max length[/color]!\n• Eat yellow [color=#d8a657]Points[/color] to grow and score.\n• Collision with [color=#ea6962]Thorns[/color] or your [color=#" + snake_html + "]own body[/color] is Game Over."
+		rules_txt.text = Config.tr_rich_text("how_rules", {"snake_color": snake_html})
 
 	# Visual feedback on background
 	var bg = $MenuBackground
@@ -1065,7 +1215,9 @@ func _process(_delta):
 				$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOn,
 				$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOff,
 				$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOn,
-				$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff]:
+				$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff,
+				language_en_btn,
+				language_ja_btn]:
 		if btn:
 			btn.pivot_offset = btn.size / 2
 

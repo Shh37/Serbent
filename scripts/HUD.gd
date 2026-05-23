@@ -33,6 +33,7 @@ func _ready():
 	# Sync shader visibility
 	_update_shader_visibility(Config.crt_enabled)
 	Config.crt_changed.connect(_update_shader_visibility)
+	Config.language_changed.connect(func(_language): update_ui())
 
 	# Wait for the scene to be fully loaded to find the snake
 	await get_tree().process_frame
@@ -199,10 +200,10 @@ func _update_powerup_visuals():
 
 func update_ui():
 	if snake:
-		length_label.text = "LENGTH: %d" % snake.body.size()
+		length_label.text = "%s: %d" % [Config.tr_text("length").to_upper(), snake.body.size()]
 		_update_powerups_ui()
 
-	time_label.text = "TIME: %s" % Config.format_survival_time(game_time)
+	time_label.text = "%s: %s" % [Config.tr_text("time").to_upper(), Config.format_survival_time(game_time)]
 
 func _update_powerups_ui():
 	# For simplicity, we'll clear and rebuild a small list or just use labels
@@ -235,14 +236,14 @@ func _update_powerups_ui():
 		var color = Color.WHITE
 		match type:
 			GameConstants.PowerUpType.GHOST:
-				type_name = "PHANTOM"
+				type_name = Config.tr_text("phantom").to_upper()
 				color = GameConstants.COLOR_POWERUP_GHOST # Now Purple
 
 			GameConstants.PowerUpType.TIME_STOP:
-				type_name = "TIME STOP"
+				type_name = Config.tr_text("time_stop").to_upper()
 				color = GameConstants.COLOR_POWERUP_TIME
 			GameConstants.PowerUpType.DOUBLE_GROWTH:
-				type_name = "DOUBLE GROWTH"
+				type_name = Config.tr_text("double_growth").to_upper()
 				color = GameConstants.COLOR_POWERUP_GROWTH
 
 		label.text = "%s: %.1fs" % [type_name, time_left]
@@ -376,7 +377,7 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 
 	# 1. Header
 	var header = Label.new()
-	header.text = "RESULTS"
+	header.text = Config.tr_text("results").to_upper()
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	header.add_theme_font_override("font", main_font)
 	header.add_theme_font_size_override("font_size", 88)
@@ -385,7 +386,7 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	anim_items.append(header)
 
 	var subtitle = Label.new()
-	subtitle.text = "RUN TERMINATED"
+	subtitle.text = Config.tr_text("run_terminated").to_upper()
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.add_theme_font_override("font", main_font)
 	subtitle.add_theme_font_size_override("font_size", 22)
@@ -414,11 +415,11 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	hero_stats.alignment = BoxContainer.ALIGNMENT_CENTER
 	content_vbox.add_child(hero_stats)
 
-	var time_card = _create_result_metric("SURVIVAL", time_str, GameConstants.COLOR_RANKING_SURVIVAL, 34, 58, survival_rank_text)
+	var time_card = _create_result_metric(Config.tr_text("survival").to_upper(), time_str, GameConstants.COLOR_RANKING_SURVIVAL, 34, 58, survival_rank_text)
 	hero_stats.add_child(time_card)
 	anim_items.append(time_card)
 
-	var length_card = _create_result_metric("BEST LENGTH", str(longest_length), GameConstants.COLOR_RANKING_LENGTH, 34, 58, length_rank_text)
+	var length_card = _create_result_metric(Config.tr_text("best_length").to_upper(), str(longest_length), GameConstants.COLOR_RANKING_LENGTH, 34, 58, length_rank_text)
 	hero_stats.add_child(length_card)
 	anim_items.append(length_card)
 
@@ -427,8 +428,8 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	stats_vbox.add_theme_constant_override("separation", 10)
 	content_vbox.add_child(stats_vbox)
 
-	anim_items.append(_add_result_row(stats_vbox, "FINAL LENGTH", str(final_length), 24, 34, GameConstants.COLOR_FG))
-	anim_items.append(_add_result_row(stats_vbox, "POINTS", str(total_points), 24, 34, GameConstants.COLOR_FG))
+	anim_items.append(_add_result_row(stats_vbox, Config.tr_text("final_length").to_upper(), str(final_length), 24, 34, GameConstants.COLOR_FG))
+	anim_items.append(_add_result_row(stats_vbox, Config.tr_text("points").to_upper(), str(total_points), 24, 34, GameConstants.COLOR_FG))
 
 	_merge_run_unlocks(newly_unlocked_skins)
 	var unlock_panel = _create_result_unlock_panel(run_unlocked_skins)
@@ -448,7 +449,7 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	content_vbox.add_child(action_vbox)
 
 	if Config.can_add_ranking_entry():
-		ranking_add_button = _create_result_button("ADD RANKING", 34)
+		ranking_add_button = _create_result_button(Config.tr_text("add_ranking").to_upper(), 34)
 		ranking_add_button.pressed.connect(_on_add_ranking_pressed)
 		action_vbox.add_child(ranking_add_button)
 		result_buttons.append(ranking_add_button)
@@ -458,13 +459,13 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 		action_vbox.add_child(ranking_form_container)
 		ranking_form_container.visible = false
 
-	var retry_btn = _create_result_button("RETRY", 54)
+	var retry_btn = _create_result_button(Config.tr_text("retry").to_upper(), 54)
 	retry_btn.pressed.connect(_on_retry_pressed)
 	action_vbox.add_child(retry_btn)
 	result_buttons.append(retry_btn)
 	anim_items.append(retry_btn)
 
-	var title_btn = _create_result_button("MAIN MENU", 36)
+	var title_btn = _create_result_button(Config.tr_text("main_menu").to_upper(), 36)
 	title_btn.pressed.connect(_on_title_pressed)
 	action_vbox.add_child(title_btn)
 	result_buttons.append(title_btn)
@@ -526,7 +527,7 @@ func _create_result_unlock_panel(newly_unlocked_skins: Dictionary) -> HBoxContai
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 
 	var title = Label.new()
-	title.text = "NEW SKINS UNLOCKED: "
+	title.text = Config.tr_text("new_skins_unlocked").to_upper()
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	title.add_theme_font_override("font", main_font)
 	title.add_theme_font_size_override("font_size", 28)
@@ -546,9 +547,9 @@ func _create_result_unlock_panel(newly_unlocked_skins: Dictionary) -> HBoxContai
 func _format_result_unlocks(color_unlocks: Array, pattern_unlocks: Array) -> String:
 	var parts = []
 	if not color_unlocks.is_empty():
-		parts.append("COLOR " + _join_unlock_names(color_unlocks))
+		parts.append(Config.tr_text("color").to_upper() + " " + _join_unlock_names(color_unlocks))
 	if not pattern_unlocks.is_empty():
-		parts.append("PATTERN " + _join_unlock_names(pattern_unlocks))
+		parts.append(Config.tr_text("pattern").to_upper() + " " + _join_unlock_names(pattern_unlocks))
 	return " / ".join(parts)
 
 func _create_result_unlock_row(label_text: String, value_text: String, value_color: Color) -> HBoxContainer:
@@ -637,7 +638,7 @@ func _create_result_ranking_form() -> VBoxContainer:
 	form.add_child(row)
 
 	ranking_name_input = LineEdit.new()
-	ranking_name_input.placeholder_text = "NAME"
+	ranking_name_input.placeholder_text = Config.tr_text("name").to_upper()
 	ranking_name_input.max_length = Config.PLAYER_NAME_MAX_LENGTH
 	ranking_name_input.custom_minimum_size = Vector2(260, 48)
 	ranking_name_input.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -645,7 +646,7 @@ func _create_result_ranking_form() -> VBoxContainer:
 	ranking_name_input.text_submitted.connect(func(_submitted_text): _on_submit_ranking_pressed())
 	row.add_child(ranking_name_input)
 
-	ranking_submit_button = _create_result_button("SUBMIT", 30)
+	ranking_submit_button = _create_result_button(Config.tr_text("submit").to_upper(), 30)
 	ranking_submit_button.pressed.connect(_on_submit_ranking_pressed)
 	row.add_child(ranking_submit_button)
 	result_buttons.append(ranking_submit_button)
@@ -690,7 +691,7 @@ func _on_submit_ranking_pressed():
 	if ranking_submit_button:
 		ranking_submit_button.disabled = true
 	if ranking_feedback_label:
-		ranking_feedback_label.text = "SAVED"
+		ranking_feedback_label.text = Config.tr_text("saved").to_upper()
 
 func _create_separator() -> ColorRect:
 	var sep = ColorRect.new()
@@ -725,8 +726,13 @@ func _get_result_button_min_width(text: String) -> float:
 			return 190.0
 		"RETRY":
 			return 260.0
-		_:
-			return 320.0
+	if text == Config.tr_text("submit").to_upper():
+		return 190.0
+	if text == Config.tr_text("retry").to_upper():
+		return 260.0
+	if text == Config.tr_text("add_ranking").to_upper():
+		return 380.0
+	return 320.0
 
 func _apply_result_button_colors(btn: Button):
 	var accent_color = _get_result_button_accent_color()
