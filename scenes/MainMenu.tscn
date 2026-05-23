@@ -100,6 +100,13 @@ theme_override_font_sizes/font_size = 50
 text = "SKINS"
 flat = true
 
+[node name="HowToPlayButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 50
+text = "HOW TO PLAY"
+flat = true
+
 [node name="SettingsButton" type="Button" parent="CenterContainer/VBoxContainer/ButtonContainer"]
 layout_mode = 2
 size_flags_horizontal = 4
@@ -275,5 +282,121 @@ script = ExtResource("5_preview")
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 40
+text = "BACK"
+flat = true
+
+[node name="HowToPlayLayer" type="CanvasLayer" parent="."]
+layer = 2
+visible = false
+
+[node name="ColorRect" type="ColorRect" parent="HowToPlayLayer"]
+material = SubResource("ShaderMaterial_ui_blur")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CenterContainer" type="CenterContainer" parent="HowToPlayLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HowToPlayLayer/CenterContainer"]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="Label" type="Label" parent="HowToPlayLayer/CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 96
+text = "HOW TO PLAY"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="HowToPlayLayer/CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 64
+alignment = 1
+
+[node name="LeftColumn" type="VBoxContainer" parent="HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 28
+
+[node name="ControlsLabel" type="Label" parent="HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+text = "CONTROLS"
+horizontal_alignment = 1
+
+[node name="ControlsText" type="RichTextLabel" parent="HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn"]
+custom_minimum_size = Vector2(540, 0)
+layout_mode = 2
+theme_override_constants/line_separation = 6
+theme_override_font_sizes/normal_font_size = 28
+bbcode_enabled = true
+text = "• [color=#ea6962]Arrow Keys / WASD[/color] : Turn Snake
+• [color=#ea6962]Opposite Key[/color] : Reverse Snake
+• [color=#ea6962]SPACE (hold) / Double Tap[/color] : Dash"
+fit_content = true
+autowrap_mode = 0
+
+[node name="RulesLabel" type="Label" parent="HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+text = "RULES"
+horizontal_alignment = 1
+
+[node name="RulesText" type="RichTextLabel" parent="HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn"]
+custom_minimum_size = Vector2(540, 0)
+layout_mode = 2
+theme_override_constants/line_separation = 6
+theme_override_font_sizes/normal_font_size = 28
+bbcode_enabled = true
+text = "• Eat [color=#d8a657]Points[/color] to grow longer.
+• Avoid [color=#ea6962]Thorns[/color] and your [color=#a9b665]own body[/color]."
+fit_content = true
+
+[node name="RightColumn" type="VBoxContainer" parent="HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 28
+
+[node name="SeveringLabel" type="Label" parent="HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+text = "BODY SEVERING"
+horizontal_alignment = 1
+
+[node name="SeveringText" type="RichTextLabel" parent="HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn"]
+custom_minimum_size = Vector2(540, 0)
+layout_mode = 2
+theme_override_constants/line_separation = 6
+theme_override_font_sizes/normal_font_size = 28
+bbcode_enabled = true
+text = "• [color=#ea6962]Bombs/Beams[/color] sever your body — you [color=#7daea3]keep playing[/color]!
+• Severed parts turn into [color=#d8a657]Points[/color]."
+fit_content = true
+
+[node name="UnlocksLabel" type="Label" parent="HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 44
+text = "SKIN UNLOCKS"
+horizontal_alignment = 1
+
+[node name="UnlocksText" type="RichTextLabel" parent="HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn"]
+custom_minimum_size = Vector2(540, 0)
+layout_mode = 2
+theme_override_constants/line_separation = 6
+theme_override_font_sizes/normal_font_size = 28
+bbcode_enabled = true
+text = "• [color=#d8a657]Colors[/color]: reach target body lengths.
+• [color=#ea6962]Patterns[/color]: reach target survival times."
+fit_content = true
+
+[node name="BackButton" type="Button" parent="HowToPlayLayer/CenterContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 44
 text = "BACK"
 flat = true

@@ -14,6 +14,8 @@ var ranking_back_btn: Button
 var ranking_scroll: ScrollContainer
 var ranking_scroll_velocity: float = 0.0
 var skin_requirement_label: Label
+var how_to_play_btn: Button
+var how_to_play_back_btn: Button
 var skin_requirement_tween: Tween
 var menu_overlay_transition_in_progress = false
 const SKIN_BUTTON_SIZE = Vector2(260, 66)
@@ -37,6 +39,9 @@ func _ready():
 	var ranking_btn = _ensure_ranking_button(button_container)
 	ranking_btn.add_theme_font_override("font", font_title)
 
+	how_to_play_btn = $CenterContainer/VBoxContainer/ButtonContainer/HowToPlayButton
+	how_to_play_btn.add_theme_font_override("font", font_title)
+
 	var settings_btn = $CenterContainer/VBoxContainer/ButtonContainer/SettingsButton
 	settings_btn.add_theme_font_override("font", font_title)
 
@@ -45,6 +50,46 @@ func _ready():
 
 	_ensure_ranking_layer()
 	_apply_menu_overlay_centering()
+
+	# How To Play UI elements
+	var how_to_play_label = $HowToPlayLayer/CenterContainer/VBoxContainer/Label
+	how_to_play_label.add_theme_font_override("font", font_title)
+	how_to_play_label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+
+	var controls_lbl = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsLabel
+	controls_lbl.add_theme_font_override("font", font_title)
+	controls_lbl.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+
+	var controls_txt = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsText
+	controls_txt.add_theme_font_override("normal_font", font_text)
+	controls_txt.add_theme_color_override("default_color", GameConstants.COLOR_FG)
+
+	var rules_lbl = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesLabel
+	rules_lbl.add_theme_font_override("font", font_title)
+	rules_lbl.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+
+	var rules_txt = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesText
+	rules_txt.add_theme_font_override("normal_font", font_text)
+	rules_txt.add_theme_color_override("default_color", GameConstants.COLOR_FG)
+
+	var severing_lbl = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringLabel
+	severing_lbl.add_theme_font_override("font", font_title)
+	severing_lbl.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+
+	var severing_txt = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringText
+	severing_txt.add_theme_font_override("normal_font", font_text)
+	severing_txt.add_theme_color_override("default_color", GameConstants.COLOR_FG)
+
+	var unlocks_lbl = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/UnlocksLabel
+	unlocks_lbl.add_theme_font_override("font", font_title)
+	unlocks_lbl.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+
+	var unlocks_txt = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/UnlocksText
+	unlocks_txt.add_theme_font_override("normal_font", font_text)
+	unlocks_txt.add_theme_color_override("default_color", GameConstants.COLOR_FG)
+
+	how_to_play_back_btn = $HowToPlayLayer/CenterContainer/VBoxContainer/BackButton
+	how_to_play_back_btn.add_theme_font_override("font", font_title)
 
 	# Settings UI elements
 	var settings_label = $SettingsLayer/CenterContainer/VBoxContainer/Label
@@ -91,15 +136,17 @@ func _ready():
 
 	play_btn.pressed.connect(_on_play_pressed)
 	ranking_btn.pressed.connect(_on_ranking_pressed)
+	how_to_play_btn.pressed.connect(_on_how_to_play_pressed)
 	settings_btn.pressed.connect(_on_settings_pressed)
 	skins_btn.pressed.connect(_on_skins_pressed)
 	back_btn.pressed.connect(_on_back_pressed)
 	skin_back_btn.pressed.connect(_on_skin_back_pressed)
 	ranking_back_btn.pressed.connect(_on_ranking_back_pressed)
+	how_to_play_back_btn.pressed.connect(_on_how_to_play_back_pressed)
 	ranking_length_sort_btn.pressed.connect(func(): _on_ranking_sort_pressed("length"))
 	ranking_survival_sort_btn.pressed.connect(func(): _on_ranking_sort_pressed("survival"))
 
-	for btn in [play_btn, ranking_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn]:
+	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn]:
 		btn.add_theme_font_override("font", font_title)
 		_setup_standard_button(btn)
 
@@ -131,7 +178,7 @@ func _ready():
 	Config.beta_upgrades_changed.connect(_update_beta_buttons_style)
 
 	# Initial style
-	for btn in [play_btn, ranking_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn]:
+	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn]:
 		btn.pivot_offset = btn.size / 2
 
 func _on_play_pressed():
@@ -147,6 +194,9 @@ func _on_ranking_pressed():
 	_refresh_ranking_display()
 	await _show_menu_overlay($RankingLayer)
 
+func _on_how_to_play_pressed():
+	await _show_menu_overlay($HowToPlayLayer)
+
 func _on_back_pressed():
 	await _hide_menu_overlay($SettingsLayer)
 
@@ -155,6 +205,9 @@ func _on_skin_back_pressed():
 
 func _on_ranking_back_pressed():
 	await _hide_menu_overlay($RankingLayer)
+
+func _on_how_to_play_back_pressed():
+	await _hide_menu_overlay($HowToPlayLayer)
 
 func _on_ranking_sort_pressed(sort_key: String):
 	ranking_sort_key = sort_key
@@ -183,7 +236,8 @@ func _apply_menu_overlay_centering():
 	for center in [
 		$SettingsLayer/CenterContainer,
 		$SkinLayer/CenterContainer,
-		$RankingLayer/CenterContainer
+		$RankingLayer/CenterContainer,
+		$HowToPlayLayer/CenterContainer
 	]:
 		if center:
 			center.offset_top = MENU_OVERLAY_CENTER_TOP_INSET
@@ -302,9 +356,33 @@ func _get_overlay_anim_items(layer: CanvasLayer, content: Control) -> Array[Cont
 		return items
 	if layer.name == "SkinLayer":
 		return _get_skin_overlay_anim_items(content)
+	if layer.name == "HowToPlayLayer":
+		return _get_how_to_play_overlay_anim_items(content)
 	for child in content.get_children():
 		if child is Control:
 			items.append(child)
+	return items
+
+func _get_how_to_play_overlay_anim_items(content: Control) -> Array[Control]:
+	var items: Array[Control] = []
+	var title = content.get_node_or_null("Label") as Control
+	var columns_row = content.get_node_or_null("HBoxContainer") as HBoxContainer
+	var left_col = columns_row.get_node_or_null("LeftColumn") as VBoxContainer if columns_row else null
+	var right_col = columns_row.get_node_or_null("RightColumn") as VBoxContainer if columns_row else null
+	var back = content.get_node_or_null("BackButton") as Control
+
+	if title:
+		items.append(title)
+	if left_col:
+		for child in left_col.get_children():
+			if child is Control:
+				items.append(child)
+	if right_col:
+		for child in right_col.get_children():
+			if child is Control:
+				items.append(child)
+	if back:
+		items.append(back)
 	return items
 
 func _get_skin_overlay_anim_items(content: Control) -> Array[Control]:
@@ -370,6 +448,8 @@ func _apply_standard_button_size(btn: Button):
 			min_width = 280.0
 		"BACK":
 			min_width = 220.0
+		"HOW TO PLAY":
+			min_width = 360.0
 		_:
 			min_width = 300.0
 
@@ -875,12 +955,14 @@ func _update_appearance_display():
 		$CenterContainer/VBoxContainer/ButtonContainer/PlayButton,
 		$CenterContainer/VBoxContainer/ButtonContainer/RankingButton,
 		$CenterContainer/VBoxContainer/ButtonContainer/SkinsButton,
+		$CenterContainer/VBoxContainer/ButtonContainer/HowToPlayButton,
 		$CenterContainer/VBoxContainer/ButtonContainer/SettingsButton,
 		$SettingsLayer/CenterContainer/VBoxContainer/BackButton,
 		$SkinLayer/CenterContainer/VBoxContainer/BackButton,
 		ranking_back_btn,
 		ranking_length_sort_btn,
-		ranking_survival_sort_btn
+		ranking_survival_sort_btn,
+		how_to_play_back_btn
 	]
 	for btn in standard_btns:
 		if btn:
@@ -888,6 +970,12 @@ func _update_appearance_display():
 	_update_ranking_sort_buttons_style()
 	_update_crt_buttons_style(Config.crt_enabled)
 	_update_beta_buttons_style(Config.beta_upgrades_enabled)
+
+	# Dynamic skin color update for Rules text inside "HOW TO PLAY"
+	var rules_txt = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesText
+	if rules_txt:
+		var snake_html = base_color.to_html(false)
+		rules_txt.text = "• Goal: Survive [color=#ea6962]longer[/color] and achieve [color=#d8a657]max length[/color]!\n• Eat yellow [color=#d8a657]Points[/color] to grow and score.\n• Collision with [color=#ea6962]Thorns[/color] or your [color=#" + snake_html + "]own body[/color] is Game Over."
 
 	# Visual feedback on background
 	var bg = $MenuBackground
@@ -922,6 +1010,10 @@ func _update_shader_visibility(enabled: bool):
 	var ranking_blur = $RankingLayer/ColorRect
 	if ranking_blur and ranking_blur.material:
 		ranking_blur.material.set_shader_parameter("crt_enabled", enabled)
+
+	var how_to_play_blur = $HowToPlayLayer/ColorRect
+	if how_to_play_blur and how_to_play_blur.material:
+		how_to_play_blur.material.set_shader_parameter("crt_enabled", enabled)
 
 func _update_button_style(btn: Button, hover: bool):
 	var tween = create_tween()
@@ -962,12 +1054,14 @@ func _process(_delta):
 	for btn in [$CenterContainer/VBoxContainer/ButtonContainer/PlayButton,
 				$CenterContainer/VBoxContainer/ButtonContainer/RankingButton,
 				$CenterContainer/VBoxContainer/ButtonContainer/SkinsButton,
+				$CenterContainer/VBoxContainer/ButtonContainer/HowToPlayButton,
 				$CenterContainer/VBoxContainer/ButtonContainer/SettingsButton,
 				$SettingsLayer/CenterContainer/VBoxContainer/BackButton,
 				$SkinLayer/CenterContainer/VBoxContainer/BackButton,
 				ranking_back_btn,
 				ranking_length_sort_btn,
 				ranking_survival_sort_btn,
+				how_to_play_back_btn,
 				$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOn,
 				$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOff,
 				$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOn,

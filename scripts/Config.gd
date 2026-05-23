@@ -188,7 +188,7 @@ func save_skin_unlocks():
 		"selected_pattern": selected_pattern
 	}, "\t"))
 
-func _ensure_default_skin_unlocks():
+func _ensure_default_skin_unlocks(): 
 	if not GameConstants.SkinColor.BASIC in unlocked_colors:
 		unlocked_colors.append(GameConstants.SkinColor.BASIC)
 	if not GameConstants.SkinPattern.SOLID in unlocked_patterns:
