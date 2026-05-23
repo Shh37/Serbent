@@ -10,12 +10,20 @@ uniform vec4 tint_color : source_color = vec4(0.1, 0.1, 0.1, 0.4);
 // Title blur region (in UV space: 0..1)
 uniform vec2 title_center = vec2(0.5, 0.38);
 uniform vec2 title_size = vec2(0.5, 0.14);
-uniform float title_falloff : hint_range(0.0, 0.5) = 0.08;
+uniform float title_falloff : hint_range(0.0, 0.5) = 0.065;
 
-// Button blur region (in UV space: 0..1)
+// Button blur regions (in UV space: 0..1)
 uniform vec2 button_center = vec2(0.5, 0.62);
 uniform vec2 button_size = vec2(0.22, 0.1);
-uniform float button_falloff : hint_range(0.0, 0.5) = 0.06;
+uniform vec2 button_center_2 = vec2(-1.0, -1.0);
+uniform vec2 button_size_2 = vec2(0.0, 0.0);
+uniform vec2 button_center_3 = vec2(-1.0, -1.0);
+uniform vec2 button_size_3 = vec2(0.0, 0.0);
+uniform vec2 button_center_4 = vec2(-1.0, -1.0);
+uniform vec2 button_size_4 = vec2(0.0, 0.0);
+uniform vec2 button_center_5 = vec2(-1.0, -1.0);
+uniform vec2 button_size_5 = vec2(0.0, 0.0);
+uniform float button_falloff : hint_range(0.0, 0.5) = 0.075;
 
 // How much blur for the UI regions (relative to blur_strength)
 uniform float ui_blur_intensity : hint_range(0.0, 1.5) = 1.0;
@@ -44,6 +52,10 @@ void fragment() {
     // UI element blur masks (use original UV since UI elements are screen-space)
     float title_mask = rect_mask(UV, title_center, title_size * 0.5, title_falloff);
     float button_mask = rect_mask(UV, button_center, button_size * 0.5, button_falloff);
+    button_mask = max(button_mask, rect_mask(UV, button_center_2, button_size_2 * 0.5, button_falloff));
+    button_mask = max(button_mask, rect_mask(UV, button_center_3, button_size_3 * 0.5, button_falloff));
+    button_mask = max(button_mask, rect_mask(UV, button_center_4, button_size_4 * 0.5, button_falloff));
+    button_mask = max(button_mask, rect_mask(UV, button_center_5, button_size_5 * 0.5, button_falloff));
     float ui_mask = max(title_mask, button_mask);
 
     float combined_mask = max(edge_mask, ui_mask);

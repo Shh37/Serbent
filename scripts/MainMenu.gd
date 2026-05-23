@@ -1244,9 +1244,9 @@ func _process(_delta):
 	title.position.y = title_pos.y + sin(Time.get_ticks_msec() * 0.002) * 8.0
 
 	# Update blur shader uniforms
-	_update_blur_regions(title, $CenterContainer/VBoxContainer/ButtonContainer)
+	_update_blur_regions(title)
 
-func _update_blur_regions(_title: Control, button_container: Control):
+func _update_blur_regions(_title: Control):
 	var blur_rect = $EdgeBlur
 	if not blur_rect or not blur_rect.material or not blur_rect.visible:
 		return
@@ -1264,21 +1264,48 @@ func _update_blur_regions(_title: Control, button_container: Control):
 		(t_rect.position.y + t_rect.size.y * 0.5) / vp_size.y
 	)
 	var t_size = Vector2(
-		(t_rect.size.x + 60.0) / vp_size.x,  # padding
-		(t_rect.size.y + 40.0) / vp_size.y
+		(t_rect.size.x + 56.0) / vp_size.x,  # padding
+		(t_rect.size.y + 32.0) / vp_size.y
 	)
 	mat.set_shader_parameter("title_center", t_center)
 	mat.set_shader_parameter("title_size", t_size)
 
-	# Buttons: get global rect and convert to UV (0..1)
-	var b_rect = button_container.get_global_rect()
-	var b_center = Vector2(
-		(b_rect.position.x + b_rect.size.x * 0.5) / vp_size.x,
-		(b_rect.position.y + b_rect.size.y * 0.5) / vp_size.y
+	var buttons = [
+		$CenterContainer/VBoxContainer/ButtonContainer/PlayButton,
+		$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/SkinsButton,
+		$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/RankingButton,
+		$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/HowToPlayButton,
+		$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/SettingsButton
+	]
+	var center_params = ["button_center", "button_center_2", "button_center_3", "button_center_4", "button_center_5"]
+	var size_params = ["button_size", "button_size_2", "button_size_3", "button_size_4", "button_size_5"]
+	for i in buttons.size():
+		var btn = buttons[i] as Control
+		if btn and btn.is_visible_in_tree():
+			_set_blur_region_from_button(mat, vp_size, btn, center_params[i], size_params[i], Vector2(70.0, 24.0))
+		else:
+			mat.set_shader_parameter(center_params[i], Vector2(-1.0, -1.0))
+			mat.set_shader_parameter(size_params[i], Vector2.ZERO)
+
+func _set_blur_region_from_button(mat: ShaderMaterial, vp_size: Vector2, btn: Button, center_param: String, size_param: String, padding: Vector2):
+	var rect = btn.get_global_rect()
+	var font = btn.get_theme_font("font")
+	var font_size = btn.get_theme_font_size("font_size")
+	var text_size = font.get_string_size(btn.text, HORIZONTAL_ALIGNMENT_CENTER, -1.0, font_size) if font else rect.size
+	var visual_size = Vector2(
+		text_size.x + padding.x,
+		rect.size.y + padding.y
 	)
-	var b_size = Vector2(
-		(b_rect.size.x + 60.0) / vp_size.x,  # padding
-		(b_rect.size.y + 30.0) / vp_size.y
+	_set_blur_region(mat, vp_size, Rect2(rect.get_center() - visual_size * 0.5, visual_size), center_param, size_param)
+
+func _set_blur_region(mat: ShaderMaterial, vp_size: Vector2, rect: Rect2, center_param: String, size_param: String):
+	var center = Vector2(
+		(rect.position.x + rect.size.x * 0.5) / vp_size.x,
+		(rect.position.y + rect.size.y * 0.5) / vp_size.y
 	)
-	mat.set_shader_parameter("button_center", b_center)
-	mat.set_shader_parameter("button_size", b_size)
+	var size = Vector2(
+		rect.size.x / vp_size.x,
+		rect.size.y / vp_size.y
+	)
+	mat.set_shader_parameter(center_param, center)
+	mat.set_shader_parameter(size_param, size)
