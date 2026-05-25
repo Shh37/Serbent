@@ -97,6 +97,7 @@ func _ready():
 
 	how_to_play_back_btn = $HowToPlayLayer/CenterContainer/VBoxContainer/BackButton
 	how_to_play_back_btn.add_theme_font_override("font", font_title)
+	_apply_how_to_play_layout()
 
 	# Settings UI elements
 	var settings_label = $SettingsLayer/CenterContainer/VBoxContainer/Label
@@ -263,6 +264,40 @@ func _on_ranking_back_pressed():
 
 func _on_how_to_play_back_pressed():
 	await _hide_menu_overlay($HowToPlayLayer)
+
+func _apply_how_to_play_layout():
+	var vbox = $HowToPlayLayer/CenterContainer/VBoxContainer
+	var row = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer
+	var left_col = row.get_node("LeftColumn")
+	var right_col = row.get_node("RightColumn")
+	var title = $HowToPlayLayer/CenterContainer/VBoxContainer/Label
+
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_theme_constant_override("separation", 24)
+	row.add_theme_constant_override("separation", 48)
+	left_col.add_theme_constant_override("separation", 16)
+	right_col.add_theme_constant_override("separation", 16)
+
+	title.add_theme_font_size_override("font_size", 78)
+	for label in [
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsLabel,
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesLabel,
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringLabel,
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/UnlocksLabel
+	]:
+		label.add_theme_font_size_override("font_size", 36)
+
+	for rich_text in [
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsText,
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesText,
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringText,
+		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/UnlocksText
+	]:
+		rich_text.custom_minimum_size = Vector2(500, 0)
+		rich_text.add_theme_font_size_override("normal_font_size", 24)
+		rich_text.add_theme_constant_override("line_separation", 3)
+
+	how_to_play_back_btn.add_theme_font_size_override("font_size", 40)
 
 func _on_ranking_sort_pressed(sort_key: String):
 	ranking_sort_key = sort_key
