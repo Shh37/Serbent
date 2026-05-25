@@ -14,6 +14,8 @@ var ranking_back_btn: Button
 var ranking_scroll: ScrollContainer
 var ranking_scroll_velocity: float = 0.0
 var skin_requirement_label: Label
+var skin_requirement_popup: PanelContainer
+var skin_requirement_popup_hide_position = Vector2.ZERO
 var how_to_play_btn: Button
 var how_to_play_back_btn: Button
 var language_en_btn: Button
@@ -225,7 +227,36 @@ func _on_back_pressed():
 	await _hide_menu_overlay($SettingsLayer)
 
 func _on_skin_back_pressed():
+	_hide_skin_requirement(false)
 	await _hide_menu_overlay($SkinLayer)
+
+func _input(event):
+	if not _should_hide_skin_requirement_from_input(event):
+		return
+	_hide_skin_requirement(true)
+
+func _should_hide_skin_requirement_from_input(event: InputEvent) -> bool:
+	if not skin_requirement_popup or not skin_requirement_popup.visible:
+		return false
+	if not $SkinLayer.visible:
+		return false
+
+	var click_position = Vector2.ZERO
+	if event is InputEventMouseButton:
+		if not event.pressed or event.button_index != MOUSE_BUTTON_LEFT:
+			return false
+		click_position = event.position
+	elif event is InputEventScreenTouch:
+		if not event.pressed:
+			return false
+		click_position = event.position
+	else:
+		return false
+
+	for btn in skin_buttons:
+		if is_instance_valid(btn) and btn.get_global_rect().has_point(click_position):
+			return false
+	return true
 
 func _on_ranking_back_pressed():
 	await _hide_menu_overlay($RankingLayer)
@@ -1045,7 +1076,7 @@ func _populate_skin_grids():
 		var btn = Button.new()
 		btn.custom_minimum_size = SKIN_BUTTON_SIZE
 		btn.flat = true
-		btn.pressed.connect(func(): _on_color_selected(c_type))
+		btn.pressed.connect(func(): _on_color_selected(c_type, btn))
 
 		var center = CenterContainer.new()
 		center.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -1077,7 +1108,7 @@ func _populate_skin_grids():
 		var btn = Button.new()
 		btn.custom_minimum_size = SKIN_BUTTON_SIZE
 		btn.flat = true
-		btn.pressed.connect(func(): _on_pattern_selected(p_type))
+		btn.pressed.connect(func(): _on_pattern_selected(p_type, btn))
 
 		var center = CenterContainer.new()
 		center.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -1106,59 +1137,142 @@ func _setup_skin_button(btn: Button):
 	btn.button_up.connect(func(): _on_button_up(btn))
 	skin_buttons.append(btn)
 
-func _on_color_selected(c_type):
+func _on_color_selected(c_type, source_button: Button = null):
 	if c_type in Config.unlocked_colors:
 		Config.selected_color = c_type
+		_hide_skin_requirement()
 		_update_appearance_display()
 	else:
-		_show_skin_requirement("%s: %s" % [Config.get_skin_color_name(c_type), Config.get_color_unlock_requirement(c_type)])
+		_show_skin_requirement("%s: %s" % [Config.get_skin_color_name(c_type), Config.get_color_unlock_requirement(c_type)], source_button)
 
-func _on_pattern_selected(p_type):
+func _on_pattern_selected(p_type, source_button: Button = null):
 	if p_type in Config.unlocked_patterns:
 		Config.selected_pattern = p_type
+		_hide_skin_requirement()
 		_update_appearance_display()
 	else:
-		_show_skin_requirement("%s: %s" % [Config.get_skin_pattern_name(p_type), Config.get_pattern_unlock_requirement(p_type)])
+		_show_skin_requirement("%s: %s" % [Config.get_skin_pattern_name(p_type), Config.get_pattern_unlock_requirement(p_type)], source_button)
 
-func _show_skin_requirement(text: String):
+func _show_skin_requirement(text: String, source_button: Button = null):
 	var label = _ensure_skin_requirement_label()
+	var popup = skin_requirement_popup
 	label.text = text
-	label.modulate.a = 0.0
-	label.scale = Vector2(0.98, 0.98)
-	label.pivot_offset = label.size / 2
+	var target_position = _get_skin_requirement_popup_position(source_button, popup.custom_minimum_size)
+	skin_requirement_popup_hide_position = _get_skin_requirement_popup_start_position(source_button, target_position, popup.custom_minimum_size)
+	popup.position = skin_requirement_popup_hide_position
+	popup.modulate.a = 0.0
+	popup.scale = Vector2(0.96, 0.96)
+	popup.pivot_offset = popup.custom_minimum_size / 2
+	popup.visible = true
 
 	if skin_requirement_tween:
 		skin_requirement_tween.kill()
 
 	skin_requirement_tween = create_tween()
 	skin_requirement_tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
-	skin_requirement_tween.tween_property(label, "modulate:a", 1.0, 0.12)
-	skin_requirement_tween.parallel().tween_property(label, "scale", Vector2.ONE, 0.18)
-	skin_requirement_tween.tween_interval(4.0)
-	skin_requirement_tween.tween_property(label, "modulate:a", 0.0, 0.22)
-	skin_requirement_tween.parallel().tween_property(label, "scale", Vector2(0.98, 0.98), 0.22)
+	skin_requirement_tween.tween_property(popup, "modulate:a", 1.0, 0.12)
+	skin_requirement_tween.parallel().tween_property(popup, "scale", Vector2.ONE, 0.18)
+	skin_requirement_tween.parallel().tween_property(popup, "position", target_position, 0.18)
+	skin_requirement_tween.tween_interval(3.0)
+	skin_requirement_tween.tween_property(popup, "modulate:a", 0.0, 0.22)
+	skin_requirement_tween.parallel().tween_property(popup, "scale", Vector2(0.96, 0.96), 0.22)
+	skin_requirement_tween.parallel().tween_property(popup, "position", skin_requirement_popup_hide_position, 0.22)
+	skin_requirement_tween.tween_callback(func(): popup.visible = false)
+
+func _hide_skin_requirement(animated: bool = true):
+	if skin_requirement_tween:
+		skin_requirement_tween.kill()
+		skin_requirement_tween = null
+	if not skin_requirement_popup or not skin_requirement_popup.visible:
+		return
+	if not animated:
+		skin_requirement_popup.visible = false
+		return
+
+	skin_requirement_tween = create_tween()
+	skin_requirement_tween.set_parallel(true)
+	skin_requirement_tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN)
+	skin_requirement_tween.tween_property(skin_requirement_popup, "modulate:a", 0.0, 0.16)
+	skin_requirement_tween.tween_property(skin_requirement_popup, "scale", Vector2(0.96, 0.96), 0.16)
+	skin_requirement_tween.tween_property(skin_requirement_popup, "position", skin_requirement_popup_hide_position, 0.16)
+	skin_requirement_tween.chain().tween_callback(func(): skin_requirement_popup.visible = false)
+
+func _get_skin_requirement_popup_position(source_button: Button, popup_size: Vector2) -> Vector2:
+	var viewport_size = get_viewport_rect().size
+	var padding = 18.0
+	if not source_button or not is_instance_valid(source_button):
+		return Vector2(
+			(viewport_size.x - popup_size.x) * 0.5,
+			viewport_size.y - popup_size.y - 84.0
+		)
+
+	var button_rect = source_button.get_global_rect()
+	var pos = Vector2(
+		button_rect.position.x + button_rect.size.x + 14.0,
+		button_rect.position.y + (button_rect.size.y - popup_size.y) * 0.5
+	)
+	if pos.x + popup_size.x > viewport_size.x - padding:
+		pos.x = button_rect.position.x - popup_size.x - 14.0
+	pos.x = clamp(pos.x, padding, viewport_size.x - popup_size.x - padding)
+	pos.y = clamp(pos.y, padding, viewport_size.y - popup_size.y - padding)
+	return pos
+
+func _get_skin_requirement_popup_start_position(source_button: Button, target_position: Vector2, popup_size: Vector2) -> Vector2:
+	if not source_button or not is_instance_valid(source_button):
+		return target_position + Vector2(0, 12)
+
+	var button_center = source_button.get_global_rect().get_center()
+	var popup_center = target_position + popup_size * 0.5
+	var direction = popup_center - button_center
+	if direction.length() <= 0.001:
+		return target_position
+	return target_position - direction.normalized() * 18.0
 
 func _ensure_skin_requirement_label() -> Label:
 	if skin_requirement_label:
 		return skin_requirement_label
+
+	skin_requirement_popup = PanelContainer.new()
+	skin_requirement_popup.name = "SkinRequirementPopup"
+	skin_requirement_popup.custom_minimum_size = Vector2(420, 88)
+	skin_requirement_popup.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	skin_requirement_popup.visible = false
+	skin_requirement_popup.add_theme_stylebox_override("panel", _create_skin_requirement_panel_style())
+
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 22)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_right", 22)
+	margin.add_theme_constant_override("margin_bottom", 16)
+	skin_requirement_popup.add_child(margin)
 
 	skin_requirement_label = Label.new()
 	skin_requirement_label.name = "SkinRequirement"
 	skin_requirement_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	skin_requirement_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	skin_requirement_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	skin_requirement_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	skin_requirement_label.custom_minimum_size = Vector2(760, 44)
+	skin_requirement_label.custom_minimum_size = Vector2(376, 44)
 	skin_requirement_label.add_theme_font_override("font", font_title)
 	skin_requirement_label.add_theme_font_size_override("font_size", 28)
 	skin_requirement_label.add_theme_color_override("font_color", GameConstants.COLOR_POINT)
-	skin_requirement_label.modulate.a = 0.0
-	var vbox = $SkinLayer/CenterContainer/VBoxContainer
-	var back_button = vbox.get_node_or_null("BackButton")
-	vbox.add_child(skin_requirement_label)
-	if back_button:
-		vbox.move_child(skin_requirement_label, back_button.get_index())
+	skin_requirement_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(skin_requirement_label)
+
+	var layer = $SkinLayer
+	layer.add_child(skin_requirement_popup)
+
+	var center = layer.get_node_or_null("CenterContainer")
+	if center:
+		layer.move_child(skin_requirement_popup, center.get_index() + 1)
 	return skin_requirement_label
+
+func _create_skin_requirement_panel_style() -> StyleBoxFlat:
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(GameConstants.COLOR_BG.r, GameConstants.COLOR_BG.g, GameConstants.COLOR_BG.b, 0.96)
+	style.border_color = GameConstants.COLOR_GHOST
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(0)
+	return style
 
 func get_pattern_bbcode(text: String, pattern: GameConstants.SkinPattern, base_color: Color, prefix_color: String) -> String:
 	var darker_color = base_color.darkened(0.3)
