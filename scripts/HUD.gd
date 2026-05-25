@@ -545,12 +545,22 @@ func _create_result_unlock_panel(newly_unlocked_skins: Dictionary) -> HBoxContai
 	return box
 
 func _format_result_unlocks(color_unlocks: Array, pattern_unlocks: Array) -> String:
-	var parts = []
+	var first_unlock = null
+	var first_kind = ""
 	if not color_unlocks.is_empty():
-		parts.append(Config.tr_text("color").to_upper() + " " + _join_unlock_names(color_unlocks))
-	if not pattern_unlocks.is_empty():
-		parts.append(Config.tr_text("pattern").to_upper() + " " + _join_unlock_names(pattern_unlocks))
-	return " / ".join(parts)
+		first_unlock = color_unlocks[0]
+		first_kind = Config.tr_text("color").to_upper()
+	elif not pattern_unlocks.is_empty():
+		first_unlock = pattern_unlocks[0]
+		first_kind = Config.tr_text("pattern").to_upper()
+	else:
+		return ""
+
+	var total_unlocks = color_unlocks.size() + pattern_unlocks.size()
+	var text = "%s %s" % [first_kind, str(first_unlock.get("name", "???"))]
+	if total_unlocks > 1:
+		text += " +%d" % (total_unlocks - 1)
+	return text
 
 func _create_result_unlock_row(label_text: String, value_text: String, value_color: Color) -> HBoxContainer:
 	var row = HBoxContainer.new()
@@ -577,12 +587,6 @@ func _create_result_unlock_row(label_text: String, value_text: String, value_col
 	row.add_child(value)
 
 	return row
-
-func _join_unlock_names(unlocks: Array) -> String:
-	var names = []
-	for unlock in unlocks:
-		names.append(str(unlock.get("name", "???")))
-	return ", ".join(names)
 
 func _create_result_metric(label_text: String, value_text: String, accent_color: Color, label_size: int, value_size: int, rank_text: String = "") -> VBoxContainer:
 	var box = VBoxContainer.new()
