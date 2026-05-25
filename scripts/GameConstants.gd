@@ -5,6 +5,9 @@ const CELL_SIZE = 32
 const CHUNK_SIZE = 16 # Cells per chunk side
 const CHUNK_PIXEL_SIZE = CELL_SIZE * CHUNK_SIZE
 
+# Draw hazards above the snake, regardless of scene-tree order.
+const Z_INDEX_HAZARD = 10
+
 # Colors (Gruvbox Material Dark Medium)
 const COLOR_BG = Color("#282828")
 const COLOR_FG = Color("#d4be98")

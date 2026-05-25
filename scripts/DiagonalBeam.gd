@@ -18,6 +18,8 @@ func get_current_flicker_speed() -> float:
 var zigzag_amplitude = 0
 
 func setup(p_type: Type, p_offset_k: int, p_thickness: int = 1, p_zigzag_amplitude: int = 0):
+	z_as_relative = false
+	z_index = GameConstants.Z_INDEX_HAZARD
 	type = p_type
 	offset_k = p_offset_k
 	thickness = p_thickness

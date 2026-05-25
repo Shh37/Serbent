@@ -15,6 +15,8 @@ func get_current_flicker_speed() -> float:
 	return lerp(0.04, 0.2, clamp(timer / warning_time, 0.0, 1.0))
 
 func setup(p_center_grid_pos: Vector2i, p_radius: int = 2):
+	z_as_relative = false
+	z_index = GameConstants.Z_INDEX_HAZARD
 	center_grid_pos = p_center_grid_pos
 	radius = p_radius
 	timer = warning_time
