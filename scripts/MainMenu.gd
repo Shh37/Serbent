@@ -18,6 +18,8 @@ var how_to_play_btn: Button
 var how_to_play_back_btn: Button
 var language_en_btn: Button
 var language_ja_btn: Button
+var fullscreen_on_btn: Button
+var fullscreen_off_btn: Button
 var skin_requirement_tween: Tween
 var menu_overlay_transition_in_progress = false
 const SKIN_BUTTON_SIZE = Vector2(260, 66)
@@ -114,6 +116,8 @@ func _ready():
 	var beta_off_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff
 
 	_ensure_language_setting()
+	_ensure_fullscreen_setting()
+	_ensure_settings_grid_layout()
 
 	var back_btn = $SettingsLayer/CenterContainer/VBoxContainer/BackButton
 	back_btn.add_theme_font_override("font", font_title)
@@ -151,7 +155,7 @@ func _ready():
 	ranking_length_sort_btn.pressed.connect(func(): _on_ranking_sort_pressed("length"))
 	ranking_survival_sort_btn.pressed.connect(func(): _on_ranking_sort_pressed("survival"))
 
-	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn, language_en_btn, language_ja_btn]:
+	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn, language_en_btn, language_ja_btn, fullscreen_on_btn, fullscreen_off_btn]:
 		btn.add_theme_font_override("font", font_title)
 		_setup_standard_button(btn)
 
@@ -167,6 +171,8 @@ func _ready():
 	beta_off_btn.pressed.connect(func(): _on_beta_toggle_pressed(false))
 	language_en_btn.pressed.connect(func(): _on_language_pressed(Config.LANGUAGE_EN))
 	language_ja_btn.pressed.connect(func(): _on_language_pressed(Config.LANGUAGE_JA))
+	fullscreen_on_btn.pressed.connect(func(): _on_fullscreen_toggle_pressed(true))
+	fullscreen_off_btn.pressed.connect(func(): _on_fullscreen_toggle_pressed(false))
 
 	# Signals for dynamically created skin buttons are connected in _populate_skin_grids
 
@@ -185,11 +191,13 @@ func _ready():
 
 	_update_beta_buttons_style(Config.beta_upgrades_enabled)
 	Config.beta_upgrades_changed.connect(_update_beta_buttons_style)
+	_update_fullscreen_buttons_style(Config.fullscreen_enabled)
+	Config.fullscreen_changed.connect(_update_fullscreen_buttons_style)
 	_update_language_buttons_style(Config.language)
 	Config.language_changed.connect(_update_language_buttons_style)
 
 	# Initial style
-	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn, language_en_btn, language_ja_btn]:
+	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn, language_en_btn, language_ja_btn, fullscreen_on_btn, fullscreen_off_btn]:
 		btn.pivot_offset = btn.size / 2
 
 func _on_play_pressed():
@@ -229,6 +237,9 @@ func _on_crt_toggle_pressed(enabled: bool):
 
 func _on_beta_toggle_pressed(enabled: bool):
 	Config.beta_upgrades_enabled = enabled
+
+func _on_fullscreen_toggle_pressed(enabled: bool):
+	Config.fullscreen_enabled = enabled
 
 func _on_language_pressed(language: String):
 	Config.language = language
@@ -456,7 +467,7 @@ func _apply_standard_button_size(btn: Button):
 	match btn.name:
 		"PlayButton":
 			min_width = btn.custom_minimum_size.x
-		"CRTOn", "CRTOff", "BetaOn", "BetaOff", "LanguageEnglish", "LanguageJapanese":
+		"CRTOn", "CRTOff", "BetaOn", "BetaOff", "FullscreenOn", "FullscreenOff", "LanguageEnglish", "LanguageJapanese":
 			min_width = 160.0
 		"LengthSortButton", "SurvivalSortButton":
 			min_width = 280.0
@@ -501,20 +512,88 @@ func _apply_metric_button_colors(btn: Button, selected: bool, metric_color: Colo
 	else:
 		_apply_button_colors(btn, GameConstants.COLOR_BUTTON_NORMAL, metric_hover, metric_pressed)
 
+func _get_settings_item(item_name: String) -> VBoxContainer:
+	var vbox = $SettingsLayer/CenterContainer/VBoxContainer
+	var direct = vbox.get_node_or_null(item_name) as VBoxContainer
+	if direct:
+		return direct
+
+	var grid = vbox.get_node_or_null("SettingsGrid") as GridContainer
+	if grid:
+		return grid.get_node_or_null(item_name) as VBoxContainer
+	return null
+
+func _ensure_settings_grid_layout():
+	var vbox = $SettingsLayer/CenterContainer/VBoxContainer
+	vbox.add_theme_constant_override("separation", 38)
+
+	var grid = vbox.get_node_or_null("SettingsGrid") as GridContainer
+	if not grid:
+		grid = GridContainer.new()
+		grid.name = "SettingsGrid"
+		grid.columns = 2
+		grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		grid.add_theme_constant_override("h_separation", 72)
+		grid.add_theme_constant_override("v_separation", 30)
+		vbox.add_child(grid)
+
+	var title_label = vbox.get_node_or_null("Label")
+	if title_label:
+		vbox.move_child(grid, title_label.get_index() + 1)
+
+	var setting_order = ["CRTSetting", "BetaUpgradesSetting", "LanguageSetting", "FullscreenSetting"]
+	for i in range(setting_order.size()):
+		var setting_name = setting_order[i]
+		var setting = _get_settings_item(setting_name)
+		if not setting:
+			continue
+		if setting.get_parent() != grid:
+			setting.reparent(grid, false)
+		grid.move_child(setting, i)
+		_apply_compact_setting_style(setting)
+
+func _apply_compact_setting_style(setting: VBoxContainer):
+	setting.custom_minimum_size = Vector2(370, 0)
+	setting.add_theme_constant_override("separation", 10)
+
+	var label = setting.get_node_or_null("Label") as Label
+	if label:
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.add_theme_font_override("font", font_title)
+		label.add_theme_font_size_override("font_size", 40)
+		label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+
+	var row = setting.get_node_or_null("HBoxContainer") as HBoxContainer
+	if row:
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 24)
+		for child in row.get_children():
+			var btn = child as Button
+			if btn:
+				btn.custom_minimum_size = Vector2(max(btn.custom_minimum_size.x, 160.0), btn.custom_minimum_size.y)
+				btn.add_theme_font_size_override("font_size", 36)
 
 func _update_beta_buttons_style(enabled: bool):
-	var beta_on_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOn
-	var beta_off_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff
+	var beta_setting = _get_settings_item("BetaUpgradesSetting")
+	var beta_on_btn = beta_setting.get_node("HBoxContainer/BetaOn") as Button
+	var beta_off_btn = beta_setting.get_node("HBoxContainer/BetaOff") as Button
 
 	_apply_selected_button_colors(beta_on_btn, enabled, GameConstants.COLOR_TOGGLE_ON, GameConstants.COLOR_TOGGLE_ON_HOVER, GameConstants.COLOR_TOGGLE_ON_PRESSED)
 	_apply_selected_button_colors(beta_off_btn, not enabled, GameConstants.COLOR_TOGGLE_OFF, GameConstants.COLOR_TOGGLE_OFF_HOVER, GameConstants.COLOR_TOGGLE_OFF_PRESSED)
 
 func _update_crt_buttons_style(enabled: bool):
-	var crt_on_btn = $SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOn
-	var crt_off_btn = $SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOff
+	var crt_setting = _get_settings_item("CRTSetting")
+	var crt_on_btn = crt_setting.get_node("HBoxContainer/CRTOn") as Button
+	var crt_off_btn = crt_setting.get_node("HBoxContainer/CRTOff") as Button
 
 	_apply_selected_button_colors(crt_on_btn, enabled, GameConstants.COLOR_TOGGLE_ON, GameConstants.COLOR_TOGGLE_ON_HOVER, GameConstants.COLOR_TOGGLE_ON_PRESSED)
 	_apply_selected_button_colors(crt_off_btn, not enabled, GameConstants.COLOR_TOGGLE_OFF, GameConstants.COLOR_TOGGLE_OFF_HOVER, GameConstants.COLOR_TOGGLE_OFF_PRESSED)
+
+func _update_fullscreen_buttons_style(enabled: bool):
+	if not fullscreen_on_btn or not fullscreen_off_btn:
+		return
+	_apply_selected_button_colors(fullscreen_on_btn, enabled, GameConstants.COLOR_TOGGLE_ON, GameConstants.COLOR_TOGGLE_ON_HOVER, GameConstants.COLOR_TOGGLE_ON_PRESSED)
+	_apply_selected_button_colors(fullscreen_off_btn, not enabled, GameConstants.COLOR_TOGGLE_OFF, GameConstants.COLOR_TOGGLE_OFF_HOVER, GameConstants.COLOR_TOGGLE_OFF_PRESSED)
 
 func _update_language_buttons_style(language: String):
 	if not language_en_btn or not language_ja_btn:
@@ -524,7 +603,7 @@ func _update_language_buttons_style(language: String):
 
 func _ensure_language_setting():
 	var vbox = $SettingsLayer/CenterContainer/VBoxContainer
-	var existing = vbox.get_node_or_null("LanguageSetting") as VBoxContainer
+	var existing = _get_settings_item("LanguageSetting")
 	if existing:
 		language_en_btn = existing.get_node("HBoxContainer/LanguageEnglish") as Button
 		language_ja_btn = existing.get_node("HBoxContainer/LanguageJapanese") as Button
@@ -565,6 +644,49 @@ func _ensure_language_setting():
 	if back_btn:
 		vbox.move_child(setting, back_btn.get_index())
 
+func _ensure_fullscreen_setting():
+	var vbox = $SettingsLayer/CenterContainer/VBoxContainer
+	var existing = _get_settings_item("FullscreenSetting")
+	if existing:
+		fullscreen_on_btn = existing.get_node("HBoxContainer/FullscreenOn") as Button
+		fullscreen_off_btn = existing.get_node("HBoxContainer/FullscreenOff") as Button
+		return
+
+	var setting = VBoxContainer.new()
+	setting.name = "FullscreenSetting"
+	setting.add_theme_constant_override("separation", 8)
+
+	var label = Label.new()
+	label.name = "Label"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_override("font", font_title)
+	label.add_theme_font_size_override("font_size", 40)
+	label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+	setting.add_child(label)
+
+	var row = HBoxContainer.new()
+	row.name = "HBoxContainer"
+	row.add_theme_constant_override("separation", 24)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	setting.add_child(row)
+
+	fullscreen_on_btn = Button.new()
+	fullscreen_on_btn.name = "FullscreenOn"
+	fullscreen_on_btn.flat = true
+	fullscreen_on_btn.add_theme_font_size_override("font_size", 36)
+	row.add_child(fullscreen_on_btn)
+
+	fullscreen_off_btn = Button.new()
+	fullscreen_off_btn.name = "FullscreenOff"
+	fullscreen_off_btn.flat = true
+	fullscreen_off_btn.add_theme_font_size_override("font_size", 36)
+	row.add_child(fullscreen_off_btn)
+
+	var back_btn = vbox.get_node_or_null("BackButton")
+	vbox.add_child(setting)
+	if back_btn:
+		vbox.move_child(setting, back_btn.get_index())
+
 func _apply_localized_texts():
 	var title_font = font_title
 	var body_font = _get_body_font()
@@ -575,16 +697,24 @@ func _apply_localized_texts():
 	$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/HowToPlayButton.text = Config.tr_text("how_to_play")
 	$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/SettingsButton.text = Config.tr_text("settings")
 
+	var crt_setting = _get_settings_item("CRTSetting")
+	var beta_setting = _get_settings_item("BetaUpgradesSetting")
+	var language_setting = _get_settings_item("LanguageSetting")
+	var fullscreen_setting = _get_settings_item("FullscreenSetting")
+
 	$SettingsLayer/CenterContainer/VBoxContainer/Label.text = Config.tr_text("settings")
-	$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/Label.text = Config.tr_text("crt_shader")
-	$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOn.text = Config.tr_text("on")
-	$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOff.text = Config.tr_text("off")
-	$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/Label.text = Config.tr_text("beta_upgrades")
-	$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOn.text = Config.tr_text("on")
-	$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff.text = Config.tr_text("off")
-	$SettingsLayer/CenterContainer/VBoxContainer/LanguageSetting/Label.text = Config.tr_text("language")
+	crt_setting.get_node("Label").text = Config.tr_text("crt_shader")
+	crt_setting.get_node("HBoxContainer/CRTOn").text = Config.tr_text("on")
+	crt_setting.get_node("HBoxContainer/CRTOff").text = Config.tr_text("off")
+	beta_setting.get_node("Label").text = Config.tr_text("beta_upgrades")
+	beta_setting.get_node("HBoxContainer/BetaOn").text = Config.tr_text("on")
+	beta_setting.get_node("HBoxContainer/BetaOff").text = Config.tr_text("off")
+	language_setting.get_node("Label").text = Config.tr_text("language")
 	language_en_btn.text = Config.tr_text("english")
 	language_ja_btn.text = Config.tr_text("japanese")
+	fullscreen_setting.get_node("Label").text = Config.tr_text("fullscreen")
+	fullscreen_on_btn.text = Config.tr_text("on")
+	fullscreen_off_btn.text = Config.tr_text("off")
 	$SettingsLayer/CenterContainer/VBoxContainer/BackButton.text = Config.tr_text("back")
 
 	$SkinLayer/CenterContainer/VBoxContainer/Label.text = Config.tr_text("skin_selection")
@@ -622,9 +752,10 @@ func _apply_localized_texts():
 
 	for label in [
 		$SettingsLayer/CenterContainer/VBoxContainer/Label,
-		$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/Label,
-		$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/Label,
-		$SettingsLayer/CenterContainer/VBoxContainer/LanguageSetting/Label,
+		crt_setting.get_node("Label"),
+		beta_setting.get_node("Label"),
+		language_setting.get_node("Label"),
+		fullscreen_setting.get_node("Label"),
 		$SkinLayer/CenterContainer/VBoxContainer/Label,
 		$SkinLayer/CenterContainer/VBoxContainer/HBoxContainer/SelectionContainer/ColorLabel,
 		$SkinLayer/CenterContainer/VBoxContainer/HBoxContainer/SelectionContainer/PatternLabel,
@@ -1112,7 +1243,9 @@ func _update_appearance_display():
 		ranking_survival_sort_btn,
 		how_to_play_back_btn,
 		language_en_btn,
-		language_ja_btn
+		language_ja_btn,
+		fullscreen_on_btn,
+		fullscreen_off_btn
 	]
 	for btn in standard_btns:
 		if btn:
@@ -1120,6 +1253,7 @@ func _update_appearance_display():
 	_update_ranking_sort_buttons_style()
 	_update_crt_buttons_style(Config.crt_enabled)
 	_update_beta_buttons_style(Config.beta_upgrades_enabled)
+	_update_fullscreen_buttons_style(Config.fullscreen_enabled)
 	_update_language_buttons_style(Config.language)
 
 	# Dynamic skin color update for Rules text inside "HOW TO PLAY"
@@ -1201,6 +1335,9 @@ func _on_button_up(btn: Button):
 	tween.tween_property(btn, "self_modulate", Color.WHITE, 0.1)
 
 func _process(_delta):
+	var crt_setting = _get_settings_item("CRTSetting")
+	var beta_setting = _get_settings_item("BetaUpgradesSetting")
+
 	# Update pivot offsets
 	for btn in [$CenterContainer/VBoxContainer/ButtonContainer/PlayButton,
 				$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/RankingButton,
@@ -1213,12 +1350,14 @@ func _process(_delta):
 				ranking_length_sort_btn,
 				ranking_survival_sort_btn,
 				how_to_play_back_btn,
-				$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOn,
-				$SettingsLayer/CenterContainer/VBoxContainer/CRTSetting/HBoxContainer/CRTOff,
-				$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOn,
-				$SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff,
+				crt_setting.get_node_or_null("HBoxContainer/CRTOn") if crt_setting else null,
+				crt_setting.get_node_or_null("HBoxContainer/CRTOff") if crt_setting else null,
+				beta_setting.get_node_or_null("HBoxContainer/BetaOn") if beta_setting else null,
+				beta_setting.get_node_or_null("HBoxContainer/BetaOff") if beta_setting else null,
 				language_en_btn,
-				language_ja_btn]:
+				language_ja_btn,
+				fullscreen_on_btn,
+				fullscreen_off_btn]:
 		if btn:
 			btn.pivot_offset = btn.size / 2
 

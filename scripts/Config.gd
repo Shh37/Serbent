@@ -2,6 +2,7 @@ extends Node
 
 signal crt_changed(enabled: bool)
 signal beta_upgrades_changed(enabled: bool)
+signal fullscreen_changed(enabled: bool)
 signal language_changed(language: String)
 signal rankings_changed()
 signal skin_unlocks_changed()
@@ -24,6 +25,7 @@ const TEXT = {
 		"settings": "SETTINGS",
 		"crt_shader": "CRT SHADER",
 		"beta_upgrades": "BETA UPGRADES",
+		"fullscreen": "FULLSCREEN",
 		"language": "LANGUAGE",
 		"on": "ON",
 		"off": "OFF",
@@ -72,6 +74,7 @@ const TEXT = {
 		"settings": "せってい",
 		"crt_shader": "CRTシェーダー",
 		"beta_upgrades": "ベータアップグレード",
+		"fullscreen": "全画面",
 		"language": "言語",
 		"on": "オン",
 		"off": "オフ",
@@ -148,6 +151,14 @@ var beta_upgrades_enabled: bool = false :
 		if settings_loaded:
 			save_settings()
 
+var fullscreen_enabled: bool = false :
+	set(value):
+		fullscreen_enabled = value
+		_apply_fullscreen_setting(value)
+		fullscreen_changed.emit(value)
+		if settings_loaded:
+			save_settings()
+
 var language: String = LANGUAGE_JA :
 	set(value):
 		var normalized = normalize_language(value)
@@ -161,10 +172,43 @@ var language: String = LANGUAGE_JA :
 var ranking_entries: Array = []
 var skin_unlocks_loaded = false
 
+func _enter_tree():
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
 func _ready():
 	load_settings()
 	load_rankings()
 	load_skin_unlocks()
+
+func _input(event):
+	if _is_fullscreen_toggle_event(event):
+		toggle_fullscreen()
+		get_viewport().set_input_as_handled()
+
+func toggle_fullscreen():
+	fullscreen_enabled = not is_fullscreen_enabled()
+
+func is_fullscreen_enabled() -> bool:
+	var current_mode = DisplayServer.window_get_mode()
+	return current_mode == DisplayServer.WINDOW_MODE_FULLSCREEN or current_mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
+
+func _apply_fullscreen_setting(enabled: bool):
+	var target_mode = DisplayServer.WINDOW_MODE_FULLSCREEN if enabled else DisplayServer.WINDOW_MODE_WINDOWED
+	if DisplayServer.window_get_mode() != target_mode:
+		DisplayServer.window_set_mode(target_mode)
+
+func _is_fullscreen_toggle_event(event: InputEvent) -> bool:
+	if not event is InputEventKey:
+		return false
+
+	var key_event = event as InputEventKey
+	if not key_event.pressed or key_event.echo:
+		return false
+
+	if key_event.keycode == KEY_F11:
+		return true
+
+	return key_event.alt_pressed and (key_event.keycode == KEY_ENTER or key_event.keycode == KEY_KP_ENTER)
 
 func normalize_language(value: String) -> String:
 	return LANGUAGE_JA if value == LANGUAGE_JA else LANGUAGE_EN
@@ -202,6 +246,7 @@ func load_settings():
 
 	crt_enabled = bool(parsed.get("crt_enabled", true))
 	beta_upgrades_enabled = bool(parsed.get("beta_upgrades_enabled", false))
+	fullscreen_enabled = bool(parsed.get("fullscreen_enabled", is_fullscreen_enabled()))
 	language = normalize_language(str(parsed.get("language", LANGUAGE_JA)))
 	settings_loaded = true
 
@@ -214,6 +259,7 @@ func save_settings():
 	file.store_string(JSON.stringify({
 		"crt_enabled": crt_enabled,
 		"beta_upgrades_enabled": beta_upgrades_enabled,
+		"fullscreen_enabled": fullscreen_enabled,
 		"language": language
 	}, "\t"))
 
