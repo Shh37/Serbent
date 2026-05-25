@@ -13,16 +13,32 @@ var run_unlocked_skins = {
 }
 var flashed_length_unlock_thresholds = []
 var flashed_time_unlock_thresholds = []
+var dash_hint_label: Label
+var dash_hint_idle_time = 0.0
+var dash_hint_dismissed = false
+var reverse_hint_idle_time = 0.0
+var reverse_hint_dismissed = false
+var was_snake_reversing = false
+var dash_hint_target_visible = false
+var dash_hint_tween: Tween
+var hint_cycle_time = 0.0
+var current_hint_key = ""
 
 # Shader defaults
 const DEFAULT_BLUR = 4.0
 const DEFAULT_TINT = Color(0.1, 0.1, 0.1, 0.4)
+const DASH_HINT_DELAY = 8.0
+const REVERSE_HINT_DELAY = 8.0
+const HINT_CYCLE_TIME = 4.5
+const DASH_HINT_FADE_TIME = 0.25
 
 var main_font: Font
+var hint_font: Font
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	main_font = load("res://assets/Shikakufuto_Free.ttf")
+	hint_font = load("res://assets/BestTen-CRT.otf")
 	# Make material unique to prevent parameter persistence across scene reloads
 	if edge_blur and edge_blur.material:
 		edge_blur.material = edge_blur.material.duplicate()
@@ -33,13 +49,17 @@ func _ready():
 	# Sync shader visibility
 	_update_shader_visibility(Config.crt_enabled)
 	Config.crt_changed.connect(_update_shader_visibility)
-	Config.language_changed.connect(func(_language): update_ui())
+	Config.language_changed.connect(func(_language):
+		update_ui()
+		_update_control_hint_text()
+	)
 
 	# Wait for the scene to be fully loaded to find the snake
 	await get_tree().process_frame
 	snake = get_tree().root.find_child("Snake", true, false)
 
 	_setup_centering()
+	_setup_dash_hint()
 
 
 func _setup_centering():
@@ -72,17 +92,117 @@ func _update_shader_visibility(enabled: bool):
 func _process(delta):
 	# Don't update when result screen is showing
 	if is_result_showing:
+		_set_dash_hint_visible(false)
 		_update_result_button_pivots()
 		return
 
 	if snake and snake.is_reversing:
 		update_ui() # Keep updating UI (like length) but skip timer
+		_update_dash_hint(delta)
 		return
 
 	game_time += delta
 	update_ui()
 	_check_skin_unlocks()
 	_update_powerup_visuals()
+	_update_dash_hint(delta)
+
+func _setup_dash_hint():
+	var control = $Control
+	dash_hint_label = Label.new()
+	dash_hint_label.name = "DashHintLabel"
+	dash_hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dash_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	dash_hint_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	dash_hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dash_hint_label.modulate.a = 0.0
+	dash_hint_label.visible = false
+	dash_hint_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE, Control.PRESET_MODE_MINSIZE, 20)
+	dash_hint_label.offset_left = 32
+	dash_hint_label.offset_right = -32
+	dash_hint_label.offset_top = -72
+	dash_hint_label.offset_bottom = -28
+	dash_hint_label.add_theme_font_override("font", hint_font)
+	dash_hint_label.add_theme_font_size_override("font_size", 20)
+	dash_hint_label.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
+	_update_control_hint_text()
+	control.add_child(dash_hint_label)
+
+func _update_dash_hint(delta: float):
+	if not dash_hint_label or is_result_showing:
+		_set_dash_hint_visible(false)
+		return
+	if not snake:
+		_set_dash_hint_visible(false)
+		return
+	if bool(snake.get("is_dead")):
+		_set_dash_hint_visible(false)
+		return
+
+	var is_snake_reversing = bool(snake.get("is_reversing"))
+	if is_snake_reversing and not was_snake_reversing:
+		reverse_hint_dismissed = true
+	was_snake_reversing = is_snake_reversing
+
+	if snake.is_dashing:
+		if not dash_hint_dismissed:
+			reverse_hint_idle_time = 0.0
+			hint_cycle_time = 0.0
+		dash_hint_dismissed = true
+		_set_dash_hint_visible(false)
+		return
+	if is_snake_reversing:
+		_set_dash_hint_visible(false)
+		return
+
+	var due_hints = []
+	if not dash_hint_dismissed:
+		dash_hint_idle_time += delta
+		if dash_hint_idle_time >= DASH_HINT_DELAY:
+			due_hints.append("dash_hint")
+	if dash_hint_dismissed and not reverse_hint_dismissed:
+		reverse_hint_idle_time += delta
+		if reverse_hint_idle_time >= REVERSE_HINT_DELAY:
+			due_hints.append("reverse_hint")
+
+	if due_hints.is_empty():
+		current_hint_key = ""
+		_set_dash_hint_visible(false)
+		return
+
+	hint_cycle_time += delta
+	var hint_index = int(floor(hint_cycle_time / HINT_CYCLE_TIME)) % due_hints.size()
+	_update_control_hint_text(due_hints[hint_index])
+	_set_dash_hint_visible(true)
+
+func _set_dash_hint_visible(should_show: bool):
+	if not dash_hint_label:
+		return
+	if dash_hint_target_visible == should_show:
+		return
+	dash_hint_target_visible = should_show
+	if dash_hint_tween:
+		dash_hint_tween.kill()
+
+	if should_show:
+		dash_hint_label.visible = true
+
+	dash_hint_tween = create_tween()
+	dash_hint_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	dash_hint_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	dash_hint_tween.tween_property(dash_hint_label, "modulate:a", 0.78 if should_show else 0.0, DASH_HINT_FADE_TIME)
+	if not should_show:
+		dash_hint_tween.finished.connect(func():
+			if dash_hint_label:
+				dash_hint_label.visible = false
+		)
+
+func _update_control_hint_text(preferred_key: String = ""):
+	if dash_hint_label:
+		if not preferred_key.is_empty():
+			current_hint_key = preferred_key
+		var text_key = current_hint_key if not current_hint_key.is_empty() else "dash_hint"
+		dash_hint_label.text = Config.tr_text(text_key)
 
 func _check_skin_unlocks():
 	if not snake:
