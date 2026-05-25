@@ -142,6 +142,7 @@ func _ready():
 	pattern_label.add_theme_font_override("font", font_title)
 	pattern_label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
 
+	_ensure_skin_requirement_label()
 	_populate_skin_grids()
 
 	# Set colors using GameConstants (class_name)
@@ -1123,20 +1124,19 @@ func _show_skin_requirement(text: String):
 	var label = _ensure_skin_requirement_label()
 	label.text = text
 	label.modulate.a = 0.0
-	label.position.y = -96.0
+	label.scale = Vector2(0.98, 0.98)
+	label.pivot_offset = label.size / 2
 
 	if skin_requirement_tween:
 		skin_requirement_tween.kill()
 
 	skin_requirement_tween = create_tween()
-	skin_requirement_tween.set_parallel(true)
 	skin_requirement_tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 	skin_requirement_tween.tween_property(label, "modulate:a", 1.0, 0.12)
-	skin_requirement_tween.tween_property(label, "position:y", -120.0, 0.18)
-	skin_requirement_tween.chain().tween_interval(1.15)
-	skin_requirement_tween.chain().set_parallel(true)
+	skin_requirement_tween.parallel().tween_property(label, "scale", Vector2.ONE, 0.18)
+	skin_requirement_tween.tween_interval(4.0)
 	skin_requirement_tween.tween_property(label, "modulate:a", 0.0, 0.22)
-	skin_requirement_tween.tween_property(label, "position:y", -144.0, 0.22)
+	skin_requirement_tween.parallel().tween_property(label, "scale", Vector2(0.98, 0.98), 0.22)
 
 func _ensure_skin_requirement_label() -> Label:
 	if skin_requirement_label:
@@ -1145,13 +1145,19 @@ func _ensure_skin_requirement_label() -> Label:
 	skin_requirement_label = Label.new()
 	skin_requirement_label.name = "SkinRequirement"
 	skin_requirement_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	skin_requirement_label.custom_minimum_size = Vector2(560, 0)
+	skin_requirement_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	skin_requirement_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	skin_requirement_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	skin_requirement_label.custom_minimum_size = Vector2(760, 44)
 	skin_requirement_label.add_theme_font_override("font", font_title)
 	skin_requirement_label.add_theme_font_size_override("font_size", 28)
 	skin_requirement_label.add_theme_color_override("font_color", GameConstants.COLOR_POINT)
 	skin_requirement_label.modulate.a = 0.0
-	$SkinLayer.add_child(skin_requirement_label)
-	skin_requirement_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_MINSIZE)
+	var vbox = $SkinLayer/CenterContainer/VBoxContainer
+	var back_button = vbox.get_node_or_null("BackButton")
+	vbox.add_child(skin_requirement_label)
+	if back_button:
+		vbox.move_child(skin_requirement_label, back_button.get_index())
 	return skin_requirement_label
 
 func get_pattern_bbcode(text: String, pattern: GameConstants.SkinPattern, base_color: Color, prefix_color: String) -> String:
