@@ -112,6 +112,10 @@ func _ready():
 	beta_label.add_theme_font_override("font", font_title)
 	beta_label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
 
+	var beta_note = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/RankingNote
+	beta_note.add_theme_font_override("font", font_text)
+	beta_note.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
+
 	var beta_on_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOn
 	var beta_off_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff
 
@@ -573,6 +577,15 @@ func _apply_compact_setting_style(setting: VBoxContainer):
 				btn.custom_minimum_size = Vector2(max(btn.custom_minimum_size.x, 160.0), btn.custom_minimum_size.y)
 				btn.add_theme_font_size_override("font_size", 36)
 
+	var note = setting.get_node_or_null("RankingNote") as Label
+	if note:
+		note.custom_minimum_size = Vector2(370, 0)
+		note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		note.add_theme_font_override("font", font_text)
+		note.add_theme_font_size_override("font_size", 22)
+		note.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
+
 func _update_beta_buttons_style(enabled: bool):
 	var beta_setting = _get_settings_item("BetaUpgradesSetting")
 	var beta_on_btn = beta_setting.get_node("HBoxContainer/BetaOn") as Button
@@ -709,6 +722,7 @@ func _apply_localized_texts():
 	beta_setting.get_node("Label").text = Config.tr_text("beta_upgrades")
 	beta_setting.get_node("HBoxContainer/BetaOn").text = Config.tr_text("on")
 	beta_setting.get_node("HBoxContainer/BetaOff").text = Config.tr_text("off")
+	beta_setting.get_node("RankingNote").text = Config.tr_text("beta_upgrades_ranking_note")
 	language_setting.get_node("Label").text = Config.tr_text("language")
 	language_en_btn.text = Config.tr_text("english")
 	language_ja_btn.text = Config.tr_text("japanese")

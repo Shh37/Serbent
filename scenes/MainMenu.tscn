@@ -224,6 +224,15 @@ theme_override_font_sizes/font_size = 40
 text = "OFF"
 flat = true
 
+[node name="RankingNote" type="Label" parent="SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting"]
+custom_minimum_size = Vector2(370, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "ON: RANKING ENTRIES
+CANNOT BE ADDED"
+horizontal_alignment = 1
+autowrap_mode = 3
+
 [node name="BackButton" type="Button" parent="SettingsLayer/CenterContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 4
