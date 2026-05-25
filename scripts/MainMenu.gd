@@ -22,6 +22,9 @@ var language_en_btn: Button
 var language_ja_btn: Button
 var fullscreen_on_btn: Button
 var fullscreen_off_btn: Button
+var shared_ranking_on_btn: Button
+var shared_ranking_off_btn: Button
+var shared_ranking_folder_input: LineEdit
 var skin_requirement_tween: Tween
 var menu_overlay_transition_in_progress = false
 const SKIN_BUTTON_SIZE = Vector2(260, 66)
@@ -124,6 +127,8 @@ func _ready():
 
 	_ensure_language_setting()
 	_ensure_fullscreen_setting()
+	_ensure_shared_ranking_setting()
+	_ensure_shared_ranking_folder_setting()
 	_ensure_settings_grid_layout()
 
 	var back_btn = $SettingsLayer/CenterContainer/VBoxContainer/BackButton
@@ -163,7 +168,7 @@ func _ready():
 	ranking_length_sort_btn.pressed.connect(func(): _on_ranking_sort_pressed("length"))
 	ranking_survival_sort_btn.pressed.connect(func(): _on_ranking_sort_pressed("survival"))
 
-	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn, language_en_btn, language_ja_btn, fullscreen_on_btn, fullscreen_off_btn]:
+	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn, language_en_btn, language_ja_btn, fullscreen_on_btn, fullscreen_off_btn, shared_ranking_on_btn, shared_ranking_off_btn]:
 		btn.add_theme_font_override("font", font_title)
 		_setup_standard_button(btn)
 
@@ -181,6 +186,10 @@ func _ready():
 	language_ja_btn.pressed.connect(func(): _on_language_pressed(Config.LANGUAGE_JA))
 	fullscreen_on_btn.pressed.connect(func(): _on_fullscreen_toggle_pressed(true))
 	fullscreen_off_btn.pressed.connect(func(): _on_fullscreen_toggle_pressed(false))
+	shared_ranking_on_btn.pressed.connect(func(): _on_shared_ranking_toggle_pressed(true))
+	shared_ranking_off_btn.pressed.connect(func(): _on_shared_ranking_toggle_pressed(false))
+	shared_ranking_folder_input.text_submitted.connect(func(_text): _on_shared_ranking_folder_committed(true))
+	shared_ranking_folder_input.focus_exited.connect(func(): _on_shared_ranking_folder_committed(false))
 
 	# Signals for dynamically created skin buttons are connected in _populate_skin_grids
 
@@ -203,15 +212,19 @@ func _ready():
 	Config.fullscreen_changed.connect(_update_fullscreen_buttons_style)
 	_update_language_buttons_style(Config.language)
 	Config.language_changed.connect(_update_language_buttons_style)
+	_update_shared_ranking_buttons_style(Config.shared_rankings_enabled)
+	Config.shared_rankings_changed.connect(_update_shared_ranking_buttons_style)
+	Config.shared_ranking_folder_changed.connect(func(_folder): _sync_shared_ranking_folder_input())
 
 	# Initial style
-	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn, language_en_btn, language_ja_btn, fullscreen_on_btn, fullscreen_off_btn]:
+	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn, language_en_btn, language_ja_btn, fullscreen_on_btn, fullscreen_off_btn, shared_ranking_on_btn, shared_ranking_off_btn]:
 		btn.pivot_offset = btn.size / 2
 
 func _on_play_pressed():
 	get_tree().change_scene_to_file("res://scenes/Main.tscn")
 
 func _on_settings_pressed():
+	_sync_shared_ranking_folder_input()
 	await _show_menu_overlay($SettingsLayer)
 
 func _on_skins_pressed():
@@ -232,9 +245,31 @@ func _on_skin_back_pressed():
 	await _hide_menu_overlay($SkinLayer)
 
 func _input(event):
-	if not _should_hide_skin_requirement_from_input(event):
+	_release_shared_ranking_folder_focus_from_input(event)
+	if _should_hide_skin_requirement_from_input(event):
+		_hide_skin_requirement(true)
+
+func _release_shared_ranking_folder_focus_from_input(event: InputEvent):
+	if not $SettingsLayer.visible:
 		return
-	_hide_skin_requirement(true)
+	if not shared_ranking_folder_input or not shared_ranking_folder_input.has_focus():
+		return
+
+	var click_position = Vector2.ZERO
+	if event is InputEventMouseButton:
+		if not event.pressed or event.button_index != MOUSE_BUTTON_LEFT:
+			return
+		click_position = event.position
+	elif event is InputEventScreenTouch:
+		if not event.pressed:
+			return
+		click_position = event.position
+	else:
+		return
+
+	if shared_ranking_folder_input.get_global_rect().has_point(click_position):
+		return
+	_on_shared_ranking_folder_committed(true)
 
 func _should_hide_skin_requirement_from_input(event: InputEvent) -> bool:
 	if not skin_requirement_popup or not skin_requirement_popup.visible:
@@ -311,6 +346,17 @@ func _on_beta_toggle_pressed(enabled: bool):
 
 func _on_fullscreen_toggle_pressed(enabled: bool):
 	Config.fullscreen_enabled = enabled
+
+func _on_shared_ranking_toggle_pressed(enabled: bool):
+	Config.shared_rankings_enabled = enabled
+
+func _on_shared_ranking_folder_committed(release_focus: bool):
+	if not shared_ranking_folder_input:
+		return
+	Config.shared_ranking_folder = shared_ranking_folder_input.text
+	_sync_shared_ranking_folder_input()
+	if release_focus:
+		shared_ranking_folder_input.release_focus()
 
 func _on_language_pressed(language: String):
 	Config.language = language
@@ -538,7 +584,7 @@ func _apply_standard_button_size(btn: Button):
 	match btn.name:
 		"PlayButton":
 			min_width = btn.custom_minimum_size.x
-		"CRTOn", "CRTOff", "BetaOn", "BetaOff", "FullscreenOn", "FullscreenOff", "LanguageEnglish", "LanguageJapanese":
+		"CRTOn", "CRTOff", "BetaOn", "BetaOff", "FullscreenOn", "FullscreenOff", "LanguageEnglish", "LanguageJapanese", "SharedRankingOn", "SharedRankingOff":
 			min_width = 160.0
 		"LengthSortButton", "SurvivalSortButton":
 			min_width = 280.0
@@ -612,7 +658,7 @@ func _ensure_settings_grid_layout():
 	if title_label:
 		vbox.move_child(grid, title_label.get_index() + 1)
 
-	var setting_order = ["CRTSetting", "BetaUpgradesSetting", "LanguageSetting", "FullscreenSetting"]
+	var setting_order = ["CRTSetting", "BetaUpgradesSetting", "LanguageSetting", "FullscreenSetting", "SharedRankingSetting", "SharedRankingFolderSetting"]
 	for i in range(setting_order.size()):
 		var setting_name = setting_order[i]
 		var setting = _get_settings_item(setting_name)
@@ -644,6 +690,10 @@ func _apply_compact_setting_style(setting: VBoxContainer):
 				btn.custom_minimum_size = Vector2(max(btn.custom_minimum_size.x, 160.0), btn.custom_minimum_size.y)
 				btn.add_theme_font_size_override("font_size", 36)
 
+	var input = setting.get_node_or_null("FolderInput") as LineEdit
+	if input:
+		_style_settings_line_edit(input)
+
 	var note = setting.get_node_or_null("RankingNote") as Label
 	if note:
 		note.custom_minimum_size = Vector2(370, 0)
@@ -674,6 +724,22 @@ func _update_fullscreen_buttons_style(enabled: bool):
 		return
 	_apply_selected_button_colors(fullscreen_on_btn, enabled, GameConstants.COLOR_TOGGLE_ON, GameConstants.COLOR_TOGGLE_ON_HOVER, GameConstants.COLOR_TOGGLE_ON_PRESSED)
 	_apply_selected_button_colors(fullscreen_off_btn, not enabled, GameConstants.COLOR_TOGGLE_OFF, GameConstants.COLOR_TOGGLE_OFF_HOVER, GameConstants.COLOR_TOGGLE_OFF_PRESSED)
+
+func _update_shared_ranking_buttons_style(enabled: bool):
+	if not shared_ranking_on_btn or not shared_ranking_off_btn:
+		return
+	_apply_selected_button_colors(shared_ranking_on_btn, enabled, GameConstants.COLOR_TOGGLE_ON, GameConstants.COLOR_TOGGLE_ON_HOVER, GameConstants.COLOR_TOGGLE_ON_PRESSED)
+	_apply_selected_button_colors(shared_ranking_off_btn, not enabled, GameConstants.COLOR_TOGGLE_OFF, GameConstants.COLOR_TOGGLE_OFF_HOVER, GameConstants.COLOR_TOGGLE_OFF_PRESSED)
+	_update_shared_ranking_folder_input_state(enabled)
+
+func _update_shared_ranking_folder_input_state(enabled: bool):
+	if not shared_ranking_folder_input:
+		return
+	shared_ranking_folder_input.editable = enabled
+	shared_ranking_folder_input.focus_mode = Control.FOCUS_ALL if enabled else Control.FOCUS_NONE
+	shared_ranking_folder_input.modulate.a = 1.0 if enabled else 0.56
+	if not enabled and shared_ranking_folder_input.has_focus():
+		_on_shared_ranking_folder_committed(true)
 
 func _update_language_buttons_style(language: String):
 	if not language_en_btn or not language_ja_btn:
@@ -767,6 +833,116 @@ func _ensure_fullscreen_setting():
 	if back_btn:
 		vbox.move_child(setting, back_btn.get_index())
 
+func _ensure_shared_ranking_setting():
+	var vbox = $SettingsLayer/CenterContainer/VBoxContainer
+	var existing = _get_settings_item("SharedRankingSetting")
+	if existing:
+		shared_ranking_on_btn = existing.get_node("HBoxContainer/SharedRankingOn") as Button
+		shared_ranking_off_btn = existing.get_node("HBoxContainer/SharedRankingOff") as Button
+		return
+
+	var setting = VBoxContainer.new()
+	setting.name = "SharedRankingSetting"
+	setting.add_theme_constant_override("separation", 8)
+
+	var label = Label.new()
+	label.name = "Label"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_override("font", font_title)
+	label.add_theme_font_size_override("font_size", 40)
+	label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+	setting.add_child(label)
+
+	var row = HBoxContainer.new()
+	row.name = "HBoxContainer"
+	row.add_theme_constant_override("separation", 24)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	setting.add_child(row)
+
+	shared_ranking_on_btn = Button.new()
+	shared_ranking_on_btn.name = "SharedRankingOn"
+	shared_ranking_on_btn.flat = true
+	shared_ranking_on_btn.add_theme_font_size_override("font_size", 36)
+	row.add_child(shared_ranking_on_btn)
+
+	shared_ranking_off_btn = Button.new()
+	shared_ranking_off_btn.name = "SharedRankingOff"
+	shared_ranking_off_btn.flat = true
+	shared_ranking_off_btn.add_theme_font_size_override("font_size", 36)
+	row.add_child(shared_ranking_off_btn)
+
+	var back_btn = vbox.get_node_or_null("BackButton")
+	vbox.add_child(setting)
+	if back_btn:
+		vbox.move_child(setting, back_btn.get_index())
+
+func _ensure_shared_ranking_folder_setting():
+	var vbox = $SettingsLayer/CenterContainer/VBoxContainer
+	var existing = _get_settings_item("SharedRankingFolderSetting")
+	if existing:
+		shared_ranking_folder_input = existing.get_node("FolderInput") as LineEdit
+		return
+
+	var setting = VBoxContainer.new()
+	setting.name = "SharedRankingFolderSetting"
+	setting.add_theme_constant_override("separation", 8)
+
+	var label = Label.new()
+	label.name = "Label"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_override("font", font_title)
+	label.add_theme_font_size_override("font_size", 40)
+	label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+	setting.add_child(label)
+
+	shared_ranking_folder_input = LineEdit.new()
+	shared_ranking_folder_input.name = "FolderInput"
+	shared_ranking_folder_input.text = Config.shared_ranking_folder
+	shared_ranking_folder_input.placeholder_text = Config.DEFAULT_SHARED_RANKING_FOLDER
+	_style_settings_line_edit(shared_ranking_folder_input)
+	setting.add_child(shared_ranking_folder_input)
+
+	var back_btn = vbox.get_node_or_null("BackButton")
+	vbox.add_child(setting)
+	if back_btn:
+		vbox.move_child(setting, back_btn.get_index())
+
+func _style_settings_line_edit(input: LineEdit):
+	input.custom_minimum_size = Vector2(370, 48)
+	input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	input.focus_mode = Control.FOCUS_ALL
+	input.caret_blink = true
+	input.add_theme_font_override("font", font_text)
+	input.add_theme_font_size_override("font_size", 22)
+	input.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+	input.add_theme_color_override("font_placeholder_color", GameConstants.COLOR_GHOST)
+	input.add_theme_color_override("caret_color", GameConstants.COLOR_POINT)
+	input.add_theme_color_override("selection_color", Color(GameConstants.COLOR_POINT.r, GameConstants.COLOR_POINT.g, GameConstants.COLOR_POINT.b, 0.35))
+
+	var normal = StyleBoxFlat.new()
+	normal.bg_color = Color(GameConstants.COLOR_BG.r, GameConstants.COLOR_BG.g, GameConstants.COLOR_BG.b, 0.72)
+	normal.border_color = GameConstants.COLOR_GHOST
+	normal.set_border_width_all(2)
+	normal.set_corner_radius_all(0)
+	normal.set_content_margin(SIDE_LEFT, 12)
+	normal.set_content_margin(SIDE_RIGHT, 12)
+	normal.set_content_margin(SIDE_TOP, 8)
+	normal.set_content_margin(SIDE_BOTTOM, 8)
+
+	var focus = normal.duplicate() as StyleBoxFlat
+	focus.border_color = GameConstants.COLOR_POINT
+	focus.set_border_width_all(3)
+
+	input.add_theme_stylebox_override("normal", normal)
+	input.add_theme_stylebox_override("focus", focus)
+	input.add_theme_stylebox_override("read_only", normal)
+
+func _sync_shared_ranking_folder_input():
+	if not shared_ranking_folder_input or shared_ranking_folder_input.has_focus():
+		return
+	shared_ranking_folder_input.text = Config.shared_ranking_folder
+	shared_ranking_folder_input.placeholder_text = Config.DEFAULT_SHARED_RANKING_FOLDER
+
 func _apply_localized_texts():
 	var title_font = font_title
 	var body_font = _get_body_font()
@@ -781,6 +957,8 @@ func _apply_localized_texts():
 	var beta_setting = _get_settings_item("BetaUpgradesSetting")
 	var language_setting = _get_settings_item("LanguageSetting")
 	var fullscreen_setting = _get_settings_item("FullscreenSetting")
+	var shared_ranking_setting = _get_settings_item("SharedRankingSetting")
+	var shared_ranking_folder_setting = _get_settings_item("SharedRankingFolderSetting")
 
 	$SettingsLayer/CenterContainer/VBoxContainer/Label.text = Config.tr_text("settings")
 	crt_setting.get_node("Label").text = Config.tr_text("crt_shader")
@@ -796,6 +974,11 @@ func _apply_localized_texts():
 	fullscreen_setting.get_node("Label").text = Config.tr_text("fullscreen")
 	fullscreen_on_btn.text = Config.tr_text("on")
 	fullscreen_off_btn.text = Config.tr_text("off")
+	shared_ranking_setting.get_node("Label").text = Config.tr_text("shared_ranking")
+	shared_ranking_on_btn.text = Config.tr_text("on")
+	shared_ranking_off_btn.text = Config.tr_text("off")
+	shared_ranking_folder_setting.get_node("Label").text = Config.tr_text("shared_ranking_folder")
+	_sync_shared_ranking_folder_input()
 	$SettingsLayer/CenterContainer/VBoxContainer/BackButton.text = Config.tr_text("back")
 
 	$SkinLayer/CenterContainer/VBoxContainer/Label.text = Config.tr_text("skin_selection")
@@ -837,6 +1020,8 @@ func _apply_localized_texts():
 		beta_setting.get_node("Label"),
 		language_setting.get_node("Label"),
 		fullscreen_setting.get_node("Label"),
+		shared_ranking_setting.get_node("Label"),
+		shared_ranking_folder_setting.get_node("Label"),
 		$SkinLayer/CenterContainer/VBoxContainer/Label,
 		$SkinLayer/CenterContainer/VBoxContainer/HBoxContainer/SelectionContainer/ColorLabel,
 		$SkinLayer/CenterContainer/VBoxContainer/HBoxContainer/SelectionContainer/PatternLabel,
@@ -1414,7 +1599,9 @@ func _update_appearance_display():
 		language_en_btn,
 		language_ja_btn,
 		fullscreen_on_btn,
-		fullscreen_off_btn
+		fullscreen_off_btn,
+		shared_ranking_on_btn,
+		shared_ranking_off_btn
 	]
 	for btn in standard_btns:
 		if btn:
@@ -1424,6 +1611,7 @@ func _update_appearance_display():
 	_update_beta_buttons_style(Config.beta_upgrades_enabled)
 	_update_fullscreen_buttons_style(Config.fullscreen_enabled)
 	_update_language_buttons_style(Config.language)
+	_update_shared_ranking_buttons_style(Config.shared_rankings_enabled)
 
 	# Dynamic skin color update for Rules text inside "HOW TO PLAY"
 	var rules_txt = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesText
@@ -1526,7 +1714,9 @@ func _process(_delta):
 				language_en_btn,
 				language_ja_btn,
 				fullscreen_on_btn,
-				fullscreen_off_btn]:
+				fullscreen_off_btn,
+				shared_ranking_on_btn,
+				shared_ranking_off_btn]:
 		if btn:
 			btn.pivot_offset = btn.size / 2
 

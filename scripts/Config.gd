@@ -5,11 +5,14 @@ signal beta_upgrades_changed(enabled: bool)
 signal fullscreen_changed(enabled: bool)
 signal language_changed(language: String)
 signal rankings_changed()
+signal shared_rankings_changed(enabled: bool)
+signal shared_ranking_folder_changed(folder: String)
 signal skin_unlocks_changed()
 
 const SETTINGS_FILE = "user://settings.json"
 const RANKING_FILE = "user://rankings.json"
 const SKIN_UNLOCK_FILE = "user://skin_unlocks.json"
+const DEFAULT_SHARED_RANKING_FOLDER = "Y:/Serbent/rankings/entries"
 const RANKING_DISPLAY_LIMIT = 200
 const RANKING_STORAGE_LIMIT_PER_SORT = 200
 const PLAYER_NAME_MAX_LENGTH = 12
@@ -26,6 +29,8 @@ const TEXT = {
 		"crt_shader": "CRT SHADER",
 		"beta_upgrades": "BETA UPGRADES",
 		"beta_upgrades_ranking_note": "ON: RANKING ENTRIES\nCANNOT BE ADDED",
+		"shared_ranking": "SHARED RANKING",
+		"shared_ranking_folder": "RANKING FOLDER",
 		"fullscreen": "FULLSCREEN",
 		"language": "LANGUAGE",
 		"on": "ON",
@@ -81,6 +86,8 @@ const TEXT = {
 		"crt_shader": "CRTシェーダー",
 		"beta_upgrades": "ベータアップグレード",
 		"beta_upgrades_ranking_note": "オンにすると\nランキングにのせられません",
+		"shared_ranking": "みんなのランキング",
+		"shared_ranking_folder": "ランキングフォルダ",
 		"fullscreen": "フルスクリーン",
 		"language": "言語",
 		"on": "オン",
@@ -180,6 +187,30 @@ var language: String = LANGUAGE_JA :
 		language_changed.emit(language)
 		if settings_loaded:
 			save_settings()
+
+var shared_rankings_enabled: bool = false :
+	set(value):
+		if shared_rankings_enabled == value:
+			return
+		shared_rankings_enabled = value
+		shared_rankings_changed.emit(value)
+		if settings_loaded:
+			save_settings()
+			load_rankings()
+			rankings_changed.emit()
+
+var shared_ranking_folder: String = DEFAULT_SHARED_RANKING_FOLDER :
+	set(value):
+		var normalized = normalize_shared_ranking_folder(value)
+		if shared_ranking_folder == normalized:
+			return
+		shared_ranking_folder = normalized
+		shared_ranking_folder_changed.emit(shared_ranking_folder)
+		if settings_loaded:
+			save_settings()
+			if shared_rankings_enabled:
+				load_rankings()
+				rankings_changed.emit()
 
 var ranking_entries: Array = []
 var skin_unlocks_loaded = false
@@ -312,6 +343,15 @@ func _is_fullscreen_toggle_event(event: InputEvent) -> bool:
 func normalize_language(value: String) -> String:
 	return LANGUAGE_JA if value == LANGUAGE_JA else LANGUAGE_EN
 
+func normalize_shared_ranking_folder(value: String) -> String:
+	var normalized = value.strip_edges().replace("\\", "/")
+	if normalized.is_empty():
+		normalized = DEFAULT_SHARED_RANKING_FOLDER
+
+	while normalized.length() > 3 and normalized.ends_with("/"):
+		normalized = normalized.substr(0, normalized.length() - 1)
+	return normalized
+
 func is_japanese() -> bool:
 	return language == LANGUAGE_JA
 
@@ -347,6 +387,8 @@ func load_settings():
 	beta_upgrades_enabled = bool(parsed.get("beta_upgrades_enabled", false))
 	fullscreen_enabled = bool(parsed.get("fullscreen_enabled", is_fullscreen_enabled()))
 	language = normalize_language(str(parsed.get("language", LANGUAGE_JA)))
+	shared_rankings_enabled = bool(parsed.get("shared_rankings_enabled", false))
+	shared_ranking_folder = normalize_shared_ranking_folder(str(parsed.get("shared_ranking_folder", DEFAULT_SHARED_RANKING_FOLDER)))
 	settings_loaded = true
 
 func save_settings():
@@ -359,7 +401,9 @@ func save_settings():
 		"crt_enabled": crt_enabled,
 		"beta_upgrades_enabled": beta_upgrades_enabled,
 		"fullscreen_enabled": fullscreen_enabled,
-		"language": language
+		"language": language,
+		"shared_rankings_enabled": shared_rankings_enabled,
+		"shared_ranking_folder": shared_ranking_folder
 	}, "\t"))
 
 signal skin_changed()
@@ -604,6 +648,9 @@ func sanitize_player_name(raw_name: String) -> String:
 ## なまえのバリデーション
 ## 戻り値: "" = OK, それ以外 = エラー理由キー
 func validate_player_name(raw_name: String) -> String:
+	if shared_rankings_enabled:
+		load_rankings()
+
 	var stripped = raw_name.replace("\n", " ").replace("\r", " ").replace("\t", " ").strip_edges()
 	# ルール1: 1文字以上（空・スペースのみ NG）
 	if stripped.is_empty():
@@ -640,9 +687,12 @@ func add_ranking_entry(player_name: String, best_length: int, survival_time: flo
 		push_warning("Ranking entries are disabled while beta upgrades are enabled.")
 		return {}
 
+	if shared_rankings_enabled:
+		load_rankings()
+
 	var now = int(Time.get_unix_time_from_system())
 	var entry = {
-		"id": "%d_%d" % [now, Time.get_ticks_usec()],
+		"id": _make_ranking_entry_id(now),
 		"name": sanitize_player_name(player_name),
 		"best_length": max(0, best_length),
 		"survival_time": max(0.0, survival_time),
@@ -650,11 +700,17 @@ func add_ranking_entry(player_name: String, best_length: int, survival_time: flo
 	}
 	ranking_entries.append(entry)
 	_trim_rankings()
-	save_rankings()
+	if shared_rankings_enabled and _save_shared_ranking_entry(entry):
+		load_rankings()
+	else:
+		save_rankings()
 	rankings_changed.emit()
 	return entry
 
 func get_rankings(sort_key: String = "length", limit: int = RANKING_DISPLAY_LIMIT) -> Array:
+	if shared_rankings_enabled:
+		load_rankings()
+
 	var sorted_entries = _get_sorted_entries(sort_key)
 	var display_entries = []
 	for i in range(min(limit, sorted_entries.size())):
@@ -677,6 +733,11 @@ func get_survival_rank(survival_time: float, best_length: int = 0) -> int:
 
 func load_rankings():
 	ranking_entries.clear()
+	if shared_rankings_enabled and _load_shared_rankings():
+		return
+	_load_local_rankings()
+
+func _load_local_rankings():
 	if not FileAccess.file_exists(RANKING_FILE):
 		return
 
@@ -691,6 +752,7 @@ func load_rankings():
 	for raw_entry in parsed:
 		if typeof(raw_entry) == TYPE_DICTIONARY:
 			ranking_entries.append(_normalize_ranking_entry(raw_entry))
+	_deduplicate_rankings()
 	_trim_rankings()
 
 func save_rankings():
@@ -699,6 +761,94 @@ func save_rankings():
 		push_warning("Could not save rankings to %s" % RANKING_FILE)
 		return
 	file.store_string(JSON.stringify(ranking_entries, "\t"))
+
+func _load_shared_rankings() -> bool:
+	if not _ensure_shared_ranking_folder():
+		return false
+
+	var dir = DirAccess.open(shared_ranking_folder)
+	if not dir:
+		push_warning("Could not open shared ranking folder: %s" % shared_ranking_folder)
+		return false
+
+	dir.list_dir_begin()
+	var file_name = dir.get_next()
+	while not file_name.is_empty():
+		if not dir.current_is_dir() and file_name.get_extension().to_lower() == "json":
+			_load_shared_ranking_file(_join_path(shared_ranking_folder, file_name))
+		file_name = dir.get_next()
+	dir.list_dir_end()
+
+	_deduplicate_rankings()
+	_trim_rankings()
+	return true
+
+func _load_shared_ranking_file(path: String):
+	var file = FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return
+
+	var parsed = JSON.parse_string(file.get_as_text())
+	if typeof(parsed) == TYPE_DICTIONARY:
+		ranking_entries.append(_normalize_ranking_entry(parsed))
+	elif typeof(parsed) == TYPE_ARRAY:
+		for raw_entry in parsed:
+			if typeof(raw_entry) == TYPE_DICTIONARY:
+				ranking_entries.append(_normalize_ranking_entry(raw_entry))
+
+func _save_shared_ranking_entry(entry: Dictionary) -> bool:
+	if not _ensure_shared_ranking_folder():
+		return false
+
+	for attempt in range(8):
+		var file_name = _make_shared_ranking_file_name(entry, attempt)
+		var final_path = _join_path(shared_ranking_folder, file_name)
+		if FileAccess.file_exists(final_path):
+			continue
+
+		var temp_path = "%s.tmp" % final_path
+		var file = FileAccess.open(temp_path, FileAccess.WRITE)
+		if not file:
+			push_warning("Could not save shared ranking temp file: %s" % temp_path)
+			return false
+
+		file.store_string(JSON.stringify(entry, "\t"))
+		file = null
+
+		var rename_error = DirAccess.rename_absolute(temp_path, final_path)
+		if rename_error == OK:
+			return true
+
+		DirAccess.remove_absolute(temp_path)
+
+	push_warning("Could not save shared ranking entry to %s" % shared_ranking_folder)
+	return false
+
+func _ensure_shared_ranking_folder() -> bool:
+	if DirAccess.dir_exists_absolute(shared_ranking_folder):
+		return true
+
+	var error = DirAccess.make_dir_recursive_absolute(shared_ranking_folder)
+	if error != OK:
+		push_warning("Could not create shared ranking folder: %s" % shared_ranking_folder)
+		return false
+	return true
+
+func _join_path(folder: String, file_name: String) -> String:
+	if folder.ends_with("/"):
+		return "%s%s" % [folder, file_name]
+	return "%s/%s" % [folder, file_name]
+
+func _make_ranking_entry_id(created_at: int) -> String:
+	var rng = RandomNumberGenerator.new()
+	rng.randomize()
+	return "%d_%d_%d" % [created_at, Time.get_ticks_usec(), rng.randi()]
+
+func _make_shared_ranking_file_name(entry: Dictionary, attempt: int) -> String:
+	var entry_id = str(entry.get("id", ""))
+	if attempt > 0:
+		entry_id = "%s_%d" % [entry_id, attempt]
+	return "%s.json" % entry_id
 
 func _normalize_ranking_entry(raw_entry: Dictionary) -> Dictionary:
 	var best_length = int(raw_entry.get("best_length", raw_entry.get("length", 0)))
@@ -726,6 +876,9 @@ func _get_sorted_entries(sort_key: String) -> Array:
 	return sorted_entries
 
 func _get_candidate_rank(candidate: Dictionary, sort_key: String) -> int:
+	if shared_rankings_enabled:
+		load_rankings()
+
 	var rank = 1
 	for entry in ranking_entries:
 		if _ranking_entry_before(entry, candidate, sort_key):
@@ -750,6 +903,20 @@ func _ranking_entry_before(a: Dictionary, b: Dictionary, sort_key: String) -> bo
 			return a_survival > b_survival
 
 	return int(a.get("created_at", 0)) < int(b.get("created_at", 0))
+
+func _deduplicate_rankings():
+	var seen_ids = {}
+	var unique_entries = []
+	for entry in ranking_entries:
+		var entry_id = str(entry.get("id", ""))
+		if entry_id.is_empty():
+			entry_id = _make_ranking_entry_id(int(entry.get("created_at", 0)))
+			entry["id"] = entry_id
+		if seen_ids.has(entry_id):
+			continue
+		seen_ids[entry_id] = true
+		unique_entries.append(entry)
+	ranking_entries = unique_entries
 
 func _trim_rankings():
 	if ranking_entries.size() <= RANKING_STORAGE_LIMIT_PER_SORT:
