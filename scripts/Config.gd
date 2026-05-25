@@ -389,36 +389,65 @@ func get_pattern_unlock_requirement(type: GameConstants.SkinPattern) -> String:
 func load_skin_unlocks():
 	skin_unlocks_loaded = false
 	if not FileAccess.file_exists(SKIN_UNLOCK_FILE):
-		_ensure_default_skin_unlocks()
+		_reset_skin_unlocks_to_default()
 		skin_unlocks_loaded = true
+		save_skin_unlocks()
 		return
 
 	var file = FileAccess.open(SKIN_UNLOCK_FILE, FileAccess.READ)
 	if not file:
-		_ensure_default_skin_unlocks()
+		_reset_skin_unlocks_to_default()
 		skin_unlocks_loaded = true
+		push_warning("Could not load skin unlocks from %s" % SKIN_UNLOCK_FILE)
 		return
 
 	var parsed = JSON.parse_string(file.get_as_text())
 	if typeof(parsed) != TYPE_DICTIONARY:
-		_ensure_default_skin_unlocks()
+		_reset_skin_unlocks_to_default()
 		skin_unlocks_loaded = true
+		push_warning("Skin unlock data was invalid. Resetting to default skin.")
+		save_skin_unlocks()
 		return
 
-	unlocked_colors = _normalize_skin_unlock_array(parsed.get("colors", []), GameConstants.SkinColor.values())
-	unlocked_patterns = _normalize_skin_unlock_array(parsed.get("patterns", []), GameConstants.SkinPattern.values())
-	_ensure_default_skin_unlocks()
+	var needs_repair = false
+	var raw_colors = parsed.get("colors", [])
+	var raw_patterns = parsed.get("patterns", [])
+	unlocked_colors = _normalize_skin_unlock_array(raw_colors, GameConstants.SkinColor.values())
+	unlocked_patterns = _normalize_skin_unlock_array(raw_patterns, GameConstants.SkinPattern.values())
+	needs_repair = needs_repair or _skin_unlock_array_needs_repair(raw_colors, unlocked_colors)
+	needs_repair = needs_repair or _skin_unlock_array_needs_repair(raw_patterns, unlocked_patterns)
+	needs_repair = _ensure_default_skin_unlocks() or needs_repair
 
-	var loaded_selected_color = int(parsed.get("selected_color", GameConstants.SkinColor.BASIC))
-	var loaded_selected_pattern = int(parsed.get("selected_pattern", GameConstants.SkinPattern.SOLID))
-	selected_color = (loaded_selected_color if loaded_selected_color in unlocked_colors else GameConstants.SkinColor.BASIC) as GameConstants.SkinColor
-	selected_pattern = (loaded_selected_pattern if loaded_selected_pattern in unlocked_patterns else GameConstants.SkinPattern.SOLID) as GameConstants.SkinPattern
+	var loaded_selected_color = _parse_skin_value(
+		parsed.get("selected_color", null),
+		null,
+		GameConstants.SkinColor.values()
+	)
+	var loaded_selected_pattern = _parse_skin_value(
+		parsed.get("selected_pattern", null),
+		null,
+		GameConstants.SkinPattern.values()
+	)
+	if loaded_selected_color == null or not loaded_selected_color in unlocked_colors:
+		loaded_selected_color = GameConstants.SkinColor.BASIC
+		needs_repair = true
+	if loaded_selected_pattern == null or not loaded_selected_pattern in unlocked_patterns:
+		loaded_selected_pattern = GameConstants.SkinPattern.SOLID
+		needs_repair = true
+
+	selected_color = loaded_selected_color as GameConstants.SkinColor
+	selected_pattern = loaded_selected_pattern as GameConstants.SkinPattern
 
 	if not selected_color in unlocked_colors:
 		selected_color = GameConstants.SkinColor.BASIC
+		needs_repair = true
 	if not selected_pattern in unlocked_patterns:
 		selected_pattern = GameConstants.SkinPattern.SOLID
+		needs_repair = true
 	skin_unlocks_loaded = true
+	if needs_repair:
+		push_warning("Skin unlock data was repaired.")
+		save_skin_unlocks()
 
 func save_skin_unlocks():
 	var file = FileAccess.open(SKIN_UNLOCK_FILE, FileAccess.WRITE)
@@ -433,11 +462,21 @@ func save_skin_unlocks():
 		"selected_pattern": selected_pattern
 	}, "\t"))
 
-func _ensure_default_skin_unlocks(): 
+func _reset_skin_unlocks_to_default():
+	unlocked_colors = [GameConstants.SkinColor.BASIC]
+	unlocked_patterns = [GameConstants.SkinPattern.SOLID]
+	selected_color = GameConstants.SkinColor.BASIC
+	selected_pattern = GameConstants.SkinPattern.SOLID
+
+func _ensure_default_skin_unlocks() -> bool:
+	var changed = false
 	if not GameConstants.SkinColor.BASIC in unlocked_colors:
 		unlocked_colors.append(GameConstants.SkinColor.BASIC)
+		changed = true
 	if not GameConstants.SkinPattern.SOLID in unlocked_patterns:
 		unlocked_patterns.append(GameConstants.SkinPattern.SOLID)
+		changed = true
+	return changed
 
 func _normalize_skin_unlock_array(raw_values, allowed_values) -> Array:
 	var normalized = []
@@ -445,10 +484,35 @@ func _normalize_skin_unlock_array(raw_values, allowed_values) -> Array:
 		return normalized
 
 	for raw_value in raw_values:
-		var value = int(raw_value)
+		var value = _parse_skin_value(raw_value, null, allowed_values)
+		if value == null:
+			continue
 		if value in allowed_values and not value in normalized:
 			normalized.append(value)
 	return normalized
+
+func _skin_unlock_array_needs_repair(raw_values, normalized_values: Array) -> bool:
+	if typeof(raw_values) != TYPE_ARRAY:
+		return true
+	return raw_values.size() != normalized_values.size()
+
+func _parse_skin_value(raw_value, fallback, allowed_values):
+	var value
+	match typeof(raw_value):
+		TYPE_INT:
+			value = raw_value
+		TYPE_FLOAT:
+			if raw_value != float(int(raw_value)):
+				return fallback
+			value = int(raw_value)
+		TYPE_STRING:
+			if not raw_value.is_valid_int():
+				return fallback
+			value = int(raw_value)
+		_:
+			return fallback
+
+	return value if value in allowed_values else fallback
 
 func _get_unlock_info(unlocks: Array, type: int) -> Dictionary:
 	for unlock in unlocks:
