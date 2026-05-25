@@ -59,6 +59,9 @@ const TEXT = {
 		"main_menu": "MAIN MENU",
 		"saved": "SAVED",
 		"unknown": "UNKNOWN",
+		"name_error_empty": "ENTER A NAME",
+		"name_error_kanji": "NO KANJI ALLOWED",
+		"name_error_duplicate": "NAME ALREADY USED",
 		"phantom": "PHANTOM",
 		"time_stop": "TIME STOP",
 		"double_growth": "DOUBLE GROWTH",
@@ -111,6 +114,9 @@ const TEXT = {
 		"main_menu": "メニュー",
 		"saved": "ほぞんした",
 		"unknown": "ふめい",
+		"name_error_empty": "なまえを いれてね",
+		"name_error_kanji": "かんじは つかえないよ",
+		"name_error_duplicate": "おなじ なまえは つかえないよ",
 		"phantom": "ゆうれい",
 		"time_stop": "ときとめ",
 		"double_growth": "2ばい",
@@ -594,6 +600,31 @@ func sanitize_player_name(raw_name: String) -> String:
 	if clean_name.length() > PLAYER_NAME_MAX_LENGTH:
 		clean_name = clean_name.substr(0, PLAYER_NAME_MAX_LENGTH)
 	return clean_name
+
+## なまえのバリデーション
+## 戻り値: "" = OK, それ以外 = エラー理由キー
+func validate_player_name(raw_name: String) -> String:
+	var stripped = raw_name.replace("\n", " ").replace("\r", " ").replace("\t", " ").strip_edges()
+	# ルール1: 1文字以上（空・スペースのみ NG）
+	if stripped.is_empty():
+		return "name_error_empty"
+	# ルール2: 漢字を含んでいない（CJK統合漢字 U+4E00〜U+9FFF）
+	for i in range(stripped.length()):
+		var code = stripped.unicode_at(i)
+		if code >= 0x4E00 and code <= 0x9FFF:
+			return "name_error_kanji"
+		# CJK拡張A U+3400〜U+4DBF
+		if code >= 0x3400 and code <= 0x4DBF:
+			return "name_error_kanji"
+	# ルール3: 既存ランキングに同じ名前がない（大文字小文字を区別しない）
+	var stripped_lower = stripped.to_lower()
+	for entry in ranking_entries:
+		if str(entry.get("name", "")).to_lower() == stripped_lower:
+			return "name_error_duplicate"
+	return ""
+
+func get_name_error_text(error_key: String) -> String:
+	return tr_text(error_key)
 
 func format_survival_time(seconds_value: float) -> String:
 	var minutes = floori(seconds_value / 60.0)

@@ -859,20 +859,22 @@ func _create_result_ranking_dialog() -> Control:
 	ranking_name_input.process_mode = Node.PROCESS_MODE_ALWAYS
 	_style_result_line_edit(ranking_name_input)
 	ranking_name_input.text_submitted.connect(func(_submitted_text): _on_submit_ranking_pressed())
+	ranking_name_input.text_changed.connect(func(_new_text): _on_ranking_name_changed())
 	input_row.add_child(ranking_name_input)
 
 	ranking_submit_button = _create_result_button(Config.tr_text("submit").to_upper(), 32)
+	ranking_submit_button.disabled = true  # 初期状態は無効（名前未入力のため）
 	ranking_submit_button.pressed.connect(_on_submit_ranking_pressed)
 	input_row.add_child(ranking_submit_button)
 	result_buttons.append(ranking_submit_button)
 
 	ranking_feedback_label = Label.new()
-	ranking_feedback_label.text = ""
+	ranking_feedback_label.text = Config.tr_text("name_error_empty")
 	ranking_feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ranking_feedback_label.add_theme_font_override("font", main_font)
 	ranking_feedback_label.add_theme_font_size_override("font_size", 22)
 	ranking_feedback_label.add_theme_color_override("font_color", GameConstants.COLOR_SNAKE)
-	ranking_feedback_label.visible = false
+	ranking_feedback_label.visible = true  # 初期状態でエラーを表示
 	form.add_child(ranking_feedback_label)
 
 	ranking_dialog_back_button = _create_result_button(Config.tr_text("back").to_upper(), 28)
@@ -1015,8 +1017,40 @@ func _close_ranking_dialog():
 	if ranking_add_button and not ranking_added:
 		ranking_add_button.grab_focus()
 
+func _on_ranking_name_changed():
+	if not ranking_name_input or not ranking_submit_button or not ranking_feedback_label:
+		return
+	var error_key = Config.validate_player_name(ranking_name_input.text)
+	var is_valid = error_key.is_empty()
+	ranking_submit_button.disabled = not is_valid
+	if is_valid:
+		ranking_feedback_label.visible = false
+		ranking_feedback_label.text = ""
+		# 入力ボーダーをフォーカスカラーに戻す
+		_set_name_input_border_valid(true)
+	else:
+		ranking_feedback_label.visible = true
+		ranking_feedback_label.text = Config.tr_text(error_key)
+		_set_name_input_border_valid(false)
+
+func _set_name_input_border_valid(valid: bool):
+	if not ranking_name_input:
+		return
+	var normal = ranking_name_input.get_theme_stylebox("normal").duplicate() as StyleBoxFlat
+	if not normal:
+		return
+	normal.border_color = GameConstants.COLOR_POINT if valid else GameConstants.COLOR_SNAKE
+	ranking_name_input.add_theme_stylebox_override("normal", normal)
+
 func _on_submit_ranking_pressed():
 	if ranking_added or not ranking_name_input or not Config.can_add_ranking_entry():
+		return
+	# 送信前に再バリデーション
+	var error_key = Config.validate_player_name(ranking_name_input.text)
+	if not error_key.is_empty():
+		if ranking_feedback_label:
+			ranking_feedback_label.visible = true
+			ranking_feedback_label.text = Config.tr_text(error_key)
 		return
 	var entry = Config.add_ranking_entry(ranking_name_input.text, pending_ranking_length, pending_ranking_survival)
 	if entry.is_empty():
