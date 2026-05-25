@@ -94,7 +94,7 @@ const TEXT = {
 		"skin_unlocks": "スキンかいほう",
 		"ranking_empty": "ランキングなし",
 		"name": "なまえ",
-		"best_length": "いちばん長いとき",
+		"best_length": "長さきろく",
 		"survival": "生きたじかん",
 		"length": "長さ",
 		"time": "タイム",
@@ -177,6 +177,7 @@ var language: String = LANGUAGE_JA :
 
 var ranking_entries: Array = []
 var skin_unlocks_loaded = false
+var button_focus_style_ready = false
 
 func _enter_tree():
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -186,6 +187,66 @@ func _ready():
 	load_settings()
 	load_rankings()
 	load_skin_unlocks()
+	_setup_global_button_focus_style()
+
+func _setup_global_button_focus_style():
+	button_focus_style_ready = true
+	if not get_tree().node_added.is_connected(_on_global_node_added):
+		get_tree().node_added.connect(_on_global_node_added)
+	_refresh_global_button_focus_styles()
+
+func _on_global_node_added(node: Node):
+	if node is Button:
+		_apply_global_button_focus_style(node)
+
+func _refresh_global_button_focus_styles():
+	var root = get_tree().root
+	if root:
+		_apply_global_button_focus_style_recursive(root)
+
+func _apply_global_button_focus_style_recursive(node: Node):
+	if node is Button:
+		_apply_global_button_focus_style(node)
+	for child in node.get_children():
+		_apply_global_button_focus_style_recursive(child)
+
+func _apply_global_button_focus_style(button: Button):
+	if button.flat:
+		button.flat = false
+		_apply_transparent_button_styleboxes(button)
+	button.add_theme_stylebox_override("focus", _create_global_button_focus_style())
+	button.add_theme_color_override("font_focus_color", GameConstants.COLOR_BUTTON_NORMAL)
+
+func _apply_transparent_button_styleboxes(button: Button):
+	var normal = _create_transparent_button_style()
+	var hover = normal.duplicate() as StyleBoxFlat
+	var pressed = normal.duplicate() as StyleBoxFlat
+	var disabled = normal.duplicate() as StyleBoxFlat
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.add_theme_stylebox_override("disabled", disabled)
+
+func _create_transparent_button_style() -> StyleBoxFlat:
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.border_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.set_border_width_all(0)
+	style.set_corner_radius_all(0)
+	return style
+
+func _create_global_button_focus_style() -> StyleBoxFlat:
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.draw_center = false
+	style.border_color = GameConstants.SKIN_COLORS.get(selected_color, GameConstants.COLOR_BUTTON_HOVER)
+	style.set_border_width_all(4)
+	style.set_corner_radius_all(0)
+	style.expand_margin_left = 8
+	style.expand_margin_top = 4
+	style.expand_margin_right = 8
+	style.expand_margin_bottom = 4
+	return style
 
 func ensure_keyboard_input_actions():
 	var action_keys = {
@@ -301,6 +362,8 @@ var selected_color: GameConstants.SkinColor = GameConstants.SkinColor.BASIC :
 	set(value):
 		selected_color = value
 		skin_changed.emit()
+		if button_focus_style_ready:
+			_refresh_global_button_focus_styles()
 		if skin_unlocks_loaded:
 			save_skin_unlocks()
 

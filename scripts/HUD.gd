@@ -107,6 +107,25 @@ func _process(delta):
 	_update_powerup_visuals()
 	_update_dash_hint(delta)
 
+func _input(event):
+	if not _is_ranking_dialog_open():
+		return
+	if not event is InputEventMouseButton:
+		return
+
+	var mouse_event = event as InputEventMouseButton
+	if mouse_event.button_index != MOUSE_BUTTON_LEFT or not mouse_event.pressed:
+		return
+
+	if ranking_name_input and is_instance_valid(ranking_name_input) and ranking_name_input.has_focus():
+		if not ranking_name_input.get_global_rect().has_point(mouse_event.position):
+			ranking_name_input.release_focus()
+
+	if ranking_dialog_panel and is_instance_valid(ranking_dialog_panel):
+		if not ranking_dialog_panel.get_global_rect().has_point(mouse_event.position):
+			get_viewport().set_input_as_handled()
+			_close_ranking_dialog()
+
 func _setup_dash_hint():
 	var control = $Control
 	dash_hint_label = Label.new()
@@ -423,13 +442,17 @@ var pending_ranking_length = 0
 var pending_ranking_survival = 0.0
 var ranking_added = false
 var ranking_add_button: Button
-var ranking_form_container: VBoxContainer
+var ranking_dialog_overlay: Control
+var ranking_dialog_panel: PanelContainer
 var ranking_name_input: LineEdit
 var ranking_submit_button: Button
+var ranking_dialog_back_button: Button
 var ranking_feedback_label: Label
+var ranking_dialog_closing = false
 
 const RESULT_WIDTH = 660.0
 const RESULT_SEPARATOR_WIDTH = 620.0
+const RANKING_DIALOG_WIDTH = 540.0
 const RESULT_STAGGER = 0.065
 
 func show_result_screen(final_length: int, survival_time: float, longest_length: int, total_points: int):
@@ -442,10 +465,13 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	pending_ranking_survival = survival_time
 	ranking_added = false
 	ranking_add_button = null
-	ranking_form_container = null
+	ranking_dialog_overlay = null
+	ranking_dialog_panel = null
 	ranking_name_input = null
 	ranking_submit_button = null
+	ranking_dialog_back_button = null
 	ranking_feedback_label = null
+	ranking_dialog_closing = false
 
 	# Create the result overlay layer
 	result_layer = CanvasLayer.new()
@@ -577,9 +603,8 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 		result_buttons.append(ranking_add_button)
 		anim_items.append(ranking_add_button)
 
-		ranking_form_container = _create_result_ranking_form()
-		action_vbox.add_child(ranking_form_container)
-		ranking_form_container.visible = false
+		ranking_dialog_overlay = _create_result_ranking_dialog()
+		result_layer.add_child(ranking_dialog_overlay)
 
 	var retry_btn = _create_result_button(Config.tr_text("retry").to_upper(), 54)
 	retry_btn.pressed.connect(_on_retry_pressed)
@@ -750,31 +775,95 @@ func _create_result_metric(label_text: String, value_text: String, accent_color:
 
 	return box
 
-func _create_result_ranking_form() -> VBoxContainer:
+func _create_result_ranking_dialog() -> Control:
+	var overlay = Control.new()
+	overlay.name = "RankingDialog"
+	overlay.visible = false
+	overlay.modulate.a = 0.0
+	overlay.process_mode = Node.PROCESS_MODE_ALWAYS
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	var scrim = ColorRect.new()
+	scrim.name = "DialogScrim"
+	scrim.color = Color(GameConstants.COLOR_BG.r, GameConstants.COLOR_BG.g, GameConstants.COLOR_BG.b, 0.58)
+	scrim.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.add_child(scrim)
+	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	var center = CenterContainer.new()
+	center.name = "DialogCenter"
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(center)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	ranking_dialog_panel = PanelContainer.new()
+	ranking_dialog_panel.name = "DialogPanel"
+	ranking_dialog_panel.custom_minimum_size = Vector2(RANKING_DIALOG_WIDTH, 0)
+	ranking_dialog_panel.process_mode = Node.PROCESS_MODE_ALWAYS
+	ranking_dialog_panel.add_theme_stylebox_override("panel", _create_dialog_panel_style())
+	center.add_child(ranking_dialog_panel)
+
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 34)
+	margin.add_theme_constant_override("margin_top", 30)
+	margin.add_theme_constant_override("margin_right", 34)
+	margin.add_theme_constant_override("margin_bottom", 30)
+	ranking_dialog_panel.add_child(margin)
+
 	var form = VBoxContainer.new()
 	form.name = "RankingForm"
-	form.custom_minimum_size = Vector2(RESULT_SEPARATOR_WIDTH, 0)
-	form.add_theme_constant_override("separation", 8)
+	form.add_theme_constant_override("separation", 10)
 	form.alignment = BoxContainer.ALIGNMENT_CENTER
 	form.process_mode = Node.PROCESS_MODE_ALWAYS
+	margin.add_child(form)
 
-	var row = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 14)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	form.add_child(row)
+	var title = Label.new()
+	title.text = Config.tr_text("add_ranking").to_upper()
+	title.custom_minimum_size = Vector2(RANKING_DIALOG_WIDTH - 100, 0)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.add_theme_font_override("font", main_font)
+	title.add_theme_font_size_override("font_size", 36)
+	title.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+	form.add_child(title)
+
+	var stats = VBoxContainer.new()
+	stats.custom_minimum_size = Vector2(RANKING_DIALOG_WIDTH - 100, 0)
+	stats.add_theme_constant_override("separation", 6)
+	form.add_child(stats)
+	_add_dialog_stat_row(
+		stats,
+		Config.tr_text("best_length").to_upper(),
+		str(pending_ranking_length),
+		"#%d" % Config.get_length_rank(pending_ranking_length, pending_ranking_survival),
+		GameConstants.COLOR_RANKING_LENGTH
+	)
+	_add_dialog_stat_row(
+		stats,
+		Config.tr_text("survival").to_upper(),
+		Config.format_survival_time(pending_ranking_survival),
+		"#%d" % Config.get_survival_rank(pending_ranking_survival, pending_ranking_length),
+		GameConstants.COLOR_RANKING_SURVIVAL
+	)
+
+	var input_row = HBoxContainer.new()
+	input_row.add_theme_constant_override("separation", 14)
+	input_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	form.add_child(input_row)
 
 	ranking_name_input = LineEdit.new()
 	ranking_name_input.placeholder_text = Config.tr_text("name").to_upper()
 	ranking_name_input.max_length = Config.PLAYER_NAME_MAX_LENGTH
-	ranking_name_input.custom_minimum_size = Vector2(260, 48)
+	ranking_name_input.custom_minimum_size = Vector2(260, 54)
 	ranking_name_input.process_mode = Node.PROCESS_MODE_ALWAYS
 	_style_result_line_edit(ranking_name_input)
 	ranking_name_input.text_submitted.connect(func(_submitted_text): _on_submit_ranking_pressed())
-	row.add_child(ranking_name_input)
+	input_row.add_child(ranking_name_input)
 
-	ranking_submit_button = _create_result_button(Config.tr_text("submit").to_upper(), 30)
+	ranking_submit_button = _create_result_button(Config.tr_text("submit").to_upper(), 32)
 	ranking_submit_button.pressed.connect(_on_submit_ranking_pressed)
-	row.add_child(ranking_submit_button)
+	input_row.add_child(ranking_submit_button)
 	result_buttons.append(ranking_submit_button)
 
 	ranking_feedback_label = Label.new()
@@ -783,9 +872,57 @@ func _create_result_ranking_form() -> VBoxContainer:
 	ranking_feedback_label.add_theme_font_override("font", main_font)
 	ranking_feedback_label.add_theme_font_size_override("font_size", 22)
 	ranking_feedback_label.add_theme_color_override("font_color", GameConstants.COLOR_SNAKE)
+	ranking_feedback_label.visible = false
 	form.add_child(ranking_feedback_label)
 
-	return form
+	ranking_dialog_back_button = _create_result_button(Config.tr_text("back").to_upper(), 28)
+	ranking_dialog_back_button.pressed.connect(_close_ranking_dialog)
+	form.add_child(ranking_dialog_back_button)
+	result_buttons.append(ranking_dialog_back_button)
+
+	return overlay
+
+func _add_dialog_stat_row(parent: Control, label_text: String, value_text: String, rank_text: String, value_color: Color):
+	var row = HBoxContainer.new()
+	row.custom_minimum_size = Vector2(RANKING_DIALOG_WIDTH - 100, 0)
+	row.add_theme_constant_override("separation", 14)
+	row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	parent.add_child(row)
+
+	var label = Label.new()
+	label.text = label_text
+	label.custom_minimum_size = Vector2(180, 0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	label.add_theme_font_override("font", main_font)
+	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
+	row.add_child(label)
+
+	var value = Label.new()
+	value.text = value_text
+	value.custom_minimum_size = Vector2(146, 0)
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	value.add_theme_font_override("font", main_font)
+	value.add_theme_font_size_override("font_size", 30)
+	value.add_theme_color_override("font_color", value_color)
+	row.add_child(value)
+
+	var rank = Label.new()
+	rank.text = rank_text
+	rank.custom_minimum_size = Vector2(74, 0)
+	rank.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	rank.add_theme_font_override("font", main_font)
+	rank.add_theme_font_size_override("font_size", 26)
+	rank.add_theme_color_override("font_color", value_color)
+	row.add_child(rank)
+
+func _create_dialog_panel_style() -> StyleBoxFlat:
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(GameConstants.COLOR_BG.r, GameConstants.COLOR_BG.g, GameConstants.COLOR_BG.b, 0.96)
+	style.border_color = GameConstants.COLOR_GHOST
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(0)
+	return style
 
 func _style_result_line_edit(input: LineEdit):
 	input.add_theme_font_override("font", main_font)
@@ -795,15 +932,88 @@ func _style_result_line_edit(input: LineEdit):
 	input.add_theme_color_override("caret_color", GameConstants.COLOR_POINT)
 	input.add_theme_color_override("selection_color", GameConstants.COLOR_ACCENT_BLUE.darkened(0.45))
 
+	var normal = StyleBoxFlat.new()
+	normal.bg_color = Color(GameConstants.COLOR_BLOCK_BORDER.r, GameConstants.COLOR_BLOCK_BORDER.g, GameConstants.COLOR_BLOCK_BORDER.b, 0.92)
+	normal.border_color = GameConstants.COLOR_GHOST
+	normal.set_border_width_all(2)
+	normal.set_corner_radius_all(0)
+	normal.set_content_margin(SIDE_LEFT, 12)
+	normal.set_content_margin(SIDE_RIGHT, 12)
+	normal.set_content_margin(SIDE_TOP, 6)
+	normal.set_content_margin(SIDE_BOTTOM, 6)
+	input.add_theme_stylebox_override("normal", normal)
+
+	var focus = normal.duplicate() as StyleBoxFlat
+	focus.border_color = GameConstants.COLOR_POINT
+	input.add_theme_stylebox_override("focus", focus)
+
+	var read_only = normal.duplicate() as StyleBoxFlat
+	read_only.border_color = GameConstants.COLOR_SNAKE
+	input.add_theme_stylebox_override("read_only", read_only)
+
 func _on_add_ranking_pressed():
-	if ranking_added or not ranking_form_container or not Config.can_add_ranking_entry():
+	if ranking_added or not ranking_dialog_overlay or not Config.can_add_ranking_entry():
 		return
-	if ranking_add_button:
-		ranking_add_button.visible = false
-	ranking_form_container.visible = true
+	await _open_ranking_dialog()
+
+func _is_ranking_dialog_open() -> bool:
+	if not ranking_dialog_overlay or not is_instance_valid(ranking_dialog_overlay):
+		return false
+	return ranking_dialog_overlay.visible and not ranking_dialog_closing
+
+func _open_ranking_dialog():
+	if not ranking_dialog_overlay:
+		return
+	if ranking_dialog_overlay.visible:
+		return
+	ranking_dialog_closing = false
+	ranking_dialog_overlay.visible = true
+	ranking_dialog_overlay.modulate.a = 0.0
 	await get_tree().process_frame
+
+	if ranking_dialog_panel:
+		ranking_dialog_panel.scale = Vector2(0.94, 0.94)
+		ranking_dialog_panel.pivot_offset = ranking_dialog_panel.size / 2
+
+	var tween = create_tween()
+	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+	tween.tween_property(ranking_dialog_overlay, "modulate:a", 1.0, 0.18)
+	if ranking_dialog_panel:
+		tween.tween_property(ranking_dialog_panel, "scale", Vector2.ONE, 0.24)
+
 	if ranking_name_input:
 		ranking_name_input.grab_focus()
+
+func _close_ranking_dialog():
+	if not ranking_dialog_overlay or not ranking_dialog_overlay.visible:
+		return
+	if ranking_dialog_closing:
+		return
+	ranking_dialog_closing = true
+	if ranking_name_input:
+		ranking_name_input.release_focus()
+	if ranking_submit_button:
+		ranking_submit_button.release_focus()
+	if ranking_dialog_back_button:
+		ranking_dialog_back_button.release_focus()
+
+	var tween = create_tween()
+	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN)
+	tween.tween_property(ranking_dialog_overlay, "modulate:a", 0.0, 0.14)
+	if ranking_dialog_panel:
+		ranking_dialog_panel.pivot_offset = ranking_dialog_panel.size / 2
+		tween.tween_property(ranking_dialog_panel, "scale", Vector2(0.96, 0.96), 0.14)
+	await tween.finished
+
+	if ranking_dialog_overlay and is_instance_valid(ranking_dialog_overlay):
+		ranking_dialog_overlay.visible = false
+	ranking_dialog_closing = false
+	if ranking_add_button and not ranking_added:
+		ranking_add_button.grab_focus()
 
 func _on_submit_ranking_pressed():
 	if ranking_added or not ranking_name_input or not Config.can_add_ranking_entry():
@@ -816,7 +1026,11 @@ func _on_submit_ranking_pressed():
 	ranking_name_input.editable = false
 	if ranking_submit_button:
 		ranking_submit_button.disabled = true
+	if ranking_add_button:
+		ranking_add_button.text = Config.tr_text("saved").to_upper()
+		ranking_add_button.disabled = true
 	if ranking_feedback_label:
+		ranking_feedback_label.visible = true
 		ranking_feedback_label.text = Config.tr_text("saved").to_upper()
 
 func _create_separator() -> ColorRect:
