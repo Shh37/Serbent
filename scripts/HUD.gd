@@ -568,13 +568,13 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	hero_stats.alignment = BoxContainer.ALIGNMENT_CENTER
 	content_vbox.add_child(hero_stats)
 
-	var time_card = _create_result_metric(Config.tr_text("survival").to_upper(), time_str, GameConstants.COLOR_RANKING_SURVIVAL, 34, 58, survival_rank_text)
-	hero_stats.add_child(time_card)
-	anim_items.append(time_card)
-
 	var length_card = _create_result_metric(Config.tr_text("best_length").to_upper(), str(longest_length), GameConstants.COLOR_RANKING_LENGTH, 34, 58, length_rank_text)
 	hero_stats.add_child(length_card)
 	anim_items.append(length_card)
+
+	var time_card = _create_result_metric(Config.tr_text("survival").to_upper(), time_str, GameConstants.COLOR_RANKING_SURVIVAL, 34, 58, survival_rank_text)
+	hero_stats.add_child(time_card)
+	anim_items.append(time_card)
 
 	# 3. Secondary Stats
 	var stats_vbox = VBoxContainer.new()
