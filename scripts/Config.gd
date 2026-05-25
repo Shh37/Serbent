@@ -38,7 +38,7 @@ const TEXT = {
 		"patterns": "PATTERNS",
 		"controls": "CONTROLS",
 		"rules": "RULES",
-		"body_severing": "BODY SEVERING",
+		"body_severing": "BOMBS & BEAMS",
 		"skin_unlocks": "SKIN UNLOCKS",
 		"ranking_empty": "NO RANKINGS YET",
 		"name": "NAME",
@@ -62,10 +62,10 @@ const TEXT = {
 		"phantom": "PHANTOM",
 		"time_stop": "TIME STOP",
 		"double_growth": "DOUBLE GROWTH",
-		"how_controls": "- [color=#ea6962]Arrow Keys / WASD[/color] : Turn Snake\n- [color=#ea6962]Opposite Key[/color] : Reverse Snake\n- [color=#ea6962]SPACE (hold) / Double Tap[/color] : Dash",
-		"how_rules": "- Goal: Survive [color=#ea6962]longer[/color] and achieve [color=#d8a657]max length[/color]!\n- Eat yellow [color=#d8a657]Points[/color] to grow and score.\n- Collision with [color=#ea6962]Thorns[/color] or your [color=#{snake_color}]own body[/color] is Game Over.",
-		"how_severing": "- [color=#ea6962]Bombs/Beams[/color] sever your body - you [color=#7daea3]keep playing[/color]!\n- Severed parts turn into [color=#d8a657]Points[/color].",
-		"how_unlocks": "- [color=#d8a657]Colors[/color]: reach target body lengths.\n- [color=#ea6962]Patterns[/color]: reach target survival times."
+		"how_controls": "- [color=#ea6962]Arrow Keys / WASD[/color] : Turn\n- [color=#ea6962]Opposite Direction[/color] : Reverse\n- [color=#ea6962]Hold SPACE / Double Tap[/color] : Dash",
+		"how_rules": "- Survive as [color=#ea6962]long[/color] as you can\n  and aim for your [color=#d8a657]best length[/color].\n- Eat yellow [color=#d8a657]Points[/color]\n  to grow and score.\n- Hitting [color=#ea6962]Thorns[/color] or your\n  [color=#{snake_color}]own body[/color] ends the run.",
+		"how_severing": "- [color=#ea6962]Bombs and Beams[/color]\n  cut off part of your body.\n- You can [color=#7daea3]keep playing[/color],\n  even after losing that part.\n- Cut-off parts become [color=#d8a657]Points[/color].",
+		"how_unlocks": "- [color=#d8a657]Colors[/color]: unlock by reaching\n  longer body lengths.\n- [color=#ea6962]Patterns[/color]: unlock by surviving\n  longer."
 	},
 	LANGUAGE_JA: {
 		"play": "あそぶ",
@@ -88,7 +88,7 @@ const TEXT = {
 		"patterns": "もよう",
 		"controls": "そうさ",
 		"rules": "ルール",
-		"body_severing": "体が切れる",
+		"body_severing": "ばくだんとビーム",
 		"skin_unlocks": "スキンかいほう",
 		"ranking_empty": "ランキングなし",
 		"name": "なまえ",
@@ -112,10 +112,10 @@ const TEXT = {
 		"phantom": "ゆうれい",
 		"time_stop": "ときとめ",
 		"double_growth": "2ばい",
-		"how_controls": "- [color=#ea6962]矢印キー / WASD[/color] : 曲がる\n- [color=#ea6962]反対キー[/color] : 引き返す\n- [color=#ea6962]SPACE長押し / 2回タップ[/color] : ダッシュ",
-		"how_rules": "- [color=#ea6962]長く[/color]生きて [color=#d8a657]いちばん長いとき[/color]を伸ばす\n- [color=#d8a657]ポイント[/color]を食べると 体が伸びて スコアが増える\n- [color=#ea6962]トゲ[/color]や [color=#{snake_color}]自分の体[/color]に 当たると おわり",
-		"how_severing": "- [color=#ea6962]ばくだん/ビーム[/color]で 体が切れる\n  [color=#7daea3]続けられる[/color]\n- 切れた体は [color=#d8a657]ポイント[/color]になる",
-		"how_unlocks": "- [color=#d8a657]色[/color]: 体の長さで 増える\n- [color=#ea6962]もよう[/color]: 生きたじかんで 増える"
+		"how_controls": "- [color=#ea6962]矢印キー / WASD[/color] : むきをかえる\n- [color=#ea6962]反対キー[/color] : ぎゃく向きに進む\n- [color=#ea6962]SPACE長おし / 2回タップ[/color] : ダッシュ",
+		"how_rules": "- できるだけ[color=#ea6962]長く[/color]生きて\n  [color=#d8a657]いちばん長いからだ[/color]をめざす\n- きいろの[color=#d8a657]ポイント[/color]を食べると\n  からだがのびてスコアがふえる\n- [color=#ea6962]トゲ[/color]や[color=#{snake_color}]自分のからだ[/color]に\n  ぶつかるとゲームおわり",
+		"how_severing": "- [color=#ea6962]ばくだんとビーム[/color]に当たると\n  からだが切れる\n- 切れても[color=#7daea3]そのままつづけられる[/color]\n- 切れたからだは[color=#d8a657]ポイント[/color]になる",
+		"how_unlocks": "- [color=#d8a657]色[/color]: からだを長くするとふえる\n- [color=#ea6962]もよう[/color]: 長く生きるとふえる"
 	}
 }
 
