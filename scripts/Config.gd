@@ -176,9 +176,35 @@ func _enter_tree():
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
 func _ready():
+	ensure_keyboard_input_actions()
 	load_settings()
 	load_rankings()
 	load_skin_unlocks()
+
+func ensure_keyboard_input_actions():
+	var action_keys = {
+		"ui_up": [KEY_UP, KEY_W],
+		"ui_down": [KEY_DOWN, KEY_S],
+		"ui_left": [KEY_LEFT, KEY_A],
+		"ui_right": [KEY_RIGHT, KEY_D],
+	}
+
+	for action in action_keys.keys():
+		if not InputMap.has_action(action):
+			InputMap.add_action(action)
+		for keycode in action_keys[action]:
+			if not _action_has_key(action, keycode):
+				var event = InputEventKey.new()
+				event.keycode = keycode
+				InputMap.action_add_event(action, event)
+
+func _action_has_key(action: StringName, keycode: Key) -> bool:
+	for event in InputMap.action_get_events(action):
+		if event is InputEventKey:
+			var key_event = event as InputEventKey
+			if key_event.keycode == keycode or key_event.physical_keycode == keycode:
+				return true
+	return false
 
 func _input(event):
 	if _is_fullscreen_toggle_event(event):
