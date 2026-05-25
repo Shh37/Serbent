@@ -170,6 +170,11 @@ func _update_dash_hint(delta: float):
 		dash_hint_dismissed = true
 		if not reverse_hint_dismissed:
 			reverse_hint_idle_time += delta
+			if reverse_hint_idle_time >= REVERSE_HINT_DELAY:
+				hint_cycle_time += delta
+				_update_control_hint_text("reverse_hint")
+				_set_dash_hint_visible(true)
+				return
 		_set_dash_hint_visible(false)
 		return
 	if is_snake_reversing:
