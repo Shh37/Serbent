@@ -434,8 +434,9 @@ func _apply_how_to_play_layout():
 		rich_text.add_theme_font_size_override("normal_font_size", 24)
 		rich_text.add_theme_constant_override("line_separation", 3)
 
-	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsText.custom_minimum_size = Vector2(470, 150)
-	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringText.custom_minimum_size = Vector2(470, 150)
+	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsText.custom_minimum_size = Vector2(470, 188)
+	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesText.custom_minimum_size = Vector2(470, 150)
+	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringText.custom_minimum_size = Vector2(470, 188)
 
 	how_to_play_back_btn.add_theme_font_size_override("font_size", 40)
 
@@ -1140,8 +1141,8 @@ func _apply_localized_texts():
 
 	$HowToPlayLayer/CenterContainer/VBoxContainer/Label.text = Config.tr_text("how_to_play")
 	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsLabel.text = Config.tr_text("controls")
-	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesLabel.text = Config.tr_text("rules")
-	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringLabel.text = Config.tr_text("body_severing")
+	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesLabel.text = Config.tr_text("body_severing")
+	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringLabel.text = Config.tr_text("rules")
 	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/UnlocksLabel.text = Config.tr_text("skin_unlocks")
 	$HowToPlayLayer/CenterContainer/VBoxContainer/BackButton.text = Config.tr_text("back")
 
@@ -1771,10 +1772,10 @@ func _update_appearance_display():
 	var rich_replacements = {"snake_color": snake_html}
 	var rules_txt = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesText
 	if rules_txt:
-		rules_txt.text = Config.tr_rich_text("how_rules", rich_replacements)
+		rules_txt.text = Config.tr_rich_text("how_severing", rich_replacements)
 	var severing_txt = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringText
 	if severing_txt:
-		severing_txt.text = Config.tr_rich_text("how_severing", rich_replacements)
+		severing_txt.text = Config.tr_rich_text("how_rules", rich_replacements)
 	var unlocks_txt = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/UnlocksText
 	if unlocks_txt:
 		unlocks_txt.text = Config.tr_rich_text("how_unlocks", rich_replacements)
