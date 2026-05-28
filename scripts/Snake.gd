@@ -3,12 +3,13 @@ extends Node2D
 var body = [] # Array of Vector2i (grid positions)
 var old_body = [] # Previous grid positions for animation
 var dead_parts = [] # List of { segments: Array, time: float }
+var start_grid_pos = GameConstants.DEFAULT_START_GRID_POS
 var direction = Vector2i.RIGHT
 var next_direction = Vector2i.RIGHT
 var input_queue = []
 
 # Result screen stats
-var max_length = 3 # Track the longest body length achieved
+var max_length = GameConstants.SNAKE_START_LENGTH # Track the longest body length achieved
 var points_collected = 0 # Track total points collected
 var is_dead = false # Whether the game is over (result screen showing)
 
@@ -49,13 +50,18 @@ func _ready():
 	direction = dirs[randi() % dirs.size()]
 	next_direction = direction
 	
-	# Initial snake (3 segments) arranged according to direction
-	var head = Vector2i(5, 5)
-	body = [head, head - direction, head - 2 * direction]
+	# Initial snake starts short, then grows into the normal opening length.
+	start_grid_pos = GameConstants.START_GRID_POSITIONS[randi() % GameConstants.START_GRID_POSITIONS.size()]
+	var head = start_grid_pos
+	body = [head]
+	pending_growth = GameConstants.SNAKE_START_TARGET_LENGTH - GameConstants.SNAKE_START_LENGTH
 	
 	old_body = body.duplicate()
 	recalculate_speed()
 	update_position_from_grid()
+
+func get_start_grid_pos() -> Vector2i:
+	return start_grid_pos
 
 func _process(delta):
 	var old_speed = move_speed_dash if is_dashing else move_speed_normal

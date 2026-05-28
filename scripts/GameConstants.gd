@@ -4,6 +4,16 @@ class_name GameConstants
 const CELL_SIZE = 32
 const CHUNK_SIZE = 16 # Cells per chunk side
 const CHUNK_PIXEL_SIZE = CELL_SIZE * CHUNK_SIZE
+const DEFAULT_START_GRID_POS = Vector2i(8, 8)
+const START_GRID_POSITIONS = [
+	Vector2i(7, 7),
+	Vector2i(8, 7),
+	Vector2i(7, 8),
+	Vector2i(8, 8),
+]
+const SNAKE_START_LENGTH = 1
+const SNAKE_START_TARGET_LENGTH = 3
+const START_SAFE_RADIUS = 8.0
 
 # Draw hazards above the snake, regardless of scene-tree order.
 const Z_INDEX_HAZARD = 10

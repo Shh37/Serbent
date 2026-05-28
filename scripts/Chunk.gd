@@ -37,9 +37,14 @@ func setup(p_chunk_pos: Vector2i):
 
 func is_pos_safe(pos: Vector2i, used_positions: Dictionary, min_dist: int) -> bool:
 	var global_pos = chunk_pos * GameConstants.CHUNK_SIZE + pos
+	var world = get_parent()
+	var start_grid_pos = GameConstants.DEFAULT_START_GRID_POS
+	var player = world.get("player") if world else null
+	if player and player.has_method("get_start_grid_pos"):
+		start_grid_pos = player.get_start_grid_pos()
 	
 	# Prevent spawning near the starting position (safe zone)
-	if Vector2(global_pos).distance_to(Vector2(5, 5)) < 8.0:
+	if Vector2(global_pos).distance_to(Vector2(start_grid_pos)) < GameConstants.START_SAFE_RADIUS:
 		return false
 		
 	# Local check within current chunk generation
@@ -49,7 +54,6 @@ func is_pos_safe(pos: Vector2i, used_positions: Dictionary, min_dist: int) -> bo
 				return false
 	
 	# Global check across other chunks
-	var world = get_parent()
 	if world:
 		for dx in range(-min_dist, min_dist + 1):
 			for dy in range(-min_dist, min_dist + 1):
