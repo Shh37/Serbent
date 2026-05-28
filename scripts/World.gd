@@ -19,6 +19,13 @@ var next_bomb_time = 5.0 # First bomb after 5 seconds
 
 var is_time_stopped = false
 
+func is_hazard_timer_paused() -> bool:
+	if is_time_stopped:
+		return true
+	if not player:
+		return false
+	return bool(player.get("is_reversing"))
+
 func _process(_delta):
 	if not player:
 		return
@@ -29,7 +36,7 @@ func _process(_delta):
 	update_bomb_spawning(_delta)
 
 func update_beam_spawning(delta):
-	if is_time_stopped:
+	if is_hazard_timer_paused():
 		return
 	beam_timer += delta
 	if beam_timer >= next_beam_time:
@@ -42,7 +49,7 @@ func update_beam_spawning(delta):
 			spawn_random_diagonal_beam()
 
 func update_bomb_spawning(delta):
-	if is_time_stopped:
+	if is_hazard_timer_paused():
 		return
 	bomb_timer += delta
 	if bomb_timer >= next_bomb_time:
