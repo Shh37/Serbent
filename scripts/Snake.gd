@@ -150,7 +150,6 @@ func _update_powerups(delta):
 	if not to_remove.is_empty():
 		queue_redraw()
 
-var score = 0
 var pending_growth = 0
 
 func _update_max_length():
@@ -187,16 +186,15 @@ func move_step():
 	
 	if collected_point:
 		var growth = GameConstants.POINT_VALUE_NORMAL
-		var score_gain = GameConstants.POINT_VALUE_NORMAL
+		var points_gain = GameConstants.POINT_VALUE_NORMAL
 		
 		if active_powerups.has(GameConstants.PowerUpType.DOUBLE_GROWTH):
 			growth *= 2
-			score_gain *= 2
+			points_gain *= 2
 			
-		score += score_gain
-		points_collected += score_gain
+		points_collected += points_gain
 		pending_growth += growth
-		print("Score: ", score, " Length: ", body.size(), " Growth: +", growth)
+		print("Points: ", points_collected, " Length: ", body.size(), " Growth: +", growth)
 
 	# Check for power-up collection
 	var collected_pu = world.collect_powerup(new_head)
@@ -257,9 +255,7 @@ func cut_snake(cut_index: int, hit_indices: Array = []):
 		var segments_lost = body.size() - cut_index
 		# Keep only the part before the cut (head is at index 0)
 		body = body.slice(0, cut_index)
-		# Spec: Score reduction (number of segments lost)
-		score = max(0, score - segments_lost)
-		print("Snake cut! Lost ", segments_lost, " segments. New score: ", score)
+		print("Snake cut! Lost ", segments_lost, " segments.")
 		
 		# Visual effect: Subtle dark red flash but noticeable blur
 		var red_tint = GameConstants.COLOR_DANGER.darkened(0.6)

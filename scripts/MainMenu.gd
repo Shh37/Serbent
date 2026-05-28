@@ -1002,8 +1002,6 @@ func _apply_localized_texts():
 		rich_text.add_theme_font_override("normal_font", body_font)
 
 	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsText.text = Config.tr_text("how_controls")
-	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringText.text = Config.tr_text("how_severing")
-	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/UnlocksText.text = Config.tr_text("how_unlocks")
 
 	var ranking_layer = get_node_or_null("RankingLayer")
 	if ranking_layer:
@@ -1238,23 +1236,23 @@ func _refresh_ranking_display():
 	if ranking_scroll:
 		ranking_scroll.visible = not entries.is_empty()
 
-	var last_score: float = -1.0
+	var last_sort_value: float = -1.0
 	var current_display_rank: int = 0
 
 	for i in range(entries.size()):
 		var entry = entries[i]
-		var current_score: float = float(entry.get("best_length", 0)) if ranking_sort_key == "length" else float(entry.get("survival_time", 0.0))
+		var current_sort_value: float = float(entry.get("best_length", 0)) if ranking_sort_key == "length" else float(entry.get("survival_time", 0.0))
 
-		if i == 0 or not is_equal_approx(current_score, last_score):
+		if i == 0 or not is_equal_approx(current_sort_value, last_sort_value):
 			current_display_rank = i + 1
-		last_score = current_score
+		last_sort_value = current_sort_value
 
 		var row = HBoxContainer.new()
 		row.add_theme_constant_override("separation", 22)
 		row.custom_minimum_size = Vector2(840, 36)
 		ranking_rows_container.add_child(row)
 
-		var rank_color = GameConstants.COLOR_POINT if current_display_rank <= 3 else GameConstants.COLOR_FG
+		var rank_color = GameConstants.COLOR_FG
 		var value_color = GameConstants.COLOR_FG
 		row.add_child(_create_ranking_cell(str(current_display_rank), 80, HORIZONTAL_ALIGNMENT_CENTER, 28, rank_color))
 		row.add_child(_create_ranking_cell(str(entry.get("name", "PLAYER")), 250, HORIZONTAL_ALIGNMENT_LEFT, 28, value_color, true))
@@ -1363,7 +1361,7 @@ func _on_color_selected(c_type, source_button: Button = null):
 		_hide_skin_requirement()
 		_update_appearance_display()
 	else:
-		_show_skin_requirement("%s: %s" % [Config.get_skin_color_name(c_type), Config.get_color_unlock_requirement(c_type)], source_button)
+		_show_skin_requirement("%s: %s" % [Config.get_skin_color_name(c_type), Config.get_color_unlock_requirement(c_type)], source_button, GameConstants.COLOR_RANKING_LENGTH)
 
 func _on_pattern_selected(p_type, source_button: Button = null):
 	if p_type in Config.unlocked_patterns:
@@ -1371,12 +1369,13 @@ func _on_pattern_selected(p_type, source_button: Button = null):
 		_hide_skin_requirement()
 		_update_appearance_display()
 	else:
-		_show_skin_requirement("%s: %s" % [Config.get_skin_pattern_name(p_type), Config.get_pattern_unlock_requirement(p_type)], source_button)
+		_show_skin_requirement("%s: %s" % [Config.get_skin_pattern_name(p_type), Config.get_pattern_unlock_requirement(p_type)], source_button, GameConstants.COLOR_RANKING_SURVIVAL)
 
-func _show_skin_requirement(text: String, source_button: Button = null):
+func _show_skin_requirement(text: String, source_button: Button = null, text_color: Color = GameConstants.COLOR_FG):
 	var label = _ensure_skin_requirement_label()
 	var popup = skin_requirement_popup
 	label.text = text
+	label.add_theme_color_override("font_color", text_color)
 	var target_position = _get_skin_requirement_popup_position(source_button, popup.custom_minimum_size)
 	skin_requirement_popup_hide_position = _get_skin_requirement_popup_start_position(source_button, target_position, popup.custom_minimum_size)
 	popup.position = skin_requirement_popup_hide_position
@@ -1474,7 +1473,7 @@ func _ensure_skin_requirement_label() -> Label:
 	skin_requirement_label.custom_minimum_size = Vector2(376, 44)
 	skin_requirement_label.add_theme_font_override("font", font_title)
 	skin_requirement_label.add_theme_font_size_override("font_size", 28)
-	skin_requirement_label.add_theme_color_override("font_color", GameConstants.COLOR_POINT)
+	skin_requirement_label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
 	skin_requirement_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(skin_requirement_label)
 
@@ -1613,11 +1612,18 @@ func _update_appearance_display():
 	_update_language_buttons_style(Config.language)
 	_update_shared_ranking_buttons_style(Config.shared_rankings_enabled)
 
-	# Dynamic skin color update for Rules text inside "HOW TO PLAY"
+	# Dynamic skin color update for HOW TO PLAY text.
+	var snake_html = base_color.to_html(false)
+	var rich_replacements = {"snake_color": snake_html}
 	var rules_txt = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesText
 	if rules_txt:
-		var snake_html = base_color.to_html(false)
-		rules_txt.text = Config.tr_rich_text("how_rules", {"snake_color": snake_html})
+		rules_txt.text = Config.tr_rich_text("how_rules", rich_replacements)
+	var severing_txt = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringText
+	if severing_txt:
+		severing_txt.text = Config.tr_rich_text("how_severing", rich_replacements)
+	var unlocks_txt = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/UnlocksText
+	if unlocks_txt:
+		unlocks_txt.text = Config.tr_rich_text("how_unlocks", rich_replacements)
 
 	# Visual feedback on background
 	var bg = $MenuBackground

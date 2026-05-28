@@ -581,8 +581,8 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	stats_vbox.add_theme_constant_override("separation", 10)
 	content_vbox.add_child(stats_vbox)
 
-	anim_items.append(_add_result_row(stats_vbox, Config.tr_text("final_length").to_upper(), str(final_length), 24, 34, GameConstants.COLOR_FG))
-	anim_items.append(_add_result_row(stats_vbox, Config.tr_text("points").to_upper(), str(total_points), 24, 34, GameConstants.COLOR_FG))
+	anim_items.append(_add_result_row(stats_vbox, Config.tr_text("final_length").to_upper(), str(final_length), 24, 34, GameConstants.COLOR_RANKING_LENGTH))
+	anim_items.append(_add_result_row(stats_vbox, Config.tr_text("points").to_upper(), str(total_points), 24, 34, GameConstants.COLOR_POINT))
 
 	_merge_run_unlocks(newly_unlocked_skins)
 	var unlock_panel = _create_result_unlock_panel(run_unlocked_skins)
@@ -683,7 +683,7 @@ func _create_result_unlock_panel(newly_unlocked_skins: Dictionary) -> HBoxContai
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	title.add_theme_font_override("font", main_font)
 	title.add_theme_font_size_override("font_size", 28)
-	title.add_theme_color_override("font_color", GameConstants.COLOR_POINT)
+	title.add_theme_color_override("font_color", GameConstants.COLOR_RANKING_LENGTH)
 	box.add_child(title)
 
 	var value = Label.new()
@@ -691,7 +691,7 @@ func _create_result_unlock_panel(newly_unlocked_skins: Dictionary) -> HBoxContai
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	value.add_theme_font_override("font", main_font)
 	value.add_theme_font_size_override("font_size", 28)
-	value.add_theme_color_override("font_color", GameConstants.COLOR_POINT)
+	value.add_theme_color_override("font_color", GameConstants.COLOR_RANKING_LENGTH)
 	box.add_child(value)
 
 	return box

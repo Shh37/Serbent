@@ -367,9 +367,9 @@ layout_mode = 2
 theme_override_constants/line_separation = 6
 theme_override_font_sizes/normal_font_size = 28
 bbcode_enabled = true
-text = "• [color=#ea6962]Arrow Keys / WASD[/color] : Turn Snake
-• [color=#ea6962]Opposite Key[/color] : Reverse Snake
-• [color=#ea6962]SPACE (hold) / Double Tap[/color] : Dash"
+text = "- [color=#d8a657]Arrow Keys / WASD[/color] : Turn
+- [color=#d8a657]Opposite Direction[/color] : Reverse
+- [color=#d8a657]Hold SPACE / Double Tap[/color] : Dash"
 fit_content = true
 autowrap_mode = 0
 
@@ -385,8 +385,12 @@ layout_mode = 2
 theme_override_constants/line_separation = 6
 theme_override_font_sizes/normal_font_size = 28
 bbcode_enabled = true
-text = "• Eat [color=#d8a657]Points[/color] to grow longer.
-• Avoid [color=#ea6962]Thorns[/color] and your [color=#a9b665]own body[/color]."
+text = "- Survive [color=#7daea3]as long as you can[/color]
+  and aim for your [color=#a9b665]best length[/color].
+- Eat yellow [color=#d8a657]Points[/color]
+  to grow longer.
+- Hitting [color=#ea6962]Thorns[/color] or your
+  [color=#a9b665]own body[/color] ends the run."
 fit_content = true
 
 [node name="RightColumn" type="VBoxContainer" parent="HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer"]
@@ -406,8 +410,11 @@ layout_mode = 2
 theme_override_constants/line_separation = 6
 theme_override_font_sizes/normal_font_size = 28
 bbcode_enabled = true
-text = "• [color=#ea6962]Bombs/Beams[/color] sever your body — you [color=#7daea3]keep playing[/color]!
-• Severed parts turn into [color=#d8a657]Points[/color]."
+text = "- [color=#ea6962]Bombs[/color] and [color=#ea6962]Beams[/color] appear sometimes.
+- They cut your [color=#a9b665]body[/color] when hit.
+- [color=#d8a657]Points[/color] appear where it was cut.
+- You can keep playing,
+  even after losing that part."
 fit_content = true
 
 [node name="UnlocksLabel" type="Label" parent="HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn"]
@@ -422,8 +429,8 @@ layout_mode = 2
 theme_override_constants/line_separation = 6
 theme_override_font_sizes/normal_font_size = 28
 bbcode_enabled = true
-text = "• [color=#d8a657]Colors[/color]: reach target body lengths.
-• [color=#ea6962]Patterns[/color]: reach target survival times."
+text = "- Colors: reach target [color=#a9b665]body lengths[/color].
+- Patterns: reach target [color=#7daea3]survival times[/color]."
 fit_content = true
 
 [node name="BackButton" type="Button" parent="HowToPlayLayer/CenterContainer/VBoxContainer"]

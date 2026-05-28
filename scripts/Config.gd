@@ -72,10 +72,10 @@ const TEXT = {
 		"double_growth": "DOUBLE GROWTH",
 		"dash_hint": "Hold SPACE / press forward twice to dash",
 		"reverse_hint": "Press opposite direction to reverse toward your tail",
-		"how_controls": "- [color=#ea6962]Arrow Keys / WASD[/color] : Turn\n- [color=#ea6962]Opposite Direction[/color] : Reverse\n- [color=#ea6962]Hold SPACE / Double Tap[/color] : Dash",
-		"how_rules": "- Survive as [color=#ea6962]long[/color] as you can\n  and aim for your [color=#d8a657]best length[/color].\n- Eat yellow [color=#d8a657]Points[/color]\n  to grow and score.\n- Hitting [color=#ea6962]Thorns[/color] or your\n  [color=#{snake_color}]own body[/color] ends the run.",
-		"how_severing": "- [color=#ea6962]Bombs and Beams[/color]\n  cut off part of your body.\n- You can [color=#7daea3]keep playing[/color],\n  even after losing that part.\n- Cut-off parts become [color=#d8a657]Points[/color].",
-		"how_unlocks": "- [color=#d8a657]Colors[/color]: unlock by reaching\n  longer body lengths.\n- [color=#ea6962]Patterns[/color]: unlock by surviving\n  longer."
+		"how_controls": "- [color=#d8a657]Arrow Keys / WASD[/color] : Turn\n- [color=#d8a657]Opposite Direction[/color] : Reverse\n- [color=#d8a657]Hold SPACE / Double Tap[/color] : Dash",
+		"how_rules": "- Survive [color=#7daea3]as long as you can[/color]\n  and aim for your [color=#{snake_color}]best length[/color].\n- Eat yellow [color=#d8a657]Points[/color]\n  to grow longer.\n- Hitting [color=#ea6962]Thorns[/color] or your\n  [color=#{snake_color}]own body[/color] ends the run.",
+		"how_severing": "- [color=#ea6962]Bombs[/color] and [color=#ea6962]Beams[/color] appear sometimes.\n- They cut your [color=#{snake_color}]body[/color] when hit.\n- [color=#d8a657]Points[/color] appear where it was cut.\n- You can keep playing,\n  even after losing that part.",
+		"how_unlocks": "- Colors: unlock by reaching\n  [color=#{snake_color}]longer body lengths[/color].\n- Patterns: unlock by surviving\n  [color=#7daea3]longer[/color]."
 	},
 	LANGUAGE_JA: {
 		"play": "あそぶ",
@@ -129,10 +129,10 @@ const TEXT = {
 		"double_growth": "2ばい",
 		"dash_hint": "SPACE長おし / 進行方向2回でダッシュ",
 		"reverse_hint": "反対キーでしっぽへ切り返し",
-		"how_controls": "- [color=#ea6962]矢印キー / WASD[/color] : むきをかえる\n- [color=#ea6962]反対キー[/color] : ぎゃく向きに進む\n- [color=#ea6962]SPACE長おし / 2回タップ[/color] : ダッシュ",
-		"how_rules": "- できるだけ[color=#ea6962]長く[/color]生きて\n  [color=#d8a657]いちばん長いからだ[/color]をめざす\n- きいろの[color=#d8a657]ポイント[/color]を食べると\n  からだがのびてスコアがふえる\n- [color=#ea6962]トゲ[/color]や[color=#{snake_color}]自分のからだ[/color]に\n  ぶつかるとゲームおわり",
-		"how_severing": "- [color=#ea6962]ばくだんとビーム[/color]に当たると\n  からだが切れる\n- 切れても[color=#7daea3]そのままつづけられる[/color]\n- 切れたからだは[color=#d8a657]ポイント[/color]になる",
-		"how_unlocks": "- [color=#d8a657]色[/color]: からだを長くするとふえる\n- [color=#ea6962]もよう[/color]: 長く生きるとふえる"
+		"how_controls": "- [color=#d8a657]矢印キー / WASD[/color] : 向きをかえる\n- [color=#d8a657]反対キー[/color] : ぎゃく向きに進む\n- [color=#d8a657]SPACE長おし / 2回タップ[/color] : ダッシュ",
+		"how_rules": "- できるだけ[color=#7daea3]長く[/color]生きて\n  [color=#{snake_color}]いちばん長いからだ[/color]をめざす\n- きいろの[color=#d8a657]ポイント[/color]を食べると\n  からだがのびる\n- [color=#ea6962]トゲ[/color]や[color=#{snake_color}]自分のからだ[/color]に\n  ぶつかるとゲームおわり",
+		"how_severing": "- ときどき[color=#ea6962]ばくだん[/color]と[color=#ea6962]ビーム[/color]が出る\n- 当たると[color=#{snake_color}]からだ[/color]が切れる\n- 切れたところに[color=#d8a657]ポイント[/color]が出る\n- 切れてもそのままつづけられる",
+		"how_unlocks": "- 色: [color=#{snake_color}]からだを長くする[/color]とふえる\n- もよう: [color=#7daea3]長く生きる[/color]とふえる"
 	}
 }
 
