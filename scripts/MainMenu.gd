@@ -29,8 +29,20 @@ var skin_requirement_tween: Tween
 var menu_overlay_transition_in_progress = false
 const SKIN_BUTTON_SIZE = Vector2(260, 66)
 const SKIN_BUTTON_FONT_SIZE = 32
+const RANKING_RANK_COL_WIDTH = 70.0
+const RANKING_NAME_COL_WIDTH = 180.0
+const RANKING_VALUE_COL_WIDTH = 190.0
 const MENU_OVERLAY_STAGGER = 0.055
 const MENU_OVERLAY_CENTER_TOP_INSET = 56.0
+const MENU_OVERLAY_CONTENT_OFFSET_Y = 38.0
+const MENU_OVERLAY_ITEM_OFFSET_Y = 26.0
+const MENU_OVERLAY_CONTENT_FADE_TIME = 0.32
+const MENU_OVERLAY_CONTENT_MOVE_TIME = 0.52
+const MENU_OVERLAY_BACKDROP_FADE_TIME = 0.45
+const MENU_OVERLAY_BLUR_TIME = 0.65
+const MENU_OVERLAY_ITEM_FADE_TIME = 0.28
+const MENU_OVERLAY_ITEM_MOVE_TIME = 0.38
+const MENU_OVERLAY_ITEM_DELAY = 0.14
 
 func _ready():
 	font_title = load("res://assets/Shikakufuto_Free.ttf")
@@ -310,6 +322,8 @@ func _apply_how_to_play_layout():
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_theme_constant_override("separation", 24)
 	row.add_theme_constant_override("separation", 48)
+	left_col.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	right_col.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	left_col.add_theme_constant_override("separation", 16)
 	right_col.add_theme_constant_override("separation", 16)
 
@@ -328,9 +342,13 @@ func _apply_how_to_play_layout():
 		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringText,
 		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/UnlocksText
 	]:
-		rich_text.custom_minimum_size = Vector2(500, 0)
+		rich_text.custom_minimum_size = Vector2(470, 0)
+		rich_text.size_flags_horizontal = Control.SIZE_SHRINK_END
 		rich_text.add_theme_font_size_override("normal_font_size", 24)
 		rich_text.add_theme_constant_override("line_separation", 3)
+
+	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsText.custom_minimum_size = Vector2(470, 150)
+	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringText.custom_minimum_size = Vector2(470, 150)
 
 	how_to_play_back_btn.add_theme_font_size_override("font_size", 40)
 
@@ -412,13 +430,13 @@ func _show_menu_overlay(layer: CanvasLayer):
 
 	for item in anim_items:
 		item.modulate.a = 0.0
-		item.position.y += 26.0
+		item.position.y += MENU_OVERLAY_ITEM_OFFSET_Y
 
 	await get_tree().process_frame
 
 	var target_y = content.position.y if content else 0.0
 	if content:
-		content.position.y += 38.0
+		content.position.y += MENU_OVERLAY_CONTENT_OFFSET_Y
 		content.pivot_offset = content.size / 2
 
 	var tween = create_tween()
@@ -426,21 +444,23 @@ func _show_menu_overlay(layer: CanvasLayer):
 	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 
 	if content:
-		tween.tween_property(content, "modulate:a", 1.0, 0.32)
-		tween.tween_property(content, "position:y", target_y, 0.52)
-		tween.tween_property(content, "scale", Vector2.ONE, 0.52)
+		tween.tween_property(content, "modulate:a", 1.0, MENU_OVERLAY_CONTENT_FADE_TIME)
+		tween.tween_property(content, "position:y", target_y, MENU_OVERLAY_CONTENT_MOVE_TIME)
+		tween.tween_property(content, "scale", Vector2.ONE, MENU_OVERLAY_CONTENT_MOVE_TIME)
 	if blur_bg:
-		tween.tween_property(blur_bg, "modulate:a", 1.0, 0.45)
+		tween.tween_property(blur_bg, "modulate:a", 1.0, MENU_OVERLAY_BACKDROP_FADE_TIME)
 	if shade:
-		tween.tween_property(shade, "modulate:a", 1.0, 0.45)
+		tween.tween_property(shade, "modulate:a", 1.0, MENU_OVERLAY_BACKDROP_FADE_TIME)
 	if blur_mat:
-		tween.tween_property(blur_mat, "shader_parameter/blur_amount", 5.0, 0.65)
+		tween.tween_property(blur_mat, "shader_parameter/blur_amount", 5.0, MENU_OVERLAY_BLUR_TIME)
 
 	for i in range(anim_items.size()):
 		var item = anim_items[i]
-		var target_item_y = item.position.y - 26.0
-		tween.tween_property(item, "modulate:a", 1.0, 0.28).set_delay(0.14 + i * MENU_OVERLAY_STAGGER)
-		tween.tween_property(item, "position:y", target_item_y, 0.38).set_delay(0.14 + i * MENU_OVERLAY_STAGGER)
+		var target_item_y = item.position.y - MENU_OVERLAY_ITEM_OFFSET_Y
+		var delay_index = float(item.get_meta("overlay_delay_index", i))
+		var delay = MENU_OVERLAY_ITEM_DELAY + delay_index * MENU_OVERLAY_STAGGER
+		tween.tween_property(item, "modulate:a", 1.0, MENU_OVERLAY_ITEM_FADE_TIME).set_delay(delay)
+		tween.tween_property(item, "position:y", target_item_y, MENU_OVERLAY_ITEM_MOVE_TIME).set_delay(delay)
 
 	await tween.finished
 	menu_overlay_transition_in_progress = false
@@ -498,11 +518,39 @@ func _get_overlay_anim_items(layer: CanvasLayer, content: Control) -> Array[Cont
 		return items
 	if layer.name == "SkinLayer":
 		return _get_skin_overlay_anim_items(content)
+	if layer.name == "SettingsLayer":
+		return _get_settings_overlay_anim_items(content)
 	if layer.name == "HowToPlayLayer":
 		return _get_how_to_play_overlay_anim_items(content)
 	for child in content.get_children():
 		if child is Control:
 			items.append(child)
+	return items
+
+func _get_settings_overlay_anim_items(content: Control) -> Array[Control]:
+	var items: Array[Control] = []
+	var title = content.get_node_or_null("Label") as Control
+	var grid = content.get_node_or_null("SettingsGrid") as GridContainer
+	var back = content.get_node_or_null("BackButton") as Control
+
+	if title:
+		title.set_meta("overlay_delay_index", 0)
+		items.append(title)
+	if grid:
+		var setting_order = ["CRTSetting", "BetaUpgradesSetting", "LanguageSetting", "FullscreenSetting", "SharedRankingSetting", "SharedRankingFolderSetting"]
+		for i in range(setting_order.size()):
+			var setting_name = setting_order[i]
+			var item = grid.get_node_or_null(setting_name) as Control
+			if item:
+				item.set_meta("overlay_delay_index", 1 + floori(float(i) / float(max(1, grid.columns))))
+				items.append(item)
+	elif content:
+		for child in content.get_children():
+			if child is Control and child != title and child != back:
+				items.append(child)
+	if back:
+		back.set_meta("overlay_delay_index", 4)
+		items.append(back)
 	return items
 
 func _get_how_to_play_overlay_anim_items(content: Control) -> Array[Control]:
@@ -514,16 +562,23 @@ func _get_how_to_play_overlay_anim_items(content: Control) -> Array[Control]:
 	var back = content.get_node_or_null("BackButton") as Control
 
 	if title:
+		title.set_meta("overlay_delay_index", 0)
 		items.append(title)
-	if left_col:
-		for child in left_col.get_children():
-			if child is Control:
-				items.append(child)
-	if right_col:
-		for child in right_col.get_children():
-			if child is Control:
-				items.append(child)
+	var paired_items = [
+		["ControlsLabel", "SeveringLabel", 1],
+		["ControlsText", "SeveringText", 1],
+		["RulesLabel", "UnlocksLabel", 2],
+		["RulesText", "UnlocksText", 2]
+	]
+	for pair in paired_items:
+		var left_item = left_col.get_node_or_null(pair[0]) as Control if left_col else null
+		var right_item = right_col.get_node_or_null(pair[1]) as Control if right_col else null
+		for item in [left_item, right_item]:
+			if item:
+				item.set_meta("overlay_delay_index", pair[2])
+				items.append(item)
 	if back:
+		back.set_meta("overlay_delay_index", 3)
 		items.append(back)
 	return items
 
@@ -536,15 +591,25 @@ func _get_skin_overlay_anim_items(content: Control) -> Array[Control]:
 	var back = content.get_node_or_null("BackButton") as Control
 
 	if title:
+		title.set_meta("overlay_delay_index", 0)
 		items.append(title)
 	if selection:
+		var grouped_items = {
+			"ColorLabel": 1,
+			"ColorGrid": 1,
+			"PatternLabel": 2,
+			"PatternGrid": 2
+		}
 		for node_name in ["ColorLabel", "ColorGrid", "PatternLabel", "PatternGrid"]:
 			var item = selection.get_node_or_null(node_name) as Control
 			if item:
+				item.set_meta("overlay_delay_index", grouped_items[node_name])
 				items.append(item)
 	if preview:
+		preview.set_meta("overlay_delay_index", 2)
 		items.append(preview)
 	if back:
+		back.set_meta("overlay_delay_index", 3)
 		items.append(back)
 	return items
 
@@ -1138,12 +1203,13 @@ func _ensure_ranking_layer():
 
 	var header = HBoxContainer.new()
 	header.name = "Header"
+	header.alignment = BoxContainer.ALIGNMENT_CENTER
 	header.add_theme_constant_override("separation", 22)
 	header_margin.add_child(header)
-	header.add_child(_create_ranking_cell("#", 80, HORIZONTAL_ALIGNMENT_CENTER, 24, GameConstants.COLOR_GHOST))
-	header.add_child(_create_ranking_cell("NAME", 250, HORIZONTAL_ALIGNMENT_LEFT, 24, GameConstants.COLOR_GHOST, true))
-	header.add_child(_create_ranking_cell("BEST LENGTH", 200, HORIZONTAL_ALIGNMENT_RIGHT, 24, GameConstants.COLOR_RANKING_LENGTH))
-	header.add_child(_create_ranking_cell("SURVIVAL", 200, HORIZONTAL_ALIGNMENT_RIGHT, 24, GameConstants.COLOR_RANKING_SURVIVAL))
+	header.add_child(_create_ranking_cell("#", RANKING_RANK_COL_WIDTH, HORIZONTAL_ALIGNMENT_CENTER, 24, GameConstants.COLOR_GHOST))
+	header.add_child(_create_ranking_cell("NAME", RANKING_NAME_COL_WIDTH, HORIZONTAL_ALIGNMENT_LEFT, 24, GameConstants.COLOR_GHOST))
+	header.add_child(_create_ranking_cell("BEST LENGTH", RANKING_VALUE_COL_WIDTH, HORIZONTAL_ALIGNMENT_RIGHT, 24, GameConstants.COLOR_RANKING_LENGTH))
+	header.add_child(_create_ranking_cell("SURVIVAL", RANKING_VALUE_COL_WIDTH, HORIZONTAL_ALIGNMENT_RIGHT, 24, GameConstants.COLOR_RANKING_SURVIVAL))
 
 	ranking_scroll = ScrollContainer.new()
 	ranking_scroll.name = "ScrollContainer"
@@ -1248,16 +1314,17 @@ func _refresh_ranking_display():
 		last_sort_value = current_sort_value
 
 		var row = HBoxContainer.new()
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
 		row.add_theme_constant_override("separation", 22)
-		row.custom_minimum_size = Vector2(840, 36)
+		row.custom_minimum_size = Vector2(700, 36)
 		ranking_rows_container.add_child(row)
 
 		var rank_color = GameConstants.COLOR_FG
 		var value_color = GameConstants.COLOR_FG
-		row.add_child(_create_ranking_cell(str(current_display_rank), 80, HORIZONTAL_ALIGNMENT_CENTER, 28, rank_color))
-		row.add_child(_create_ranking_cell(str(entry.get("name", "PLAYER")), 250, HORIZONTAL_ALIGNMENT_LEFT, 28, value_color, true))
-		row.add_child(_create_ranking_cell(str(int(entry.get("best_length", 0))), 200, HORIZONTAL_ALIGNMENT_RIGHT, 28, GameConstants.COLOR_RANKING_LENGTH))
-		row.add_child(_create_ranking_cell(Config.format_survival_time(float(entry.get("survival_time", 0.0))), 200, HORIZONTAL_ALIGNMENT_RIGHT, 28, GameConstants.COLOR_RANKING_SURVIVAL))
+		row.add_child(_create_ranking_cell(str(current_display_rank), RANKING_RANK_COL_WIDTH, HORIZONTAL_ALIGNMENT_CENTER, 28, rank_color))
+		row.add_child(_create_ranking_cell(str(entry.get("name", "PLAYER")), RANKING_NAME_COL_WIDTH, HORIZONTAL_ALIGNMENT_LEFT, 28, value_color))
+		row.add_child(_create_ranking_cell(str(int(entry.get("best_length", 0))), RANKING_VALUE_COL_WIDTH, HORIZONTAL_ALIGNMENT_RIGHT, 28, GameConstants.COLOR_RANKING_LENGTH))
+		row.add_child(_create_ranking_cell(Config.format_survival_time(float(entry.get("survival_time", 0.0))), RANKING_VALUE_COL_WIDTH, HORIZONTAL_ALIGNMENT_RIGHT, 28, GameConstants.COLOR_RANKING_SURVIVAL))
 
 func _update_ranking_sort_buttons_style():
 	if not ranking_length_sort_btn or not ranking_survival_sort_btn:

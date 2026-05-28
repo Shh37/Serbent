@@ -458,7 +458,16 @@ var ranking_dialog_closing = false
 const RESULT_WIDTH = 660.0
 const RESULT_SEPARATOR_WIDTH = 620.0
 const RANKING_DIALOG_WIDTH = 540.0
-const RESULT_STAGGER = 0.065
+const RESULT_ENTRANCE_STAGGER = 0.055
+const RESULT_ENTRANCE_CONTENT_OFFSET_Y = 38.0
+const RESULT_ENTRANCE_ITEM_OFFSET_Y = 26.0
+const RESULT_ENTRANCE_CONTENT_FADE_TIME = 0.32
+const RESULT_ENTRANCE_CONTENT_MOVE_TIME = 0.52
+const RESULT_ENTRANCE_BACKDROP_FADE_TIME = 0.45
+const RESULT_ENTRANCE_BLUR_TIME = 0.65
+const RESULT_ENTRANCE_ITEM_FADE_TIME = 0.28
+const RESULT_ENTRANCE_ITEM_MOVE_TIME = 0.38
+const RESULT_ENTRANCE_ITEM_DELAY = 0.14
 
 func show_result_screen(final_length: int, survival_time: float, longest_length: int, total_points: int):
 	if is_result_showing:
@@ -529,14 +538,19 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	content_vbox.add_child(visual_balance_spacer)
 
 	# 1. Header
+	var header_group = VBoxContainer.new()
+	header_group.add_theme_constant_override("separation", 12)
+	header_group.alignment = BoxContainer.ALIGNMENT_CENTER
+	content_vbox.add_child(header_group)
+	anim_items.append(header_group)
+
 	var header = Label.new()
 	header.text = Config.tr_text("results").to_upper()
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	header.add_theme_font_override("font", main_font)
 	header.add_theme_font_size_override("font_size", 88)
 	header.add_theme_color_override("font_color", GameConstants.COLOR_FG)
-	content_vbox.add_child(header)
-	anim_items.append(header)
+	header_group.add_child(header)
 
 	var subtitle = Label.new()
 	subtitle.text = Config.tr_text("run_terminated").to_upper()
@@ -545,13 +559,11 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	subtitle.add_theme_font_size_override("font_size", 22)
 	subtitle.add_theme_color_override("font_color", GameConstants.COLOR_GHOST)
 	subtitle.modulate.a = 0.75
-	content_vbox.add_child(subtitle)
-	anim_items.append(subtitle)
+	header_group.add_child(subtitle)
 
 	# Separator
 	var sep_top = _create_separator()
-	content_vbox.add_child(sep_top)
-	anim_items.append(sep_top)
+	header_group.add_child(sep_top)
 
 	var time_str = Config.format_survival_time(survival_time)
 	var ranking_enabled = Config.can_add_ranking_entry()
@@ -567,22 +579,22 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	hero_stats.add_theme_constant_override("separation", 36)
 	hero_stats.alignment = BoxContainer.ALIGNMENT_CENTER
 	content_vbox.add_child(hero_stats)
+	anim_items.append(hero_stats)
 
 	var length_card = _create_result_metric(Config.tr_text("best_length").to_upper(), str(longest_length), GameConstants.COLOR_RANKING_LENGTH, 34, 58, length_rank_text)
 	hero_stats.add_child(length_card)
-	anim_items.append(length_card)
 
 	var time_card = _create_result_metric(Config.tr_text("survival").to_upper(), time_str, GameConstants.COLOR_RANKING_SURVIVAL, 34, 58, survival_rank_text)
 	hero_stats.add_child(time_card)
-	anim_items.append(time_card)
 
 	# 3. Secondary Stats
 	var stats_vbox = VBoxContainer.new()
 	stats_vbox.add_theme_constant_override("separation", 10)
 	content_vbox.add_child(stats_vbox)
+	anim_items.append(stats_vbox)
 
-	anim_items.append(_add_result_row(stats_vbox, Config.tr_text("final_length").to_upper(), str(final_length), 24, 34, GameConstants.COLOR_RANKING_LENGTH))
-	anim_items.append(_add_result_row(stats_vbox, Config.tr_text("points").to_upper(), str(total_points), 24, 34, GameConstants.COLOR_POINT))
+	_add_result_row(stats_vbox, Config.tr_text("final_length").to_upper(), str(final_length), 24, 34, GameConstants.COLOR_RANKING_LENGTH)
+	_add_result_row(stats_vbox, Config.tr_text("points").to_upper(), str(total_points), 24, 34, GameConstants.COLOR_POINT)
 
 	_merge_run_unlocks(newly_unlocked_skins)
 	var unlock_panel = _create_result_unlock_panel(run_unlocked_skins)
@@ -590,23 +602,26 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 		content_vbox.add_child(unlock_panel)
 		anim_items.append(unlock_panel)
 
-	# Separator
+	var action_group = VBoxContainer.new()
+	action_group.add_theme_constant_override("separation", 18)
+	action_group.alignment = BoxContainer.ALIGNMENT_CENTER
+	content_vbox.add_child(action_group)
+	anim_items.append(action_group)
+
 	var sep_bottom = _create_separator()
-	content_vbox.add_child(sep_bottom)
-	anim_items.append(sep_bottom)
+	action_group.add_child(sep_bottom)
 
 	# 4. Action Buttons
 	var action_vbox = VBoxContainer.new()
 	action_vbox.add_theme_constant_override("separation", 10)
 	action_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	content_vbox.add_child(action_vbox)
+	action_group.add_child(action_vbox)
 
 	if Config.can_add_ranking_entry():
 		ranking_add_button = _create_result_button(Config.tr_text("add_ranking").to_upper(), 34)
 		ranking_add_button.pressed.connect(_on_add_ranking_pressed)
 		action_vbox.add_child(ranking_add_button)
 		result_buttons.append(ranking_add_button)
-		anim_items.append(ranking_add_button)
 
 		ranking_dialog_overlay = _create_result_ranking_dialog()
 		result_layer.add_child(ranking_dialog_overlay)
@@ -615,13 +630,11 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	retry_btn.pressed.connect(_on_retry_pressed)
 	action_vbox.add_child(retry_btn)
 	result_buttons.append(retry_btn)
-	anim_items.append(retry_btn)
 
 	var title_btn = _create_result_button(Config.tr_text("main_menu").to_upper(), 36)
 	title_btn.pressed.connect(_on_title_pressed)
 	action_vbox.add_child(title_btn)
 	result_buttons.append(title_btn)
-	anim_items.append(title_btn)
 
 	# Animate entrance
 	_animate_result_entrance(content_vbox, blur_bg, shade, blur_mat, anim_items)
@@ -1171,13 +1184,13 @@ func _animate_result_entrance(container: Control, blur_bg: ColorRect, shade: Col
 	for i in range(anim_items.size()):
 		var item = anim_items[i]
 		item.modulate.a = 0.0
-		item.position.y += 26.0
+		item.position.y += RESULT_ENTRANCE_ITEM_OFFSET_Y
 
 	# Wait one frame to let the container finish layout and find the centered Y
 	await get_tree().process_frame
 
 	var target_y = container.position.y
-	container.position.y += 38 # Offset for slide up
+	container.position.y += RESULT_ENTRANCE_CONTENT_OFFSET_Y
 	container.pivot_offset = container.size / 2
 
 	var tween = create_tween()
@@ -1186,20 +1199,21 @@ func _animate_result_entrance(container: Control, blur_bg: ColorRect, shade: Col
 	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 
 	# UI Animation
-	tween.tween_property(container, "modulate:a", 1.0, 0.32)
-	tween.tween_property(container, "position:y", target_y, 0.52)
-	tween.tween_property(container, "scale", Vector2.ONE, 0.52)
+	tween.tween_property(container, "modulate:a", 1.0, RESULT_ENTRANCE_CONTENT_FADE_TIME)
+	tween.tween_property(container, "position:y", target_y, RESULT_ENTRANCE_CONTENT_MOVE_TIME)
+	tween.tween_property(container, "scale", Vector2.ONE, RESULT_ENTRANCE_CONTENT_MOVE_TIME)
 
 	# Blur Animation
-	tween.tween_property(blur_bg, "modulate:a", 1.0, 0.45)
-	tween.tween_property(shade, "modulate:a", 1.0, 0.45)
-	tween.tween_property(blur_mat, "shader_parameter/blur_amount", 5.0, 0.65)
+	tween.tween_property(blur_bg, "modulate:a", 1.0, RESULT_ENTRANCE_BACKDROP_FADE_TIME)
+	tween.tween_property(shade, "modulate:a", 1.0, RESULT_ENTRANCE_BACKDROP_FADE_TIME)
+	tween.tween_property(blur_mat, "shader_parameter/blur_amount", 5.0, RESULT_ENTRANCE_BLUR_TIME)
 
 	for i in range(anim_items.size()):
 		var item = anim_items[i]
-		var target_item_y = item.position.y - 26.0
-		tween.tween_property(item, "modulate:a", 1.0, 0.28).set_delay(0.14 + i * RESULT_STAGGER)
-		tween.tween_property(item, "position:y", target_item_y, 0.38).set_delay(0.14 + i * RESULT_STAGGER)
+		var target_item_y = item.position.y - RESULT_ENTRANCE_ITEM_OFFSET_Y
+		var delay = RESULT_ENTRANCE_ITEM_DELAY + i * RESULT_ENTRANCE_STAGGER
+		tween.tween_property(item, "modulate:a", 1.0, RESULT_ENTRANCE_ITEM_FADE_TIME).set_delay(delay)
+		tween.tween_property(item, "position:y", target_item_y, RESULT_ENTRANCE_ITEM_MOVE_TIME).set_delay(delay)
 
 
 func _update_result_button_pivots():

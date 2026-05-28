@@ -130,7 +130,7 @@ const TEXT = {
 		"dash_hint": "SPACE長おし / 進行方向2回でダッシュ",
 		"reverse_hint": "反対キーでしっぽへ切り返し",
 		"how_controls": "- [color=#d8a657]矢印キー / WASD[/color] : 向きをかえる\n- [color=#d8a657]反対キー[/color] : ぎゃく向きに進む\n- [color=#d8a657]SPACE長おし / 2回タップ[/color] : ダッシュ",
-		"how_rules": "- できるだけ[color=#7daea3]長く[/color]生きて\n  [color=#{snake_color}]いちばん長いからだ[/color]をめざす\n- きいろの[color=#d8a657]ポイント[/color]を食べると\n  からだがのびる\n- [color=#ea6962]トゲ[/color]や[color=#{snake_color}]自分のからだ[/color]に\n  ぶつかるとゲームおわり",
+		"how_rules": "- できるだけ[color=#7daea3]長く生きて[/color]\n  [color=#{snake_color}]いちばん長いからだ[/color]をめざす\n- きいろの[color=#d8a657]ポイント[/color]を食べると\n  からだがのびる\n- [color=#ea6962]トゲ[/color]や[color=#{snake_color}]自分のからだ[/color]に\n  ぶつかるとゲームおわり",
 		"how_severing": "- ときどき[color=#ea6962]ばくだん[/color]と[color=#ea6962]ビーム[/color]が出る\n- 当たると[color=#{snake_color}]からだ[/color]が切れる\n- 切れたところに[color=#d8a657]ポイント[/color]が出る\n- 切れてもそのままつづけられる",
 		"how_unlocks": "- 色: [color=#{snake_color}]からだを長くする[/color]とふえる\n- もよう: [color=#7daea3]長く生きる[/color]とふえる"
 	}
