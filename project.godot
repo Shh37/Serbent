@@ -18,6 +18,7 @@ config/icon="res://assets/icon.png"
 [autoload]
 
 Config="*res://scripts/Config.gd"
+SoundManager="*res://scripts/SoundManager.gd"
 
 [display]
 

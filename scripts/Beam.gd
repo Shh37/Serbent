@@ -56,6 +56,9 @@ func activate_beam():
 	timer = active_time
 	show_warning = true
 	queue_redraw()
+	
+	SoundManager.play_slash_hit()
+	
 	check_collision()
 
 func deactivate_beam():

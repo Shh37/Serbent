@@ -86,6 +86,7 @@ func _retry_from_shortcut():
 
 	if not Config.consume_retry_action():
 		return
+	SoundManager.play_ui_confirm()
 	shortcut_transition_in_progress = true
 	get_tree().paused = false
 	get_tree().reload_current_scene()
@@ -99,6 +100,7 @@ func _go_to_main_menu_from_shortcut():
 		await _on_title_pressed()
 		return
 
+	SoundManager.play_ui_select()
 	shortcut_transition_in_progress = true
 	get_tree().paused = false
 	await _animate_main_menu_shortcut_transition()
@@ -573,6 +575,9 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	Config.show_focus_outline = false
 	if is_result_showing:
 		return
+	
+	SoundManager.play_ui_positive_07()
+	
 	is_result_showing = true
 	result_exit_in_progress = false
 	result_buttons.clear()
@@ -1083,6 +1088,7 @@ func _style_result_line_edit(input: LineEdit):
 func _on_add_ranking_pressed():
 	if ranking_added or not ranking_dialog_overlay or not Config.can_add_ranking_entry():
 		return
+	SoundManager.play_ui_select()
 	await _open_ranking_dialog()
 
 func _is_ranking_dialog_open() -> bool:
@@ -1120,6 +1126,7 @@ func _close_ranking_dialog():
 		return
 	if ranking_dialog_closing:
 		return
+	SoundManager.play_ui_select_sub()
 	ranking_dialog_closing = true
 	if ranking_name_input:
 		ranking_name_input.release_focus()
@@ -1179,6 +1186,9 @@ func _on_submit_ranking_pressed():
 			ranking_feedback_label.visible = true
 			ranking_feedback_label.text = Config.tr_text(error_key)
 		return
+	
+	SoundManager.play_ui_submit()
+	
 	var entry = Config.add_ranking_entry(ranking_name_input.text, pending_ranking_length, pending_ranking_survival)
 	if entry.is_empty():
 		return
@@ -1339,6 +1349,7 @@ func _on_retry_pressed():
 		return
 	if not Config.consume_retry_action():
 		return
+	SoundManager.play_ui_confirm()
 	await _animate_result_exit()
 	get_tree().paused = false
 	is_result_showing = false
@@ -1348,6 +1359,7 @@ func _on_retry_pressed():
 func _on_title_pressed():
 	if result_exit_in_progress:
 		return
+	SoundManager.play_ui_select()
 	await _animate_result_exit()
 	get_tree().paused = false
 	is_result_showing = false

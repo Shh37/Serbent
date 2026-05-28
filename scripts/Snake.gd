@@ -194,6 +194,7 @@ func move_step():
 			
 		points_collected += points_gain
 		pending_growth += growth
+		SoundManager.play_ui_positive()
 		print("Points: ", points_collected, " Length: ", body.size(), " Growth: +", growth)
 
 	# Check for power-up collection
@@ -227,8 +228,7 @@ func cut_snake(cut_index: int, hit_indices: Array = []):
 		return # Ghost body protection
 		
 	if cut_index == 0:
-
-
+		SoundManager.play_hit()
 		game_over()
 		return
 		
@@ -352,6 +352,7 @@ func reverse_snake():
 		return
 		
 	dash_dir_hold = Vector2i.ZERO
+	SoundManager.play_sweep_down()
 		
 	is_reversing = true
 	var camera = $Camera2D
@@ -406,6 +407,8 @@ func game_over():
 	
 	print("Game Over!")
 	_update_max_length()
+	
+	SoundManager.play_hit()
 	
 	# Visual effect: Noticeable dark red flash and blur for game over
 	var red_tint = GameConstants.COLOR_DANGER.darkened(0.6)

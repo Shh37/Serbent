@@ -260,26 +260,33 @@ func _ready():
 		play_btn.grab_focus()
 
 func _on_play_pressed():
+	SoundManager.play_ui_confirm()
 	get_tree().change_scene_to_file("res://scenes/Main.tscn")
 
 func _on_settings_pressed():
+	SoundManager.play_ui_select()
 	_sync_shared_ranking_folder_input()
 	await _show_menu_overlay($SettingsLayer)
 
 func _on_skins_pressed():
+	SoundManager.play_ui_select()
 	await _show_menu_overlay($SkinLayer)
 
 func _on_ranking_pressed():
+	SoundManager.play_ui_select()
 	_refresh_ranking_display()
 	await _show_menu_overlay($RankingLayer)
 
 func _on_how_to_play_pressed():
+	SoundManager.play_ui_select()
 	await _show_menu_overlay($HowToPlayLayer)
 
 func _on_back_pressed():
+	SoundManager.play_ui_select_sub()
 	await _hide_menu_overlay($SettingsLayer)
 
 func _on_skin_back_pressed():
+	SoundManager.play_ui_select_sub()
 	_hide_skin_requirement(false)
 	await _hide_menu_overlay($SkinLayer)
 
@@ -407,9 +414,11 @@ func _should_hide_skin_requirement_from_input(event: InputEvent) -> bool:
 	return true
 
 func _on_ranking_back_pressed():
+	SoundManager.play_ui_select_sub()
 	await _hide_menu_overlay($RankingLayer)
 
 func _on_how_to_play_back_pressed():
+	SoundManager.play_ui_select_sub()
 	await _hide_menu_overlay($HowToPlayLayer)
 
 func _apply_how_to_play_layout():
@@ -454,19 +463,24 @@ func _apply_how_to_play_layout():
 	how_to_play_back_btn.add_theme_font_size_override("font_size", 40)
 
 func _on_ranking_sort_pressed(sort_key: String):
+	SoundManager.play_ui_select_sub()
 	ranking_sort_key = sort_key
 	_refresh_ranking_display()
 
 func _on_crt_toggle_pressed(enabled: bool):
+	SoundManager.play_ui_select_sub()
 	Config.crt_enabled = enabled
 
 func _on_beta_toggle_pressed(enabled: bool):
+	SoundManager.play_ui_select_sub()
 	Config.beta_upgrades_enabled = enabled
 
 func _on_fullscreen_toggle_pressed(enabled: bool):
+	SoundManager.play_ui_select_sub()
 	Config.fullscreen_enabled = enabled
 
 func _on_shared_ranking_toggle_pressed(enabled: bool):
+	SoundManager.play_ui_select_sub()
 	Config.shared_rankings_enabled = enabled
 
 func _on_shared_ranking_folder_committed(release_focus: bool):
@@ -478,6 +492,7 @@ func _on_shared_ranking_folder_committed(release_focus: bool):
 		shared_ranking_folder_input.release_focus()
 
 func _on_language_pressed(language: String):
+	SoundManager.play_ui_select_sub()
 	Config.language = language
 
 func _on_ranking_scroll_input(event: InputEvent):
@@ -1685,18 +1700,22 @@ func _setup_skin_button(btn: Button):
 
 func _on_color_selected(c_type, source_button: Button = null):
 	if c_type in Config.unlocked_colors:
+		SoundManager.play_ui_select_sub()
 		Config.selected_color = c_type
 		_hide_skin_requirement()
 		_update_appearance_display()
 	else:
+		SoundManager.play_ui_negative()
 		_show_skin_requirement("%s: %s" % [Config.get_skin_color_name(c_type), Config.get_color_unlock_requirement(c_type)], source_button, GameConstants.COLOR_RANKING_LENGTH)
 
 func _on_pattern_selected(p_type, source_button: Button = null):
 	if p_type in Config.unlocked_patterns:
+		SoundManager.play_ui_select_sub()
 		Config.selected_pattern = p_type
 		_hide_skin_requirement()
 		_update_appearance_display()
 	else:
+		SoundManager.play_ui_negative()
 		_show_skin_requirement("%s: %s" % [Config.get_skin_pattern_name(p_type), Config.get_pattern_unlock_requirement(p_type)], source_button, GameConstants.COLOR_RANKING_SURVIVAL)
 
 func _show_skin_requirement(text: String, source_button: Button = null, text_color: Color = GameConstants.COLOR_FG):

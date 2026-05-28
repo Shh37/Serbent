@@ -51,6 +51,8 @@ func activate_bomb():
 	show_warning = true
 	queue_redraw()
 	
+	SoundManager.play_explosion()
+	
 	# Check collision immediately when activated
 	check_collision()
 
