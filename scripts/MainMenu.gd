@@ -1029,7 +1029,6 @@ func _apply_compact_setting_style(setting: VBoxContainer):
 			if btn:
 				btn.custom_minimum_size = Vector2(max(btn.custom_minimum_size.x, 160.0), btn.custom_minimum_size.y)
 				btn.add_theme_font_size_override("font_size", 36)
-
 	var input = setting.get_node_or_null("FolderInput") as LineEdit
 	if input:
 		_style_settings_line_edit(input)
@@ -1369,7 +1368,8 @@ func _apply_localized_texts():
 		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringLabel,
 		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/UnlocksLabel
 	]:
-		label.add_theme_font_override("font", title_font)
+		if label:
+			label.add_theme_font_override("font", title_font)
 
 	_refresh_standard_button_sizes()
 	_update_appearance_display()

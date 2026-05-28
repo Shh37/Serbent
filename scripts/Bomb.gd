@@ -51,9 +51,7 @@ func activate_bomb():
 	show_warning = true
 	queue_redraw()
 	
-	var sound_manager = get_node_or_null("/root/SoundManager")
-	if sound_manager:
-		sound_manager.play_explosion()
+	SoundManager.play_explosion()
 	
 	# Check collision immediately when activated
 	check_collision()

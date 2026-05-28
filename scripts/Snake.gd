@@ -228,7 +228,6 @@ func cut_snake(cut_index: int, hit_indices: Array = []):
 		return # Ghost body protection
 		
 	if cut_index == 0:
-		SoundManager.play_hit()
 		game_over()
 		return
 		
