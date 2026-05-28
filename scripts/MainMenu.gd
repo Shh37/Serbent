@@ -45,6 +45,7 @@ const MENU_OVERLAY_ITEM_MOVE_TIME = 0.38
 const MENU_OVERLAY_ITEM_DELAY = 0.14
 
 func _ready():
+	Config.show_focus_outline = false
 	font_title = load("res://assets/Shikakufuto_Free.ttf")
 	font_text = load("res://assets/BestTen-CRT.otf")
 
@@ -232,6 +233,32 @@ func _ready():
 	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn, language_en_btn, language_ja_btn, fullscreen_on_btn, fullscreen_off_btn, shared_ranking_on_btn, shared_ranking_off_btn]:
 		btn.pivot_offset = btn.size / 2
 
+	# Set focus neighbors for Main Menu buttons
+	play_btn.focus_neighbor_bottom = play_btn.get_path_to(skins_btn)
+	
+	skins_btn.focus_neighbor_top = skins_btn.get_path_to(play_btn)
+	skins_btn.focus_neighbor_right = skins_btn.get_path_to(ranking_btn)
+	skins_btn.focus_neighbor_bottom = skins_btn.get_path_to(how_to_play_btn)
+	skins_btn.focus_neighbor_left = skins_btn.get_path_to(ranking_btn)
+	
+	ranking_btn.focus_neighbor_top = ranking_btn.get_path_to(play_btn)
+	ranking_btn.focus_neighbor_left = ranking_btn.get_path_to(skins_btn)
+	ranking_btn.focus_neighbor_bottom = ranking_btn.get_path_to(settings_btn)
+	ranking_btn.focus_neighbor_right = ranking_btn.get_path_to(skins_btn)
+	
+	how_to_play_btn.focus_neighbor_top = how_to_play_btn.get_path_to(skins_btn)
+	how_to_play_btn.focus_neighbor_right = how_to_play_btn.get_path_to(settings_btn)
+	how_to_play_btn.focus_neighbor_left = how_to_play_btn.get_path_to(settings_btn)
+	
+	settings_btn.focus_neighbor_top = settings_btn.get_path_to(ranking_btn)
+	settings_btn.focus_neighbor_left = settings_btn.get_path_to(how_to_play_btn)
+	settings_btn.focus_neighbor_right = settings_btn.get_path_to(how_to_play_btn)
+
+	# Grab focus on the Play button by default for keyboard navigation
+	await get_tree().process_frame
+	if play_btn and is_instance_valid(play_btn):
+		play_btn.grab_focus()
+
 func _on_play_pressed():
 	get_tree().change_scene_to_file("res://scenes/Main.tscn")
 
@@ -280,22 +307,9 @@ func _unhandled_key_input(event):
 		_on_play_pressed()
 
 func _input(event):
-	if _handle_ranking_sort_shortcut(event):
-		return
-
 	_release_shared_ranking_folder_focus_from_input(event)
 	if _should_hide_skin_requirement_from_input(event):
 		_hide_skin_requirement(true)
-
-func _handle_ranking_sort_shortcut(event: InputEvent) -> bool:
-	if not Config.is_shortcut_event(event, Config.ACTION_SHORTCUT_RANKING_SORT_TOGGLE):
-		return false
-	if not $RankingLayer.visible:
-		return false
-
-	get_viewport().set_input_as_handled()
-	_toggle_ranking_sort()
-	return true
 
 func _get_visible_menu_overlay() -> CanvasLayer:
 	for layer_name in ["SettingsLayer", "SkinLayer", "RankingLayer", "HowToPlayLayer"]:
@@ -342,7 +356,6 @@ func _pulse_shortcut_button(btn: Button):
 func _play_shortcut_button_press(btn: Button):
 	if not btn or not is_instance_valid(btn) or btn.disabled:
 		return
-	btn.grab_focus()
 	_on_button_down(btn)
 	await get_tree().create_timer(0.08).timeout
 	if btn and is_instance_valid(btn):
@@ -522,6 +535,27 @@ func _show_menu_overlay(layer: CanvasLayer):
 
 	await get_tree().process_frame
 
+	# Grab focus on the default button of each layer to enable keyboard/gamepad navigation immediately
+	match layer.name:
+		"SettingsLayer":
+			var crt_setting = _get_settings_item("CRTSetting")
+			if crt_setting:
+				var crt_on_btn = crt_setting.get_node_or_null("HBoxContainer/CRTOn") as Button
+				if crt_on_btn and is_instance_valid(crt_on_btn):
+					crt_on_btn.grab_focus()
+		"SkinLayer":
+			var color_grid = $SkinLayer/CenterContainer/VBoxContainer/HBoxContainer/SelectionContainer/ColorGrid
+			if color_grid and color_grid.get_child_count() > 0:
+				var first_btn = color_grid.get_child(0) as Button
+				if first_btn and is_instance_valid(first_btn):
+					first_btn.grab_focus()
+		"RankingLayer":
+			if ranking_length_sort_btn and is_instance_valid(ranking_length_sort_btn):
+				ranking_length_sort_btn.grab_focus()
+		"HowToPlayLayer":
+			if how_to_play_back_btn and is_instance_valid(how_to_play_back_btn):
+				how_to_play_back_btn.grab_focus()
+
 	var target_y = content.position.y if content else 0.0
 	if content:
 		content.position.y += MENU_OVERLAY_CONTENT_OFFSET_Y
@@ -599,6 +633,24 @@ func _hide_menu_overlay(layer: CanvasLayer):
 
 	layer.visible = false
 	menu_overlay_transition_in_progress = false
+
+	# Return focus to the button that opened the overlay
+	match layer.name:
+		"SettingsLayer":
+			var settings_btn = $CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/SettingsButton
+			if settings_btn and is_instance_valid(settings_btn):
+				settings_btn.grab_focus()
+		"SkinLayer":
+			var skins_btn = $CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/SkinsButton
+			if skins_btn and is_instance_valid(skins_btn):
+				skins_btn.grab_focus()
+		"RankingLayer":
+			var ranking_btn = $CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/RankingButton
+			if ranking_btn and is_instance_valid(ranking_btn):
+				ranking_btn.grab_focus()
+		"HowToPlayLayer":
+			if how_to_play_btn and is_instance_valid(how_to_play_btn):
+				how_to_play_btn.grab_focus()
 
 func _get_overlay_anim_items(layer: CanvasLayer, content: Control) -> Array[Control]:
 	var items: Array[Control] = []
@@ -733,23 +785,58 @@ func _setup_standard_button(btn: Button):
 	btn.focus_mode = Control.FOCUS_ALL
 
 func _apply_standard_button_size(btn: Button):
-	var min_width = 0.0
+	var horizontal_padding = 76.0
 	match btn.name:
 		"PlayButton":
-			min_width = btn.custom_minimum_size.x
-		"CRTOn", "CRTOff", "BetaOn", "BetaOff", "FullscreenOn", "FullscreenOff", "LanguageEnglish", "LanguageJapanese", "SharedRankingOn", "SharedRankingOff":
-			min_width = 160.0
+			horizontal_padding = 90.0
 		"LengthSortButton", "SurvivalSortButton":
-			min_width = 280.0
+			horizontal_padding = 72.0
 		"BackButton":
-			min_width = 220.0
+			horizontal_padding = 70.0
 		"HowToPlayButton":
-			min_width = 360.0
+			horizontal_padding = 80.0
 		_:
-			min_width = 300.0
+			horizontal_padding = 76.0
 
-	if min_width > 0.0:
-		btn.custom_minimum_size = Vector2(max(btn.custom_minimum_size.x, min_width), btn.custom_minimum_size.y)
+	_fit_button_to_text(btn, horizontal_padding)
+
+func _fit_button_to_text(btn: Button, horizontal_padding: float = 76.0):
+	var font = btn.get_theme_font("font")
+	var font_size = btn.get_theme_font_size("font_size")
+	if not font:
+		return
+
+	var text_width = font.get_string_size(btn.text, HORIZONTAL_ALIGNMENT_CENTER, -1.0, font_size).x
+	btn.custom_minimum_size = Vector2(ceilf(text_width + horizontal_padding), btn.custom_minimum_size.y)
+
+func _refresh_standard_button_sizes():
+	var crt_setting = _get_settings_item("CRTSetting")
+	var beta_setting = _get_settings_item("BetaUpgradesSetting")
+	for btn in [
+		$CenterContainer/VBoxContainer/ButtonContainer/PlayButton,
+		$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/RankingButton,
+		$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/SkinsButton,
+		$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/HowToPlayButton,
+		$CenterContainer/VBoxContainer/ButtonContainer/OptionsGrid/SettingsButton,
+		$SettingsLayer/CenterContainer/VBoxContainer/BackButton,
+		$SkinLayer/CenterContainer/VBoxContainer/BackButton,
+		ranking_back_btn,
+		ranking_length_sort_btn,
+		ranking_survival_sort_btn,
+		how_to_play_back_btn,
+		crt_setting.get_node_or_null("HBoxContainer/CRTOn") if crt_setting else null,
+		crt_setting.get_node_or_null("HBoxContainer/CRTOff") if crt_setting else null,
+		beta_setting.get_node_or_null("HBoxContainer/BetaOn") if beta_setting else null,
+		beta_setting.get_node_or_null("HBoxContainer/BetaOff") if beta_setting else null,
+		language_en_btn,
+		language_ja_btn,
+		fullscreen_on_btn,
+		fullscreen_off_btn,
+		shared_ranking_on_btn,
+		shared_ranking_off_btn
+	]:
+		if btn:
+			_apply_standard_button_size(btn)
 
 func _apply_button_colors(btn: Button, normal: Color, hover: Color, pressed: Color):
 	btn.add_theme_color_override("font_color", normal)
@@ -821,6 +908,91 @@ func _ensure_settings_grid_layout():
 			setting.reparent(grid, false)
 		grid.move_child(setting, i)
 		_apply_compact_setting_style(setting)
+	_setup_settings_focus_neighbors()
+
+func _setup_settings_focus_neighbors():
+	var back_btn = $SettingsLayer/CenterContainer/VBoxContainer/BackButton as Button
+	var crt_setting = _get_settings_item("CRTSetting")
+	var beta_setting = _get_settings_item("BetaUpgradesSetting")
+	var lang_setting = _get_settings_item("LanguageSetting")
+	var fs_setting = _get_settings_item("FullscreenSetting")
+	var sr_setting = _get_settings_item("SharedRankingSetting")
+	var srf_setting = _get_settings_item("SharedRankingFolderSetting")
+
+	if not crt_setting or not beta_setting or not lang_setting or not fs_setting or not sr_setting or not srf_setting or not back_btn:
+		return
+
+	var crt_on = crt_setting.get_node_or_null("HBoxContainer/CRTOn") as Button
+	var crt_off = crt_setting.get_node_or_null("HBoxContainer/CRTOff") as Button
+	var beta_on = beta_setting.get_node_or_null("HBoxContainer/BetaOn") as Button
+	var beta_off = beta_setting.get_node_or_null("HBoxContainer/BetaOff") as Button
+	var lang_en = lang_setting.get_node_or_null("HBoxContainer/LanguageEnglish") as Button
+	var lang_ja = lang_setting.get_node_or_null("HBoxContainer/LanguageJapanese") as Button
+	var fs_on = fs_setting.get_node_or_null("HBoxContainer/FullscreenOn") as Button
+	var fs_off = fs_setting.get_node_or_null("HBoxContainer/FullscreenOff") as Button
+	var sr_on = sr_setting.get_node_or_null("HBoxContainer/SharedRankingOn") as Button
+	var sr_off = sr_setting.get_node_or_null("HBoxContainer/SharedRankingOff") as Button
+	var folder_in = srf_setting.get_node_or_null("FolderInput") as LineEdit
+
+	if not crt_on or not crt_off or not beta_on or not beta_off or not lang_en or not lang_ja or not fs_on or not fs_off or not sr_on or not sr_off or not folder_in:
+		return
+
+	# Top Row (CRT vs Beta)
+	crt_on.focus_neighbor_right = crt_on.get_path_to(crt_off)
+	crt_on.focus_neighbor_left = crt_on.get_path_to(crt_off)
+	crt_on.focus_neighbor_bottom = crt_on.get_path_to(lang_en)
+
+	crt_off.focus_neighbor_left = crt_off.get_path_to(crt_on)
+	crt_off.focus_neighbor_right = crt_off.get_path_to(beta_on)
+	crt_off.focus_neighbor_bottom = crt_off.get_path_to(lang_ja)
+
+	beta_on.focus_neighbor_left = beta_on.get_path_to(crt_off)
+	beta_on.focus_neighbor_right = beta_on.get_path_to(beta_off)
+	beta_on.focus_neighbor_bottom = beta_on.get_path_to(fs_on)
+
+	beta_off.focus_neighbor_left = beta_off.get_path_to(beta_on)
+	beta_off.focus_neighbor_right = beta_off.get_path_to(beta_on)
+	beta_off.focus_neighbor_bottom = beta_off.get_path_to(fs_off)
+
+	# Middle Row (Language vs Fullscreen)
+	lang_en.focus_neighbor_top = lang_en.get_path_to(crt_on)
+	lang_en.focus_neighbor_right = lang_en.get_path_to(lang_ja)
+	lang_en.focus_neighbor_left = lang_en.get_path_to(lang_ja)
+	lang_en.focus_neighbor_bottom = lang_en.get_path_to(sr_on)
+
+	lang_ja.focus_neighbor_top = lang_ja.get_path_to(crt_off)
+	lang_ja.focus_neighbor_left = lang_ja.get_path_to(lang_en)
+	lang_ja.focus_neighbor_right = lang_ja.get_path_to(fs_on)
+	lang_ja.focus_neighbor_bottom = lang_ja.get_path_to(sr_off)
+
+	fs_on.focus_neighbor_top = fs_on.get_path_to(beta_on)
+	fs_on.focus_neighbor_left = fs_on.get_path_to(lang_ja)
+	fs_on.focus_neighbor_right = fs_on.get_path_to(fs_off)
+	fs_on.focus_neighbor_bottom = fs_on.get_path_to(folder_in)
+
+	fs_off.focus_neighbor_top = fs_off.get_path_to(beta_off)
+	fs_off.focus_neighbor_left = fs_off.get_path_to(fs_on)
+	fs_off.focus_neighbor_right = fs_off.get_path_to(fs_on)
+	fs_off.focus_neighbor_bottom = fs_off.get_path_to(folder_in)
+
+	# Bottom Row (Shared Ranking vs Folder Input)
+	sr_on.focus_neighbor_top = sr_on.get_path_to(lang_en)
+	sr_on.focus_neighbor_right = sr_on.get_path_to(sr_off)
+	sr_on.focus_neighbor_left = sr_on.get_path_to(sr_off)
+	sr_on.focus_neighbor_bottom = sr_on.get_path_to(back_btn)
+
+	sr_off.focus_neighbor_top = sr_off.get_path_to(lang_ja)
+	sr_off.focus_neighbor_left = sr_off.get_path_to(sr_on)
+	sr_off.focus_neighbor_right = sr_off.get_path_to(folder_in)
+	sr_off.focus_neighbor_bottom = sr_off.get_path_to(back_btn)
+
+	folder_in.focus_neighbor_top = folder_in.get_path_to(fs_on)
+	folder_in.focus_neighbor_left = folder_in.get_path_to(sr_off)
+	folder_in.focus_neighbor_right = folder_in.get_path_to(sr_on)
+	folder_in.focus_neighbor_bottom = folder_in.get_path_to(back_btn)
+
+	# Back Button
+	back_btn.focus_neighbor_top = back_btn.get_path_to(sr_on)
 
 func _apply_compact_setting_style(setting: VBoxContainer):
 	setting.custom_minimum_size = Vector2(370, 0)
@@ -1184,6 +1356,7 @@ func _apply_localized_texts():
 	]:
 		label.add_theme_font_override("font", title_font)
 
+	_refresh_standard_button_sizes()
 	_update_appearance_display()
 	_refresh_ranking_display()
 
@@ -1356,14 +1529,14 @@ func _ensure_ranking_layer():
 	ranking_back_btn.name = "BackButton"
 	vbox.add_child(ranking_back_btn)
 
-func _create_ranking_button(text: String, font_size: int, min_width: float) -> Button:
+func _create_ranking_button(text: String, font_size: int, _min_width: float) -> Button:
 	var btn = Button.new()
 	btn.text = text
 	btn.flat = true
-	btn.custom_minimum_size = Vector2(min_width, 0)
 	btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	btn.add_theme_font_override("font", font_title)
 	btn.add_theme_font_size_override("font_size", font_size)
+	_fit_button_to_text(btn, 72.0)
 	return btn
 
 func _create_ranking_cell(text: String, min_width: float, alignment: int, font_size: int, color: Color, expand: bool = false) -> Label:

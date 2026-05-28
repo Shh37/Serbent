@@ -38,6 +38,7 @@ var hint_font: Font
 var shortcut_transition_in_progress = false
 
 func _ready():
+	Config.show_focus_outline = false
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	main_font = load("res://assets/Shikakufuto_Free.ttf")
 	hint_font = load("res://assets/BestTen-CRT.otf")
@@ -106,7 +107,6 @@ func _go_to_main_menu_from_shortcut():
 func _play_result_shortcut_button_press(btn: Button):
 	if not btn or not is_instance_valid(btn):
 		return
-	btn.grab_focus()
 	_on_result_btn_down(btn)
 	await get_tree().create_timer(0.08, true).timeout
 
@@ -570,6 +570,7 @@ const RESULT_ENTRANCE_ITEM_MOVE_TIME = 0.38
 const RESULT_ENTRANCE_ITEM_DELAY = 0.14
 
 func show_result_screen(final_length: int, survival_time: float, longest_length: int, total_points: int):
+	Config.show_focus_outline = false
 	if is_result_showing:
 		return
 	is_result_showing = true
@@ -742,6 +743,10 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 
 	# Animate entrance
 	_animate_result_entrance(content_vbox, blur_bg, shade, blur_mat, anim_items)
+
+	# Grab focus on the first button to enable keyboard navigation immediately
+	if not result_buttons.is_empty() and is_instance_valid(result_buttons[0]):
+		result_buttons[0].grab_focus()
 
 func _add_result_row(parent: Control, label_text: String, value_text: String, label_size: int, value_size: int, value_color: Color) -> HBoxContainer:
 	var hbox = HBoxContainer.new()
@@ -1202,9 +1207,9 @@ func _create_result_button(text: String, font_size: int) -> Button:
 	btn.text = text
 	btn.flat = true
 	btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	btn.custom_minimum_size = Vector2(_get_result_button_min_width(text), btn.custom_minimum_size.y)
 	btn.add_theme_font_override("font", main_font)
 	btn.add_theme_font_size_override("font_size", font_size)
+	_fit_result_button_to_text(btn)
 	_apply_result_button_colors(btn)
 	btn.process_mode = Node.PROCESS_MODE_ALWAYS
 	btn.focus_mode = Control.FOCUS_ALL
@@ -1216,19 +1221,14 @@ func _create_result_button(text: String, font_size: int) -> Button:
 
 	return btn
 
-func _get_result_button_min_width(text: String) -> float:
-	match text:
-		"SUBMIT":
-			return 190.0
-		"RETRY":
-			return 260.0
-	if text == Config.tr_text("submit").to_upper():
-		return 190.0
-	if text == Config.tr_text("retry").to_upper():
-		return 260.0
-	if text == Config.tr_text("add_ranking").to_upper():
-		return 380.0
-	return 320.0
+func _fit_result_button_to_text(btn: Button):
+	var font = btn.get_theme_font("font")
+	var font_size = btn.get_theme_font_size("font_size")
+	if not font:
+		return
+
+	var text_width = font.get_string_size(btn.text, HORIZONTAL_ALIGNMENT_CENTER, -1.0, font_size).x
+	btn.custom_minimum_size = Vector2(ceilf(text_width + 72.0), btn.custom_minimum_size.y)
 
 func _apply_result_button_colors(btn: Button):
 	var accent_color = _get_result_button_accent_color()

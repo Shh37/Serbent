@@ -21,7 +21,6 @@ const LANGUAGE_JA = "ja"
 const ACTION_SHORTCUT_RETRY = "shortcut_retry"
 const ACTION_SHORTCUT_MAIN_MENU = "shortcut_main_menu"
 const ACTION_SHORTCUT_HOW_TO_PLAY = "shortcut_how_to_play"
-const ACTION_SHORTCUT_RANKING_SORT_TOGGLE = "shortcut_ranking_sort_toggle"
 const RETRY_ACTION_COOLDOWN_MSEC = 650
 
 const TEXT = {
@@ -220,6 +219,7 @@ var shared_ranking_folder: String = DEFAULT_SHARED_RANKING_FOLDER :
 var ranking_entries: Array = []
 var skin_unlocks_loaded = false
 var button_focus_style_ready = false
+var show_focus_outline: bool = false
 var retry_action_available_at_msec = 0
 
 func _enter_tree():
@@ -282,9 +282,13 @@ func _create_global_button_focus_style() -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
 	style.draw_center = false
-	style.border_color = Color(0.0, 0.0, 0.0, 0.0)
-	style.set_border_width_all(0)
+	style.border_color = GameConstants.SKIN_COLORS.get(selected_color, GameConstants.COLOR_BUTTON_HOVER) if show_focus_outline else Color(0.0, 0.0, 0.0, 0.0)
+	style.set_border_width_all(4 if show_focus_outline else 0)
 	style.set_corner_radius_all(0)
+	style.expand_margin_left = -26
+	style.expand_margin_top = 10
+	style.expand_margin_right = -26
+	style.expand_margin_bottom = 10
 	return style
 
 func ensure_keyboard_input_actions():
@@ -297,7 +301,6 @@ func ensure_keyboard_input_actions():
 		ACTION_SHORTCUT_RETRY: [KEY_R, KEY_F5],
 		ACTION_SHORTCUT_MAIN_MENU: [KEY_ESCAPE, KEY_M, KEY_BACKSPACE],
 		ACTION_SHORTCUT_HOW_TO_PLAY: [KEY_H],
-		ACTION_SHORTCUT_RANKING_SORT_TOGGLE: [KEY_TAB],
 	}
 
 	for action in action_keys.keys():
@@ -349,6 +352,65 @@ func _input(event):
 	if _is_fullscreen_toggle_event(event):
 		toggle_fullscreen()
 		get_viewport().set_input_as_handled()
+		return
+
+	# Handle focus outline visibility based on input type
+	var is_navigation = false
+	if event is InputEventKey and event.pressed:
+		if event.keycode in [KEY_TAB, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_ENTER, KEY_KP_ENTER, KEY_SPACE]:
+			is_navigation = true
+	elif event is InputEventJoypadButton and event.pressed:
+		is_navigation = true
+	elif event is InputEventJoypadMotion and abs(event.axis_value) > 0.5:
+		is_navigation = true
+
+	if is_navigation and not show_focus_outline:
+		show_focus_outline = true
+		_refresh_global_button_focus_styles()
+		
+		# Grab focus on the active screen's default button to establish focus chain correctly
+		var root = get_tree().root
+		if root:
+			var main_menu = root.find_child("MainMenu", true, false)
+			if main_menu and main_menu.is_inside_tree() and main_menu.visible:
+				var visible_layer = main_menu.call("_get_visible_menu_overlay")
+				if visible_layer:
+					match visible_layer.name:
+						"SettingsLayer":
+							var crt_setting = main_menu.call("_get_settings_item", "CRTSetting")
+							if crt_setting:
+								var crt_on_btn = crt_setting.get_node_or_null("HBoxContainer/CRTOn") as Button
+								if crt_on_btn and is_instance_valid(crt_on_btn):
+									crt_on_btn.grab_focus()
+						"SkinLayer":
+							var color_grid = visible_layer.get_node_or_null("CenterContainer/VBoxContainer/HBoxContainer/SelectionContainer/ColorGrid")
+							if color_grid and color_grid.get_child_count() > 0:
+								var first_btn = color_grid.get_child(0) as Button
+								if first_btn and is_instance_valid(first_btn):
+									first_btn.grab_focus()
+						"RankingLayer":
+							var ranking_length_sort_btn = main_menu.get("ranking_length_sort_btn")
+							if ranking_length_sort_btn and is_instance_valid(ranking_length_sort_btn):
+								ranking_length_sort_btn.grab_focus()
+						"HowToPlayLayer":
+							var how_to_play_back_btn = main_menu.get("how_to_play_back_btn")
+							if how_to_play_back_btn and is_instance_valid(how_to_play_back_btn):
+								how_to_play_back_btn.grab_focus()
+				else:
+					var play_btn = main_menu.get_node_or_null("CenterContainer/VBoxContainer/ButtonContainer/PlayButton") as Button
+					if play_btn and is_instance_valid(play_btn):
+						play_btn.grab_focus()
+			else:
+				var hud = root.find_child("HUD", true, false)
+				if hud and hud.is_inside_tree() and hud.get("is_result_showing"):
+					var result_buttons = hud.get("result_buttons")
+					if result_buttons and not result_buttons.is_empty() and is_instance_valid(result_buttons[0]):
+						result_buttons[0].grab_focus()
+		
+		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton and event.pressed and show_focus_outline:
+		show_focus_outline = false
+		_refresh_global_button_focus_styles()
 
 func toggle_fullscreen():
 	fullscreen_enabled = not is_fullscreen_enabled()
