@@ -256,10 +256,97 @@ func _on_skin_back_pressed():
 	_hide_skin_requirement(false)
 	await _hide_menu_overlay($SkinLayer)
 
+func _unhandled_key_input(event):
+	if Config.is_shortcut_event(event, Config.ACTION_SHORTCUT_MAIN_MENU):
+		var overlay = _get_visible_menu_overlay()
+		if not overlay:
+			return
+
+		get_viewport().set_input_as_handled()
+		await _hide_menu_overlay_from_shortcut(overlay)
+	elif Config.is_shortcut_event(event, Config.ACTION_SHORTCUT_HOW_TO_PLAY):
+		if _get_visible_menu_overlay():
+			return
+
+		get_viewport().set_input_as_handled()
+		await _play_shortcut_button_press(how_to_play_btn)
+		await _on_how_to_play_pressed()
+	elif Config.is_shortcut_event(event, &"ui_accept"):
+		if _get_visible_menu_overlay() or _has_focused_button():
+			return
+
+		get_viewport().set_input_as_handled()
+		await _play_shortcut_button_press($CenterContainer/VBoxContainer/ButtonContainer/PlayButton)
+		_on_play_pressed()
+
 func _input(event):
+	if _handle_ranking_sort_shortcut(event):
+		return
+
 	_release_shared_ranking_folder_focus_from_input(event)
 	if _should_hide_skin_requirement_from_input(event):
 		_hide_skin_requirement(true)
+
+func _handle_ranking_sort_shortcut(event: InputEvent) -> bool:
+	if not Config.is_shortcut_event(event, Config.ACTION_SHORTCUT_RANKING_SORT_TOGGLE):
+		return false
+	if not $RankingLayer.visible:
+		return false
+
+	get_viewport().set_input_as_handled()
+	_toggle_ranking_sort()
+	return true
+
+func _get_visible_menu_overlay() -> CanvasLayer:
+	for layer_name in ["SettingsLayer", "SkinLayer", "RankingLayer", "HowToPlayLayer"]:
+		var layer = get_node_or_null(layer_name) as CanvasLayer
+		if layer and layer.visible:
+			return layer
+	return null
+
+func _has_focused_button() -> bool:
+	var focus_owner = get_viewport().gui_get_focus_owner()
+	return focus_owner is Button and focus_owner.is_visible_in_tree()
+
+func _toggle_ranking_sort():
+	var next_sort = "survival" if ranking_sort_key == "length" else "length"
+	_pulse_shortcut_button(ranking_survival_sort_btn if next_sort == "survival" else ranking_length_sort_btn)
+	_on_ranking_sort_pressed(next_sort)
+
+func _hide_menu_overlay_from_shortcut(layer: CanvasLayer):
+	if layer.name == "SettingsLayer" and shared_ranking_folder_input and shared_ranking_folder_input.has_focus():
+		_on_shared_ranking_folder_committed(true)
+	elif layer.name == "SkinLayer":
+		_hide_skin_requirement(false)
+
+	await _play_shortcut_button_press(_get_overlay_back_button(layer))
+	await _hide_menu_overlay(layer)
+
+func _get_overlay_back_button(layer: CanvasLayer) -> Button:
+	if not layer:
+		return null
+	match layer.name:
+		"SettingsLayer":
+			return $SettingsLayer/CenterContainer/VBoxContainer/BackButton
+		"SkinLayer":
+			return $SkinLayer/CenterContainer/VBoxContainer/BackButton
+		"RankingLayer":
+			return ranking_back_btn
+		"HowToPlayLayer":
+			return how_to_play_back_btn
+	return null
+
+func _pulse_shortcut_button(btn: Button):
+	await _play_shortcut_button_press(btn)
+
+func _play_shortcut_button_press(btn: Button):
+	if not btn or not is_instance_valid(btn) or btn.disabled:
+		return
+	btn.grab_focus()
+	_on_button_down(btn)
+	await get_tree().create_timer(0.08).timeout
+	if btn and is_instance_valid(btn):
+		_on_button_up(btn)
 
 func _release_shared_ranking_folder_focus_from_input(event: InputEvent):
 	if not $SettingsLayer.visible:

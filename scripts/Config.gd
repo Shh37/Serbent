@@ -18,6 +18,11 @@ const RANKING_STORAGE_LIMIT_PER_SORT = 200
 const PLAYER_NAME_MAX_LENGTH = 12
 const LANGUAGE_EN = "en"
 const LANGUAGE_JA = "ja"
+const ACTION_SHORTCUT_RETRY = "shortcut_retry"
+const ACTION_SHORTCUT_MAIN_MENU = "shortcut_main_menu"
+const ACTION_SHORTCUT_HOW_TO_PLAY = "shortcut_how_to_play"
+const ACTION_SHORTCUT_RANKING_SORT_TOGGLE = "shortcut_ranking_sort_toggle"
+const RETRY_ACTION_COOLDOWN_MSEC = 650
 
 const TEXT = {
 	LANGUAGE_EN: {
@@ -215,6 +220,7 @@ var shared_ranking_folder: String = DEFAULT_SHARED_RANKING_FOLDER :
 var ranking_entries: Array = []
 var skin_unlocks_loaded = false
 var button_focus_style_ready = false
+var retry_action_available_at_msec = 0
 
 func _enter_tree():
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -291,6 +297,11 @@ func ensure_keyboard_input_actions():
 		"ui_down": [KEY_DOWN, KEY_S],
 		"ui_left": [KEY_LEFT, KEY_A],
 		"ui_right": [KEY_RIGHT, KEY_D],
+		"ui_accept": [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE],
+		ACTION_SHORTCUT_RETRY: [KEY_R, KEY_F5],
+		ACTION_SHORTCUT_MAIN_MENU: [KEY_ESCAPE, KEY_M, KEY_BACKSPACE],
+		ACTION_SHORTCUT_HOW_TO_PLAY: [KEY_H],
+		ACTION_SHORTCUT_RANKING_SORT_TOGGLE: [KEY_TAB],
 	}
 
 	for action in action_keys.keys():
@@ -309,6 +320,34 @@ func _action_has_key(action: StringName, keycode: Key) -> bool:
 			if key_event.keycode == keycode or key_event.physical_keycode == keycode:
 				return true
 	return false
+
+func is_shortcut_event(event: InputEvent, action: StringName) -> bool:
+	if not event is InputEventKey:
+		return false
+	if is_text_entry_focused():
+		return false
+
+	var key_event = event as InputEventKey
+	if not key_event.pressed or key_event.echo:
+		return false
+
+	return key_event.is_action_pressed(action)
+
+func is_text_entry_focused() -> bool:
+	var viewport = get_viewport()
+	if not viewport:
+		return false
+	var focus_owner = viewport.gui_get_focus_owner()
+	return focus_owner is LineEdit or focus_owner is TextEdit
+
+func can_retry_action() -> bool:
+	return Time.get_ticks_msec() >= retry_action_available_at_msec
+
+func consume_retry_action() -> bool:
+	if not can_retry_action():
+		return false
+	retry_action_available_at_msec = Time.get_ticks_msec() + RETRY_ACTION_COOLDOWN_MSEC
+	return true
 
 func _input(event):
 	if _is_fullscreen_toggle_event(event):

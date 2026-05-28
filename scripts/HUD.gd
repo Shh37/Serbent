@@ -31,9 +31,11 @@ const DASH_HINT_DELAY = 8.0
 const REVERSE_HINT_DELAY = 8.0
 const HINT_CYCLE_TIME = 4.5
 const DASH_HINT_FADE_TIME = 0.25
+const MENU_SHORTCUT_TRANSITION_TIME = 0.28
 
 var main_font: Font
 var hint_font: Font
+var shortcut_transition_in_progress = false
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -61,6 +63,95 @@ func _ready():
 	_setup_centering()
 	_setup_dash_hint()
 
+
+func _unhandled_key_input(event):
+	if Config.is_shortcut_event(event, Config.ACTION_SHORTCUT_RETRY):
+		get_viewport().set_input_as_handled()
+		await _retry_from_shortcut()
+	elif Config.is_shortcut_event(event, Config.ACTION_SHORTCUT_MAIN_MENU):
+		get_viewport().set_input_as_handled()
+		await _go_to_main_menu_from_shortcut()
+
+func _retry_from_shortcut():
+	if shortcut_transition_in_progress or result_exit_in_progress:
+		return
+	if is_result_showing:
+		if not Config.can_retry_action():
+			return
+		shortcut_transition_in_progress = true
+		await _play_result_shortcut_button_press(result_retry_button)
+		await _on_retry_pressed()
+		return
+
+	if not Config.consume_retry_action():
+		return
+	shortcut_transition_in_progress = true
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+func _go_to_main_menu_from_shortcut():
+	if shortcut_transition_in_progress or result_exit_in_progress:
+		return
+	if is_result_showing:
+		shortcut_transition_in_progress = true
+		await _play_result_shortcut_button_press(result_title_button)
+		await _on_title_pressed()
+		return
+
+	shortcut_transition_in_progress = true
+	get_tree().paused = false
+	await _animate_main_menu_shortcut_transition()
+	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+
+func _play_result_shortcut_button_press(btn: Button):
+	if not btn or not is_instance_valid(btn):
+		return
+	btn.grab_focus()
+	_on_result_btn_down(btn)
+	await get_tree().create_timer(0.08, true).timeout
+
+func _animate_main_menu_shortcut_transition():
+	var transition_layer = CanvasLayer.new()
+	transition_layer.name = "ShortcutTransitionLayer"
+	transition_layer.layer = 20
+	transition_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(transition_layer)
+
+	var blur_bg = ColorRect.new()
+	blur_bg.name = "ShortcutTransitionBlur"
+	blur_bg.modulate.a = 0.0
+	blur_bg.mouse_filter = Control.MOUSE_FILTER_STOP
+	transition_layer.add_child(blur_bg)
+	blur_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	var blur_shader = load("res://shaders/ui_blur.gdshader")
+	var blur_mat: ShaderMaterial = null
+	if blur_shader:
+		blur_mat = ShaderMaterial.new()
+		blur_mat.shader = blur_shader
+		blur_mat.set_shader_parameter("blur_amount", 0.0)
+		blur_mat.set_shader_parameter("tint_color", Color(0.0823529, 0.0823529, 0.0823529, 0.55))
+		blur_mat.set_shader_parameter("crt_enabled", Config.crt_enabled)
+		blur_bg.material = blur_mat
+
+	var shade = ColorRect.new()
+	shade.name = "ShortcutTransitionShade"
+	shade.color = Color(GameConstants.COLOR_BG.r, GameConstants.COLOR_BG.g, GameConstants.COLOR_BG.b, 0.62)
+	shade.modulate.a = 0.0
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	transition_layer.add_child(shade)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	var tween = create_tween()
+	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(blur_bg, "modulate:a", 1.0, MENU_SHORTCUT_TRANSITION_TIME)
+	tween.tween_property(shade, "modulate:a", 1.0, MENU_SHORTCUT_TRANSITION_TIME)
+	if blur_mat:
+		tween.tween_property(blur_mat, "shader_parameter/blur_amount", 5.0, MENU_SHORTCUT_TRANSITION_TIME)
+
+	await tween.finished
 
 func _setup_centering():
 	# Move Length/Time back to corners
@@ -264,14 +355,21 @@ func _prepare_hud_label_color(label: Label):
 	else:
 		label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
 
+func _get_hud_label_flash_color(label: Label) -> Color:
+	if label == length_label:
+		return GameConstants.COLOR_RANKING_LENGTH
+	if label == time_label:
+		return GameConstants.COLOR_RANKING_SURVIVAL
+	return GameConstants.COLOR_POINT
+
 func _flash_unlock_condition_label(label: Label):
 	if not label:
 		return
-	_set_hud_label_color(label, GameConstants.COLOR_POINT)
+	_set_hud_label_color(label, _get_hud_label_flash_color(label))
 	var tween = create_tween()
 	tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	tween.tween_interval(0.65)
-	tween.tween_method(func(color): _set_hud_label_color(label, color), GameConstants.COLOR_POINT, GameConstants.COLOR_FG, 0.35)
+	tween.tween_method(func(color): _set_hud_label_color(label, color), _get_hud_label_flash_color(label), GameConstants.COLOR_FG, 0.35)
 
 func _set_hud_label_color(label: Label, color: Color):
 	if label.label_settings:
@@ -447,6 +545,8 @@ var pending_ranking_length = 0
 var pending_ranking_survival = 0.0
 var ranking_added = false
 var ranking_add_button: Button
+var result_retry_button: Button
+var result_title_button: Button
 var ranking_dialog_overlay: Control
 var ranking_dialog_panel: PanelContainer
 var ranking_name_input: LineEdit
@@ -479,6 +579,8 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	pending_ranking_survival = survival_time
 	ranking_added = false
 	ranking_add_button = null
+	result_retry_button = null
+	result_title_button = null
 	ranking_dialog_overlay = null
 	ranking_dialog_panel = null
 	ranking_name_input = null
@@ -627,11 +729,13 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 		result_layer.add_child(ranking_dialog_overlay)
 
 	var retry_btn = _create_result_button(Config.tr_text("retry").to_upper(), 54)
+	result_retry_button = retry_btn
 	retry_btn.pressed.connect(_on_retry_pressed)
 	action_vbox.add_child(retry_btn)
 	result_buttons.append(retry_btn)
 
 	var title_btn = _create_result_button(Config.tr_text("main_menu").to_upper(), 36)
+	result_title_button = title_btn
 	title_btn.pressed.connect(_on_title_pressed)
 	action_vbox.add_child(title_btn)
 	result_buttons.append(title_btn)
@@ -1232,6 +1336,8 @@ func _update_result_button_pivots():
 
 func _on_retry_pressed():
 	if result_exit_in_progress:
+		return
+	if not Config.consume_retry_action():
 		return
 	await _animate_result_exit()
 	get_tree().paused = false
