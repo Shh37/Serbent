@@ -483,12 +483,12 @@ func _on_shared_ranking_toggle_pressed(enabled: bool):
 	SoundManager.play_ui_select_sub()
 	Config.shared_rankings_enabled = enabled
 
-func _on_shared_ranking_folder_committed(release_focus: bool):
+func _on_shared_ranking_folder_committed(should_release_focus: bool):
 	if not shared_ranking_folder_input:
 		return
 	Config.shared_ranking_folder = shared_ranking_folder_input.text
 	_sync_shared_ranking_folder_input()
-	if release_focus:
+	if should_release_focus:
 		shared_ranking_folder_input.release_focus()
 
 func _on_language_pressed(language: String):
@@ -2154,9 +2154,9 @@ func _set_blur_region(mat: ShaderMaterial, vp_size: Vector2, rect: Rect2, center
 		(rect.position.x + rect.size.x * 0.5) / vp_size.x,
 		(rect.position.y + rect.size.y * 0.5) / vp_size.y
 	)
-	var size = Vector2(
+	var blur_size = Vector2(
 		rect.size.x / vp_size.x,
 		rect.size.y / vp_size.y
 	)
 	mat.set_shader_parameter(center_param, center)
-	mat.set_shader_parameter(size_param, size)
+	mat.set_shader_parameter(size_param, blur_size)
