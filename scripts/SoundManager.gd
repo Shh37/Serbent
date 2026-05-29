@@ -132,13 +132,13 @@ func play_ui_positive() -> void:
 	play_sound(SFX_UI_POSITIVE)
 
 func play_ui_negative() -> void:
-	play_sound(SFX_UI_NEGATIVE)
+	play_sound(SFX_UI_NEGATIVE, 0.6)
 
 func play_ui_positive_07() -> void:
 	play_sound(SFX_UI_POSITIVE_07, 0.65)
 
 func play_sweep_down() -> void:
-	play_sound(SFX_SWEEP_DOWN)
+	play_sound(SFX_SWEEP_DOWN, 0.6)
 
 func play_sound(path: String, volume_multiplier: float = 1.0) -> void:
 	var stream: AudioStream = stream_cache.get(path)
