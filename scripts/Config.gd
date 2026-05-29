@@ -2,6 +2,7 @@ extends Node
 
 signal crt_changed(enabled: bool)
 signal beta_upgrades_changed(enabled: bool)
+signal bgm_changed(enabled: bool)
 signal fullscreen_changed(enabled: bool)
 signal language_changed(language: String)
 signal rankings_changed()
@@ -33,6 +34,7 @@ const TEXT = {
 		"crt_shader": "CRT SHADER",
 		"beta_upgrades": "BETA UPGRADES",
 		"beta_upgrades_ranking_note": "ON: RANKING ENTRIES\nCANNOT BE ADDED",
+		"bgm": "BGM",
 		"shared_ranking": "SHARED RANKING",
 		"shared_ranking_folder": "RANKING FOLDER",
 		"fullscreen": "FULLSCREEN",
@@ -90,6 +92,7 @@ const TEXT = {
 		"crt_shader": "CRTシェーダー",
 		"beta_upgrades": "ベータアップグレード",
 		"beta_upgrades_ranking_note": "オンにすると\nランキングにのせられません",
+		"bgm": "BGM",
 		"shared_ranking": "みんなのランキング",
 		"shared_ranking_folder": "ランキングフォルダ",
 		"fullscreen": "フルスクリーン",
@@ -171,6 +174,15 @@ var beta_upgrades_enabled: bool = false :
 	set(value):
 		beta_upgrades_enabled = value
 		beta_upgrades_changed.emit(value)
+		if settings_loaded:
+			save_settings()
+
+var bgm_enabled: bool = true :
+	set(value):
+		if bgm_enabled == value:
+			return
+		bgm_enabled = value
+		bgm_changed.emit(value)
 		if settings_loaded:
 			save_settings()
 
@@ -482,6 +494,7 @@ func load_settings():
 
 	crt_enabled = bool(parsed.get("crt_enabled", true))
 	beta_upgrades_enabled = bool(parsed.get("beta_upgrades_enabled", false))
+	bgm_enabled = bool(parsed.get("bgm_enabled", true))
 	fullscreen_enabled = bool(parsed.get("fullscreen_enabled", is_fullscreen_enabled()))
 	language = normalize_language(str(parsed.get("language", LANGUAGE_JA)))
 	shared_rankings_enabled = bool(parsed.get("shared_rankings_enabled", false))
@@ -497,6 +510,7 @@ func save_settings():
 	file.store_string(JSON.stringify({
 		"crt_enabled": crt_enabled,
 		"beta_upgrades_enabled": beta_upgrades_enabled,
+		"bgm_enabled": bgm_enabled,
 		"fullscreen_enabled": fullscreen_enabled,
 		"language": language,
 		"shared_rankings_enabled": shared_rankings_enabled,
