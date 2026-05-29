@@ -799,6 +799,7 @@ func _setup_standard_button(btn: Button):
 	_apply_standard_button_size(btn)
 	_apply_standard_button_palette(btn)
 	btn.focus_mode = Control.FOCUS_ALL
+	Config.ensure_button_focus_style(btn)
 
 func _apply_standard_button_size(btn: Button):
 	var horizontal_padding = 76.0
@@ -860,6 +861,7 @@ func _apply_button_colors(btn: Button, normal: Color, hover: Color, pressed: Col
 	btn.add_theme_color_override("font_pressed_color", pressed)
 	btn.add_theme_color_override("font_focus_color", normal)
 	btn.add_theme_color_override("font_disabled_color", GameConstants.COLOR_GHOST)
+	Config.ensure_button_focus_style(btn)
 
 func _get_button_accent_color() -> Color:
 	return GameConstants.SKIN_COLORS.get(Config.selected_color, GameConstants.COLOR_BUTTON_HOVER)
@@ -1702,6 +1704,7 @@ func _populate_skin_grids():
 func _setup_skin_button(btn: Button):
 	btn.set_meta("is_skin_pressed", false)
 	btn.focus_mode = Control.FOCUS_ALL
+	Config.ensure_button_focus_style(btn)
 	btn.mouse_entered.connect(func(): _update_button_style(btn, true))
 	btn.mouse_exited.connect(func(): _update_button_style(btn, false))
 	btn.button_down.connect(func(): _on_button_down(btn))

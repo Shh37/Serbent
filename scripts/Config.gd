@@ -252,6 +252,13 @@ func _setup_global_button_focus_style():
 
 func _on_global_node_added(node: Node):
 	if node is Button:
+		call_deferred("_apply_global_button_focus_style_if_valid", node)
+
+func ensure_button_focus_style(button: Button):
+	_apply_global_button_focus_style(button)
+
+func _apply_global_button_focus_style_if_valid(node: Node):
+	if node is Button and is_instance_valid(node):
 		_apply_global_button_focus_style(node)
 
 func _refresh_global_button_focus_styles():
@@ -270,7 +277,10 @@ func _apply_global_button_focus_style(button: Button):
 		button.flat = false
 		_apply_transparent_button_styleboxes(button)
 	button.add_theme_stylebox_override("focus", _create_global_button_focus_style())
-	button.add_theme_color_override("font_focus_color", GameConstants.COLOR_BUTTON_NORMAL)
+	if not button.has_meta("global_focus_style_hooks_connected"):
+		button.focus_entered.connect(func(): ensure_button_focus_style(button))
+		button.visibility_changed.connect(func(): ensure_button_focus_style(button))
+		button.set_meta("global_focus_style_hooks_connected", true)
 
 func _apply_transparent_button_styleboxes(button: Button):
 	var normal = _create_transparent_button_style()
