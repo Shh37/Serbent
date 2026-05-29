@@ -57,9 +57,8 @@ func activate_beam():
 	show_warning = true
 	queue_redraw()
 	
-	SoundManager.play_slash_hit()
-	
-	check_collision()
+	if not check_collision():
+		SoundManager.play_slash_hit()
 
 func deactivate_beam():
 	var world = get_parent()
@@ -99,7 +98,7 @@ func is_on_beam(grid_pos: Vector2i) -> bool:
 		var z_offset = get_zigzag_offset(grid_pos.y)
 		return abs(grid_pos.x - (global_grid_index + z_offset)) <= half_thickness
 
-func check_collision():
+func check_collision() -> bool:
 	var world = get_parent()
 	var snake = world.get_parent().get_node("Snake")
 	if snake and snake.has_method("cut_snake"):
@@ -111,6 +110,8 @@ func check_collision():
 		
 		if not hit_indices.is_empty():
 			snake.cut_snake(hit_indices[0], hit_indices)
+			return true
+	return false
 
 func _draw():
 	var cell_size = GameConstants.CELL_SIZE

@@ -232,6 +232,7 @@ func cut_snake(cut_index: int, hit_indices: Array = []):
 		return
 		
 	if cut_index > 0 and cut_index < body.size():
+		SoundManager.play_hit()
 		dead_parts.append({"segments": body.slice(cut_index), "time": 0.7})
 		
 		if hit_indices.is_empty():
@@ -407,7 +408,7 @@ func game_over():
 	print("Game Over!")
 	_update_max_length()
 	
-	SoundManager.play_hit()
+	SoundManager.play_hit(1.5)
 	
 	# Visual effect: Noticeable dark red flash and blur for game over
 	var red_tint = GameConstants.COLOR_DANGER.darkened(0.6)

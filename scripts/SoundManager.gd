@@ -111,10 +111,10 @@ func play_slash_hit() -> void:
 		return
 	play_sound(SFX_SLASH_HIT[randi() % SFX_SLASH_HIT.size()], 0.6)
 
-func play_hit() -> void:
+func play_hit(volume_multiplier: float = 1.2) -> void:
 	if SFX_HIT.is_empty():
 		return
-	play_sound(SFX_HIT[randi() % SFX_HIT.size()])
+	play_sound(SFX_HIT[randi() % SFX_HIT.size()], volume_multiplier)
 
 func play_ui_select() -> void:
 	play_sound(SFX_UI_SELECT)

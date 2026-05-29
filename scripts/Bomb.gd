@@ -51,10 +51,9 @@ func activate_bomb():
 	show_warning = true
 	queue_redraw()
 	
-	SoundManager.play_explosion()
-	
 	# Check collision immediately when activated
-	check_collision()
+	if not check_collision():
+		SoundManager.play_explosion()
 
 func deactivate_bomb():
 	# Bomb finished, remove it
@@ -63,7 +62,7 @@ func deactivate_bomb():
 		world.unregister_bomb(self)
 	queue_free()
 
-func check_collision():
+func check_collision() -> bool:
 	var world = get_parent()
 	var snake = world.get_parent().get_node("Snake")
 	if snake and snake.has_method("cut_snake"):
@@ -80,6 +79,8 @@ func check_collision():
 		
 		if not hit_indices.is_empty():
 			snake.cut_snake(hit_indices[0], hit_indices)
+			return true
+	return false
 
 func _draw():
 	var cell_size = GameConstants.CELL_SIZE
