@@ -29,7 +29,7 @@ const SFX_HIT = [
 	"res://assets/NES-Sfx_Hit_04.wav",
 ]
 
-const SFX_UI_SELECT = "res://assets/NES-Sfx_UI_Select_06.wav"
+const SFX_UI_SELECT = "res://assets/NES-Sfx_UI_Select_05.wav"
 const SFX_UI_SELECT_SUB = "res://assets/NES-Sfx_UI_Select_07.wav"
 const SFX_UI_CONFIRM = "res://assets/NES-Sfx_UI_SciFi_Confirm.wav"
 const SFX_UI_SUBMIT = "res://assets/NES-Sfx_UI_SciFi_Confirm.wav"
