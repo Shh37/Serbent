@@ -20,8 +20,6 @@ var how_to_play_btn: Button
 var how_to_play_back_btn: Button
 var language_en_btn: Button
 var language_ja_btn: Button
-var bgm_on_btn: Button
-var bgm_off_btn: Button
 var fullscreen_on_btn: Button
 var fullscreen_off_btn: Button
 var shared_ranking_on_btn: Button
@@ -141,7 +139,6 @@ func _ready():
 	var beta_off_btn = $SettingsLayer/CenterContainer/VBoxContainer/BetaUpgradesSetting/HBoxContainer/BetaOff
 
 	_ensure_language_setting()
-	_ensure_bgm_setting()
 	_ensure_fullscreen_setting()
 	_ensure_shared_ranking_setting()
 	_ensure_shared_ranking_folder_setting()
@@ -184,7 +181,7 @@ func _ready():
 	ranking_length_sort_btn.pressed.connect(func(): _on_ranking_sort_pressed("length"))
 	ranking_survival_sort_btn.pressed.connect(func(): _on_ranking_sort_pressed("survival"))
 
-	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn, language_en_btn, language_ja_btn, bgm_on_btn, bgm_off_btn, fullscreen_on_btn, fullscreen_off_btn, shared_ranking_on_btn, shared_ranking_off_btn]:
+	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn, language_en_btn, language_ja_btn, fullscreen_on_btn, fullscreen_off_btn, shared_ranking_on_btn, shared_ranking_off_btn]:
 		btn.add_theme_font_override("font", font_title)
 		_setup_standard_button(btn)
 
@@ -200,8 +197,6 @@ func _ready():
 	beta_off_btn.pressed.connect(func(): _on_beta_toggle_pressed(false))
 	language_en_btn.pressed.connect(func(): _on_language_pressed(Config.LANGUAGE_EN))
 	language_ja_btn.pressed.connect(func(): _on_language_pressed(Config.LANGUAGE_JA))
-	bgm_on_btn.pressed.connect(func(): _on_bgm_toggle_pressed(true))
-	bgm_off_btn.pressed.connect(func(): _on_bgm_toggle_pressed(false))
 	fullscreen_on_btn.pressed.connect(func(): _on_fullscreen_toggle_pressed(true))
 	fullscreen_off_btn.pressed.connect(func(): _on_fullscreen_toggle_pressed(false))
 	shared_ranking_on_btn.pressed.connect(func(): _on_shared_ranking_toggle_pressed(true))
@@ -230,14 +225,12 @@ func _ready():
 	Config.fullscreen_changed.connect(_update_fullscreen_buttons_style)
 	_update_language_buttons_style(Config.language)
 	Config.language_changed.connect(_update_language_buttons_style)
-	_update_bgm_buttons_style(Config.bgm_enabled)
-	Config.bgm_changed.connect(_update_bgm_buttons_style)
 	_update_shared_ranking_buttons_style(Config.shared_rankings_enabled)
 	Config.shared_rankings_changed.connect(_update_shared_ranking_buttons_style)
 	Config.shared_ranking_folder_changed.connect(func(_folder): _sync_shared_ranking_folder_input())
 
 	# Initial style
-	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn, language_en_btn, language_ja_btn, bgm_on_btn, bgm_off_btn, fullscreen_on_btn, fullscreen_off_btn, shared_ranking_on_btn, shared_ranking_off_btn]:
+	for btn in [play_btn, ranking_btn, how_to_play_btn, settings_btn, skins_btn, back_btn, skin_back_btn, ranking_back_btn, how_to_play_back_btn, ranking_length_sort_btn, ranking_survival_sort_btn, crt_on_btn, crt_off_btn, beta_on_btn, beta_off_btn, language_en_btn, language_ja_btn, fullscreen_on_btn, fullscreen_off_btn, shared_ranking_on_btn, shared_ranking_off_btn]:
 		btn.pivot_offset = btn.size / 2
 
 	# Set focus neighbors for Main Menu buttons
@@ -482,10 +475,6 @@ func _on_beta_toggle_pressed(enabled: bool):
 	SoundManager.play_ui_select_sub()
 	Config.beta_upgrades_enabled = enabled
 
-func _on_bgm_toggle_pressed(enabled: bool):
-	SoundManager.play_ui_select_sub()
-	Config.bgm_enabled = enabled
-
 func _on_fullscreen_toggle_pressed(enabled: bool):
 	SoundManager.play_ui_select_sub()
 	Config.fullscreen_enabled = enabled
@@ -703,16 +692,12 @@ func _get_settings_overlay_anim_items(content: Control) -> Array[Control]:
 		title.set_meta("overlay_delay_index", 0)
 		items.append(title)
 	if grid:
-		var setting_order = ["CRTSetting", "BGMSetting", "BetaUpgradesSetting", "LanguageSetting", "FullscreenSetting", "SharedRankingSetting", "SharedRankingFolderSetting"]
+		var setting_order = ["CRTSetting", "BetaUpgradesSetting", "LanguageSetting", "FullscreenSetting", "SharedRankingSetting", "SharedRankingFolderSetting"]
 		for i in range(setting_order.size()):
 			var setting_name = setting_order[i]
 			var item = grid.get_node_or_null(setting_name) as Control
 			if item:
-				var row_index = 0
-				if i >= 5:
-					row_index = 2
-				elif i >= 3:
-					row_index = 1
+				var row_index = int(i / 2)
 				item.set_meta("overlay_delay_index", 1 + row_index)
 				items.append(item)
 	elif content:
@@ -923,24 +908,24 @@ func _ensure_settings_grid_layout():
 		grid.add_theme_constant_override("h_separation", 44)
 		grid.add_theme_constant_override("v_separation", 30)
 		vbox.add_child(grid)
-	grid.columns = 3
+	grid.columns = 2
 
 	var title_label = vbox.get_node_or_null("Label")
 	if title_label:
 		vbox.move_child(grid, title_label.get_index() + 1)
 
 	var spacer = grid.get_node_or_null("SettingsSpacer") as Control
-	if not spacer:
-		spacer = Control.new()
-		spacer.name = "SettingsSpacer"
-		grid.add_child(spacer)
-	spacer.custom_minimum_size = Vector2(330, 0)
-	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if spacer:
+		spacer.queue_free()
 
-	var setting_order = ["CRTSetting", "BGMSetting", "BetaUpgradesSetting", "LanguageSetting", "FullscreenSetting", "SettingsSpacer", "SharedRankingSetting", "SharedRankingFolderSetting"]
+	var bgm_setting = _get_settings_item("BGMSetting")
+	if bgm_setting:
+		bgm_setting.queue_free()
+
+	var setting_order = ["CRTSetting", "BetaUpgradesSetting", "LanguageSetting", "FullscreenSetting", "SharedRankingSetting", "SharedRankingFolderSetting"]
 	for i in range(setting_order.size()):
 		var setting_name = setting_order[i]
-		var setting: Control = spacer if setting_name == "SettingsSpacer" else _get_settings_item(setting_name)
+		var setting: Control = _get_settings_item(setting_name)
 		if not setting:
 			continue
 		if setting.get_parent() != grid:
@@ -955,12 +940,11 @@ func _setup_settings_focus_neighbors():
 	var crt_setting = _get_settings_item("CRTSetting")
 	var beta_setting = _get_settings_item("BetaUpgradesSetting")
 	var lang_setting = _get_settings_item("LanguageSetting")
-	var bgm_setting = _get_settings_item("BGMSetting")
 	var fs_setting = _get_settings_item("FullscreenSetting")
 	var sr_setting = _get_settings_item("SharedRankingSetting")
 	var srf_setting = _get_settings_item("SharedRankingFolderSetting")
 
-	if not crt_setting or not beta_setting or not lang_setting or not bgm_setting or not fs_setting or not sr_setting or not srf_setting or not back_btn:
+	if not crt_setting or not beta_setting or not lang_setting or not fs_setting or not sr_setting or not srf_setting or not back_btn:
 		return
 
 	var crt_on = crt_setting.get_node_or_null("HBoxContainer/CRTOn") as Button
@@ -969,35 +953,25 @@ func _setup_settings_focus_neighbors():
 	var beta_off = beta_setting.get_node_or_null("HBoxContainer/BetaOff") as Button
 	var lang_en = lang_setting.get_node_or_null("HBoxContainer/LanguageEnglish") as Button
 	var lang_ja = lang_setting.get_node_or_null("HBoxContainer/LanguageJapanese") as Button
-	var bgm_on = bgm_setting.get_node_or_null("HBoxContainer/BGMOn") as Button
-	var bgm_off = bgm_setting.get_node_or_null("HBoxContainer/BGMOff") as Button
 	var fs_on = fs_setting.get_node_or_null("HBoxContainer/FullscreenOn") as Button
 	var fs_off = fs_setting.get_node_or_null("HBoxContainer/FullscreenOff") as Button
 	var sr_on = sr_setting.get_node_or_null("HBoxContainer/SharedRankingOn") as Button
 	var sr_off = sr_setting.get_node_or_null("HBoxContainer/SharedRankingOff") as Button
 	var folder_in = srf_setting.get_node_or_null("FolderInput") as LineEdit
 
-	if not crt_on or not crt_off or not beta_on or not beta_off or not lang_en or not lang_ja or not bgm_on or not bgm_off or not fs_on or not fs_off or not sr_on or not sr_off or not folder_in:
+	if not crt_on or not crt_off or not beta_on or not beta_off or not lang_en or not lang_ja or not fs_on or not fs_off or not sr_on or not sr_off or not folder_in:
 		return
 
-	# Top Row (CRT / BGM / Beta)
+	# Top Row (CRT / Beta)
 	crt_on.focus_neighbor_right = crt_on.get_path_to(crt_off)
 	crt_on.focus_neighbor_left = crt_on.get_path_to(crt_off)
 	crt_on.focus_neighbor_bottom = crt_on.get_path_to(lang_en)
 
 	crt_off.focus_neighbor_left = crt_off.get_path_to(crt_on)
-	crt_off.focus_neighbor_right = crt_off.get_path_to(bgm_on)
+	crt_off.focus_neighbor_right = crt_off.get_path_to(beta_on)
 	crt_off.focus_neighbor_bottom = crt_off.get_path_to(lang_ja)
 
-	bgm_on.focus_neighbor_left = bgm_on.get_path_to(crt_off)
-	bgm_on.focus_neighbor_right = bgm_on.get_path_to(bgm_off)
-	bgm_on.focus_neighbor_bottom = bgm_on.get_path_to(fs_on)
-
-	bgm_off.focus_neighbor_left = bgm_off.get_path_to(bgm_on)
-	bgm_off.focus_neighbor_right = bgm_off.get_path_to(beta_on)
-	bgm_off.focus_neighbor_bottom = bgm_off.get_path_to(fs_off)
-
-	beta_on.focus_neighbor_left = beta_on.get_path_to(bgm_off)
+	beta_on.focus_neighbor_left = beta_on.get_path_to(crt_off)
 	beta_on.focus_neighbor_right = beta_on.get_path_to(beta_off)
 	beta_on.focus_neighbor_bottom = beta_on.get_path_to(fs_on)
 
@@ -1016,12 +990,12 @@ func _setup_settings_focus_neighbors():
 	lang_ja.focus_neighbor_right = lang_ja.get_path_to(fs_on)
 	lang_ja.focus_neighbor_bottom = lang_ja.get_path_to(sr_off)
 
-	fs_on.focus_neighbor_top = fs_on.get_path_to(bgm_on)
-	fs_on.focus_neighbor_left = fs_on.get_path_to(lang_en)
+	fs_on.focus_neighbor_top = fs_on.get_path_to(beta_on)
+	fs_on.focus_neighbor_left = fs_on.get_path_to(lang_ja)
 	fs_on.focus_neighbor_right = fs_on.get_path_to(fs_off)
 	fs_on.focus_neighbor_bottom = fs_on.get_path_to(folder_in)
 
-	fs_off.focus_neighbor_top = fs_off.get_path_to(bgm_off)
+	fs_off.focus_neighbor_top = fs_off.get_path_to(beta_off)
 	fs_off.focus_neighbor_left = fs_off.get_path_to(fs_on)
 	fs_off.focus_neighbor_right = fs_off.get_path_to(fs_on)
 	fs_off.focus_neighbor_bottom = fs_off.get_path_to(folder_in)
@@ -1099,12 +1073,6 @@ func _update_fullscreen_buttons_style(enabled: bool):
 		return
 	_apply_selected_button_colors(fullscreen_on_btn, enabled, GameConstants.COLOR_TOGGLE_ON, GameConstants.COLOR_TOGGLE_ON_HOVER, GameConstants.COLOR_TOGGLE_ON_PRESSED)
 	_apply_selected_button_colors(fullscreen_off_btn, not enabled, GameConstants.COLOR_TOGGLE_OFF, GameConstants.COLOR_TOGGLE_OFF_HOVER, GameConstants.COLOR_TOGGLE_OFF_PRESSED)
-
-func _update_bgm_buttons_style(enabled: bool):
-	if not bgm_on_btn or not bgm_off_btn:
-		return
-	_apply_selected_button_colors(bgm_on_btn, enabled, GameConstants.COLOR_TOGGLE_ON, GameConstants.COLOR_TOGGLE_ON_HOVER, GameConstants.COLOR_TOGGLE_ON_PRESSED)
-	_apply_selected_button_colors(bgm_off_btn, not enabled, GameConstants.COLOR_TOGGLE_OFF, GameConstants.COLOR_TOGGLE_OFF_HOVER, GameConstants.COLOR_TOGGLE_OFF_PRESSED)
 
 func _update_shared_ranking_buttons_style(enabled: bool):
 	if not shared_ranking_on_btn or not shared_ranking_off_btn:
@@ -1208,49 +1176,6 @@ func _ensure_fullscreen_setting():
 	fullscreen_off_btn.flat = true
 	fullscreen_off_btn.add_theme_font_size_override("font_size", 36)
 	row.add_child(fullscreen_off_btn)
-
-	var back_btn = vbox.get_node_or_null("BackButton")
-	vbox.add_child(setting)
-	if back_btn:
-		vbox.move_child(setting, back_btn.get_index())
-
-func _ensure_bgm_setting():
-	var vbox = $SettingsLayer/CenterContainer/VBoxContainer
-	var existing = _get_settings_item("BGMSetting")
-	if existing:
-		bgm_on_btn = existing.get_node("HBoxContainer/BGMOn") as Button
-		bgm_off_btn = existing.get_node("HBoxContainer/BGMOff") as Button
-		return
-
-	var setting = VBoxContainer.new()
-	setting.name = "BGMSetting"
-	setting.add_theme_constant_override("separation", 8)
-
-	var label = Label.new()
-	label.name = "Label"
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_override("font", font_title)
-	label.add_theme_font_size_override("font_size", 40)
-	label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
-	setting.add_child(label)
-
-	var row = HBoxContainer.new()
-	row.name = "HBoxContainer"
-	row.add_theme_constant_override("separation", 24)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	setting.add_child(row)
-
-	bgm_on_btn = Button.new()
-	bgm_on_btn.name = "BGMOn"
-	bgm_on_btn.flat = true
-	bgm_on_btn.add_theme_font_size_override("font_size", 36)
-	row.add_child(bgm_on_btn)
-
-	bgm_off_btn = Button.new()
-	bgm_off_btn.name = "BGMOff"
-	bgm_off_btn.flat = true
-	bgm_off_btn.add_theme_font_size_override("font_size", 36)
-	row.add_child(bgm_off_btn)
 
 	var back_btn = vbox.get_node_or_null("BackButton")
 	vbox.add_child(setting)
@@ -1380,7 +1305,6 @@ func _apply_localized_texts():
 	var crt_setting = _get_settings_item("CRTSetting")
 	var beta_setting = _get_settings_item("BetaUpgradesSetting")
 	var language_setting = _get_settings_item("LanguageSetting")
-	var bgm_setting = _get_settings_item("BGMSetting")
 	var fullscreen_setting = _get_settings_item("FullscreenSetting")
 	var shared_ranking_setting = _get_settings_item("SharedRankingSetting")
 	var shared_ranking_folder_setting = _get_settings_item("SharedRankingFolderSetting")
@@ -1396,9 +1320,6 @@ func _apply_localized_texts():
 	language_setting.get_node("Label").text = Config.tr_text("language")
 	language_en_btn.text = Config.tr_text("english")
 	language_ja_btn.text = Config.tr_text("japanese")
-	bgm_setting.get_node("Label").text = Config.tr_text("bgm")
-	bgm_on_btn.text = Config.tr_text("on")
-	bgm_off_btn.text = Config.tr_text("off")
 	fullscreen_setting.get_node("Label").text = Config.tr_text("fullscreen")
 	fullscreen_on_btn.text = Config.tr_text("on")
 	fullscreen_off_btn.text = Config.tr_text("off")
@@ -2046,7 +1967,6 @@ func _update_appearance_display():
 	_update_beta_buttons_style(Config.beta_upgrades_enabled)
 	_update_fullscreen_buttons_style(Config.fullscreen_enabled)
 	_update_language_buttons_style(Config.language)
-	_update_bgm_buttons_style(Config.bgm_enabled)
 	_update_shared_ranking_buttons_style(Config.shared_rankings_enabled)
 
 	# Dynamic skin color update for HOW TO PLAY text.
