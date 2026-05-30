@@ -710,7 +710,7 @@ func _get_settings_overlay_anim_items(content: Control) -> Array[Control]:
 			var setting_name = setting_order[i]
 			var item = grid.get_node_or_null(setting_name) as Control
 			if item:
-				var row_index = int(i / 2)
+				var row_index = int(i / 2.0)
 				item.set_meta("overlay_delay_index", 1 + row_index)
 				items.append(item)
 	elif content:
