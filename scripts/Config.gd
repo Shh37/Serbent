@@ -12,8 +12,9 @@ signal skin_unlocks_changed()
 
 const SETTINGS_FILE = "user://settings.json"
 const RANKING_FILE = "user://rankings.json"
+const STATS_FILE = "user://stats.json"
 const SKIN_UNLOCK_FILE = "user://skin_unlocks.json"
-const DEFAULT_SHARED_RANKING_FOLDER = "Y:/Serbent/rankings/entries"
+const DEFAULT_SHARED_RANKING_FOLDER = "Y:/Serbent/rankings"
 const RANKING_DISPLAY_LIMIT = 200
 const RANKING_STORAGE_LIMIT_PER_SORT = 200
 const PLAYER_NAME_MAX_LENGTH = 12
@@ -35,8 +36,8 @@ const TEXT = {
 		"beta_upgrades": "BETA UPGRADES",
 		"beta_upgrades_ranking_note": "ON: RANKING ENTRIES\nCANNOT BE ADDED",
 		"bgm": "BGM",
-		"shared_ranking": "SHARED RANKING",
-		"shared_ranking_folder": "RANKING FOLDER",
+		"online_ranking": "ONLINE RANKING",
+		"shared_folder": "NETWORK FOLDER",
 		"fullscreen": "FULLSCREEN",
 		"language": "LANGUAGE",
 		"on": "ON",
@@ -95,8 +96,8 @@ const TEXT = {
 		"beta_upgrades": "ベータアップグレード",
 		"beta_upgrades_ranking_note": "オンにすると\nランキングにのせられません",
 		"bgm": "BGM",
-		"shared_ranking": "みんなのランキング",
-		"shared_ranking_folder": "ランキングフォルダ",
+		"online_ranking": "オンラインランキング",
+		"shared_folder": "ネットワークフォルダ",
 		"fullscreen": "フルスクリーン",
 		"language": "言語",
 		"on": "オン",
@@ -881,26 +882,39 @@ func _load_local_rankings():
 	_trim_rankings()
 
 func save_rankings():
-	var file = FileAccess.open(RANKING_FILE, FileAccess.WRITE)
-	if not file:
-		push_warning("Could not save rankings to %s" % RANKING_FILE)
-		return
-	file.store_string(JSON.stringify(ranking_entries, "\t"))
+	if shared_rankings_enabled:
+		var ranking_folder = get_ranking_folder()
+		if not _ensure_folder(ranking_folder):
+			return
+
+		var file_path = _join_path(ranking_folder, "rankings.json")
+		var file = FileAccess.open(file_path, FileAccess.WRITE)
+		if not file:
+			push_warning("Could not save rankings to %s" % file_path)
+			return
+		file.store_string(JSON.stringify(ranking_entries, "\t"))
+	else:
+		var file = FileAccess.open(RANKING_FILE, FileAccess.WRITE)
+		if not file:
+			push_warning("Could not save rankings to %s" % RANKING_FILE)
+			return
+		file.store_string(JSON.stringify(ranking_entries, "\t"))
 
 func _load_shared_rankings() -> bool:
-	if not _ensure_shared_ranking_folder():
+	var ranking_folder = get_ranking_folder()
+	if not _ensure_folder(ranking_folder):
 		return false
 
-	var dir = DirAccess.open(shared_ranking_folder)
+	var dir = DirAccess.open(ranking_folder)
 	if not dir:
-		push_warning("Could not open shared ranking folder: %s" % shared_ranking_folder)
+		push_warning("Could not open shared ranking folder: %s" % ranking_folder)
 		return false
 
 	dir.list_dir_begin()
 	var file_name = dir.get_next()
 	while not file_name.is_empty():
 		if not dir.current_is_dir() and file_name.get_extension().to_lower() == "json":
-			_load_shared_ranking_file(_join_path(shared_ranking_folder, file_name))
+			_load_shared_ranking_file(_join_path(ranking_folder, file_name))
 		file_name = dir.get_next()
 	dir.list_dir_end()
 
@@ -922,12 +936,13 @@ func _load_shared_ranking_file(path: String):
 				ranking_entries.append(_normalize_ranking_entry(raw_entry))
 
 func _save_shared_ranking_entry(entry: Dictionary) -> bool:
-	if not _ensure_shared_ranking_folder():
+	var ranking_folder = get_ranking_folder()
+	if not _ensure_folder(ranking_folder):
 		return false
 
 	for attempt in range(8):
 		var file_name = _make_shared_ranking_file_name(entry, attempt)
-		var final_path = _join_path(shared_ranking_folder, file_name)
+		var final_path = _join_path(ranking_folder, file_name)
 		if FileAccess.file_exists(final_path):
 			continue
 
@@ -946,18 +961,8 @@ func _save_shared_ranking_entry(entry: Dictionary) -> bool:
 
 		DirAccess.remove_absolute(temp_path)
 
-	push_warning("Could not save shared ranking entry to %s" % shared_ranking_folder)
+	push_warning("Could not save shared ranking entry to %s" % ranking_folder)
 	return false
-
-func _ensure_shared_ranking_folder() -> bool:
-	if DirAccess.dir_exists_absolute(shared_ranking_folder):
-		return true
-
-	var error = DirAccess.make_dir_recursive_absolute(shared_ranking_folder)
-	if error != OK:
-		push_warning("Could not create shared ranking folder: %s" % shared_ranking_folder)
-		return false
-	return true
 
 func _join_path(folder: String, file_name: String) -> String:
 	if folder.ends_with("/"):
@@ -1059,3 +1064,80 @@ func _trim_rankings():
 				kept_entries.append(entry)
 
 	ranking_entries = kept_entries
+
+func get_stats_folder() -> String:
+	if shared_rankings_enabled:
+		return _join_path(shared_ranking_folder, "stats")
+	return ""  # Local mode uses single file
+
+func get_ranking_folder() -> String:
+	if shared_rankings_enabled:
+		return _join_path(shared_ranking_folder, "ranking")
+	return ""  # Local mode uses single file
+
+func save_game_stats(best_length: int, survival_time: float) -> bool:
+	var stats = {
+		"best_length": max(0, best_length),
+		"survival_time": max(0.0, survival_time),
+		"created_at": int(Time.get_unix_time_from_system())
+	}
+
+	if shared_rankings_enabled:
+		var stats_folder = get_stats_folder()
+		if not _ensure_folder(stats_folder):
+			return false
+
+		var file_name = _make_game_stats_file_name(stats["created_at"])
+		var final_path = _join_path(stats_folder, file_name)
+
+		var temp_path = "%s.tmp" % final_path
+		var file = FileAccess.open(temp_path, FileAccess.WRITE)
+		if not file:
+			push_warning("Could not save game stats temp file: %s" % temp_path)
+			return false
+
+		file.store_string(JSON.stringify(stats, "\t"))
+		file = null
+
+		var rename_error = DirAccess.rename_absolute(temp_path, final_path)
+		if rename_error == OK:
+			return true
+
+		DirAccess.remove_absolute(temp_path)
+		push_warning("Could not save game stats to %s" % final_path)
+		return false
+	else:
+		# Local mode: append to stats.json
+		var existing_stats = []
+		if FileAccess.file_exists(STATS_FILE):
+			var file = FileAccess.open(STATS_FILE, FileAccess.READ)
+			if file:
+				var parsed = JSON.parse_string(file.get_as_text())
+				if typeof(parsed) == TYPE_ARRAY:
+					existing_stats = parsed
+				file.close()
+
+		existing_stats.append(stats)
+
+		var file = FileAccess.open(STATS_FILE, FileAccess.WRITE)
+		if not file:
+			push_warning("Could not save game stats to %s" % STATS_FILE)
+			return false
+
+		file.store_string(JSON.stringify(existing_stats, "\t"))
+		return true
+
+func _ensure_folder(folder_path: String) -> bool:
+	if DirAccess.dir_exists_absolute(folder_path):
+		return true
+
+	var error = DirAccess.make_dir_recursive_absolute(folder_path)
+	if error != OK:
+		push_warning("Could not create folder: %s" % folder_path)
+		return false
+	return true
+
+func _make_game_stats_file_name(created_at: int) -> String:
+	var rng = RandomNumberGenerator.new()
+	rng.randomize()
+	return "%d_%d_%d.json" % [created_at, Time.get_ticks_usec(), rng.randi()]

@@ -1342,10 +1342,10 @@ func _apply_localized_texts():
 	fullscreen_setting.get_node("Label").text = Config.tr_text("fullscreen")
 	fullscreen_on_btn.text = Config.tr_text("on")
 	fullscreen_off_btn.text = Config.tr_text("off")
-	shared_ranking_setting.get_node("Label").text = Config.tr_text("shared_ranking")
+	shared_ranking_setting.get_node("Label").text = Config.tr_text("online_ranking")
 	shared_ranking_on_btn.text = Config.tr_text("on")
 	shared_ranking_off_btn.text = Config.tr_text("off")
-	shared_ranking_folder_setting.get_node("Label").text = Config.tr_text("shared_ranking_folder")
+	shared_ranking_folder_setting.get_node("Label").text = Config.tr_text("shared_folder")
 	_sync_shared_ranking_folder_input()
 	$SettingsLayer/CenterContainer/VBoxContainer/BackButton.text = Config.tr_text("back")
 

@@ -584,6 +584,9 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	pending_ranking_length = longest_length
 	pending_ranking_survival = survival_time
 	ranking_added = false
+
+	# Save game stats (always, regardless of ranking registration)
+	Config.save_game_stats(longest_length, survival_time)
 	ranking_add_button = null
 	result_retry_button = null
 	result_title_button = null
