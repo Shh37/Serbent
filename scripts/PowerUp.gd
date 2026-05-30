@@ -11,7 +11,7 @@ func _draw():
 	var color = GameConstants.COLOR_POWERUP_GHOST
 	match type:
 		GameConstants.PowerUpType.TIME_STOP: color = GameConstants.COLOR_POWERUP_TIME
-		GameConstants.PowerUpType.DOUBLE_GROWTH: color = GameConstants.COLOR_POWERUP_GROWTH
+		GameConstants.PowerUpType.DOUBLE_GROWTH: color = Config.get_snake_color()
 
 			
 	draw_rect(rect, color)

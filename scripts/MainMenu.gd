@@ -881,7 +881,7 @@ func _apply_button_colors(btn: Button, normal: Color, hover: Color, pressed: Col
 	Config.ensure_button_focus_style(btn)
 
 func _get_button_accent_color() -> Color:
-	return GameConstants.SKIN_COLORS.get(Config.selected_color, GameConstants.COLOR_BUTTON_HOVER)
+	return Config.get_snake_color()
 
 func _apply_standard_button_palette(btn: Button):
 	var accent_color = _get_button_accent_color()
@@ -1518,7 +1518,7 @@ func _ensure_ranking_layer():
 	header_margin.add_child(header)
 	header.add_child(_create_ranking_cell("#", RANKING_RANK_COL_WIDTH, HORIZONTAL_ALIGNMENT_CENTER, 24, GameConstants.COLOR_GHOST))
 	header.add_child(_create_ranking_cell("NAME", RANKING_NAME_COL_WIDTH, HORIZONTAL_ALIGNMENT_LEFT, 24, GameConstants.COLOR_GHOST))
-	header.add_child(_create_ranking_cell("BEST LENGTH", RANKING_VALUE_COL_WIDTH, HORIZONTAL_ALIGNMENT_RIGHT, 24, GameConstants.COLOR_RANKING_LENGTH))
+	header.add_child(_create_ranking_cell("BEST LENGTH", RANKING_VALUE_COL_WIDTH, HORIZONTAL_ALIGNMENT_RIGHT, 24, Config.get_snake_color()))
 	header.add_child(_create_ranking_cell("SURVIVAL", RANKING_VALUE_COL_WIDTH, HORIZONTAL_ALIGNMENT_RIGHT, 24, GameConstants.COLOR_RANKING_SURVIVAL))
 
 	ranking_scroll = ScrollContainer.new()
@@ -1633,7 +1633,7 @@ func _refresh_ranking_display():
 		var value_color = GameConstants.COLOR_FG
 		row.add_child(_create_ranking_cell(str(current_display_rank), RANKING_RANK_COL_WIDTH, HORIZONTAL_ALIGNMENT_CENTER, 28, rank_color))
 		row.add_child(_create_ranking_cell(str(entry.get("name", "PLAYER")), RANKING_NAME_COL_WIDTH, HORIZONTAL_ALIGNMENT_LEFT, 28, value_color))
-		row.add_child(_create_ranking_cell(str(int(entry.get("best_length", 0))), RANKING_VALUE_COL_WIDTH, HORIZONTAL_ALIGNMENT_RIGHT, 28, GameConstants.COLOR_RANKING_LENGTH))
+		row.add_child(_create_ranking_cell(str(int(entry.get("best_length", 0))), RANKING_VALUE_COL_WIDTH, HORIZONTAL_ALIGNMENT_RIGHT, 28, Config.get_snake_color()))
 		row.add_child(_create_ranking_cell(Config.format_survival_time(float(entry.get("survival_time", 0.0))), RANKING_VALUE_COL_WIDTH, HORIZONTAL_ALIGNMENT_RIGHT, 28, GameConstants.COLOR_RANKING_SURVIVAL))
 
 func _update_ranking_sort_buttons_style():
@@ -1643,9 +1643,9 @@ func _update_ranking_sort_buttons_style():
 	_apply_metric_button_colors(
 		ranking_length_sort_btn,
 		length_active,
-		GameConstants.COLOR_RANKING_LENGTH,
-		GameConstants.COLOR_RANKING_LENGTH_HOVER,
-		GameConstants.COLOR_RANKING_LENGTH_PRESSED
+		Config.get_snake_color(),
+		Config.get_snake_color_hover(),
+		Config.get_snake_color_pressed()
 	)
 	_apply_metric_button_colors(
 		ranking_survival_sort_btn,
@@ -1741,7 +1741,7 @@ func _on_color_selected(c_type, source_button: Button = null):
 		_update_appearance_display()
 	else:
 		SoundManager.play_ui_negative()
-		_show_skin_requirement("%s: %s" % [Config.get_skin_color_name(c_type), Config.get_color_unlock_requirement(c_type)], source_button, GameConstants.COLOR_RANKING_LENGTH)
+		_show_skin_requirement("%s: %s" % [Config.get_skin_color_name(c_type), Config.get_color_unlock_requirement(c_type)], source_button, Config.get_snake_color())
 
 func _on_pattern_selected(p_type, source_button: Button = null):
 	if p_type in Config.unlocked_patterns:

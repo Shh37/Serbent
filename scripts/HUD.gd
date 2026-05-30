@@ -359,7 +359,7 @@ func _prepare_hud_label_color(label: Label):
 
 func _get_hud_label_flash_color(label: Label) -> Color:
 	if label == length_label:
-		return GameConstants.COLOR_RANKING_LENGTH
+		return Config.get_snake_color()
 	if label == time_label:
 		return GameConstants.COLOR_RANKING_SURVIVAL
 	return GameConstants.COLOR_POINT
@@ -394,7 +394,7 @@ func _update_powerup_visuals():
 			match type:
 				GameConstants.PowerUpType.GHOST: base_color = GameConstants.COLOR_POWERUP_GHOST
 				GameConstants.PowerUpType.TIME_STOP: base_color = GameConstants.COLOR_POWERUP_TIME
-				GameConstants.PowerUpType.DOUBLE_GROWTH: base_color = GameConstants.COLOR_POWERUP_GROWTH
+				GameConstants.PowerUpType.DOUBLE_GROWTH: base_color = Config.get_snake_color()
 
 			base_color = base_color.darkened(0.5)
 			var current_weight = 1.0
@@ -490,7 +490,7 @@ func _update_powerups_ui():
 				color = GameConstants.COLOR_POWERUP_TIME
 			GameConstants.PowerUpType.DOUBLE_GROWTH:
 				type_name = Config.tr_text("double_growth").to_upper()
-				color = GameConstants.COLOR_POWERUP_GROWTH
+				color = Config.get_snake_color()
 
 		label.text = "%s: %.1fs" % [type_name, time_left]
 		label.add_theme_color_override("font_color", color)
@@ -692,7 +692,7 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	content_vbox.add_child(hero_stats)
 	anim_items.append(hero_stats)
 
-	var length_card = _create_result_metric(Config.tr_text("best_length").to_upper(), str(longest_length), GameConstants.COLOR_RANKING_LENGTH, 34, 58, length_rank_text)
+	var length_card = _create_result_metric(Config.tr_text("best_length").to_upper(), str(longest_length), Config.get_snake_color(), 34, 58, length_rank_text)
 	hero_stats.add_child(length_card)
 
 	var time_card = _create_result_metric(Config.tr_text("survival").to_upper(), time_str, GameConstants.COLOR_RANKING_SURVIVAL, 34, 58, survival_rank_text)
@@ -704,7 +704,7 @@ func show_result_screen(final_length: int, survival_time: float, longest_length:
 	content_vbox.add_child(stats_vbox)
 	anim_items.append(stats_vbox)
 
-	_add_result_row(stats_vbox, Config.tr_text("final_length").to_upper(), str(final_length), 24, 34, GameConstants.COLOR_RANKING_LENGTH)
+	_add_result_row(stats_vbox, Config.tr_text("final_length").to_upper(), str(final_length), 24, 34, Config.get_snake_color())
 	_add_result_row(stats_vbox, Config.tr_text("points").to_upper(), str(total_points), 24, 34, GameConstants.COLOR_POINT)
 
 	_merge_run_unlocks(newly_unlocked_skins)
@@ -813,7 +813,7 @@ func _create_result_unlock_panel(newly_unlocked_skins: Dictionary) -> HBoxContai
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	title.add_theme_font_override("font", main_font)
 	title.add_theme_font_size_override("font_size", 28)
-	title.add_theme_color_override("font_color", GameConstants.COLOR_RANKING_LENGTH)
+	title.add_theme_color_override("font_color", Config.get_snake_color())
 	box.add_child(title)
 
 	var value = Label.new()
@@ -821,7 +821,7 @@ func _create_result_unlock_panel(newly_unlocked_skins: Dictionary) -> HBoxContai
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	value.add_theme_font_override("font", main_font)
 	value.add_theme_font_size_override("font_size", 28)
-	value.add_theme_color_override("font_color", GameConstants.COLOR_RANKING_LENGTH)
+	value.add_theme_color_override("font_color", Config.get_snake_color())
 	box.add_child(value)
 
 	return box
@@ -972,7 +972,7 @@ func _create_result_ranking_dialog() -> Control:
 		Config.tr_text("best_length").to_upper(),
 		str(pending_ranking_length),
 		"#%d" % Config.get_length_rank(pending_ranking_length, pending_ranking_survival),
-		GameConstants.COLOR_RANKING_LENGTH
+		Config.get_snake_color()
 	)
 	_add_dialog_stat_row(
 		stats,
@@ -1008,7 +1008,7 @@ func _create_result_ranking_dialog() -> Control:
 	ranking_feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ranking_feedback_label.add_theme_font_override("font", main_font)
 	ranking_feedback_label.add_theme_font_size_override("font_size", 22)
-	ranking_feedback_label.add_theme_color_override("font_color", GameConstants.COLOR_SNAKE)
+	ranking_feedback_label.add_theme_color_override("font_color", Config.get_snake_color())
 	ranking_feedback_label.visible = true  # 初期状態でエラーを表示
 	form.add_child(ranking_feedback_label)
 
@@ -1085,7 +1085,7 @@ func _style_result_line_edit(input: LineEdit):
 	input.add_theme_stylebox_override("focus", focus)
 
 	var read_only = normal.duplicate() as StyleBoxFlat
-	read_only.border_color = GameConstants.COLOR_SNAKE
+	read_only.border_color = Config.get_snake_color()
 	input.add_theme_stylebox_override("read_only", read_only)
 
 func _on_add_ranking_pressed():
@@ -1176,7 +1176,7 @@ func _set_name_input_border_valid(valid: bool):
 	var normal = ranking_name_input.get_theme_stylebox("normal").duplicate() as StyleBoxFlat
 	if not normal:
 		return
-	normal.border_color = GameConstants.COLOR_POINT if valid else GameConstants.COLOR_SNAKE
+	normal.border_color = GameConstants.COLOR_POINT if valid else Config.get_snake_color()
 	ranking_name_input.add_theme_stylebox_override("normal", normal)
 
 func _on_submit_ranking_pressed():
@@ -1252,7 +1252,7 @@ func _apply_result_button_colors(btn: Button):
 	btn.add_theme_color_override("font_disabled_color", GameConstants.COLOR_GHOST)
 
 func _get_result_button_accent_color() -> Color:
-	return GameConstants.SKIN_COLORS.get(Config.selected_color, GameConstants.COLOR_BUTTON_HOVER)
+	return Config.get_snake_color()
 
 func _animate_result_btn(btn: Button, hover: bool):
 	if result_exit_in_progress:

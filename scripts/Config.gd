@@ -309,7 +309,7 @@ func _create_global_button_focus_style() -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
 	style.draw_center = false
-	style.border_color = GameConstants.SKIN_COLORS.get(selected_color, GameConstants.COLOR_BUTTON_HOVER) if show_focus_outline else Color(0.0, 0.0, 0.0, 0.0)
+	style.border_color = get_snake_color() if show_focus_outline else Color(0.0, 0.0, 0.0, 0.0)
 	style.set_border_width_all(4 if show_focus_outline else 0)
 	style.set_corner_radius_all(0)
 	style.expand_margin_left = -26
@@ -610,6 +610,15 @@ func get_skin_pattern_name(type: GameConstants.SkinPattern) -> String:
 		if unlock["type"] == type:
 			return unlock["name"]
 	return "???"
+
+func get_snake_color() -> Color:
+	return GameConstants.SKIN_COLORS.get(selected_color, GameConstants.COLOR_SNAKE)
+
+func get_snake_color_hover() -> Color:
+	return get_snake_color().lightened(GameConstants.BUTTON_SKIN_HOVER_LIGHTEN)
+
+func get_snake_color_pressed() -> Color:
+	return get_snake_color().darkened(GameConstants.BUTTON_PRESSED_DARKEN)
 
 func get_color_unlock_info(type: GameConstants.SkinColor) -> Dictionary:
 	return _get_unlock_info(COLOR_UNLOCKS, type)
