@@ -54,6 +54,10 @@ func _ready():
 	title.add_theme_font_override("normal_font", font_title)
 	title_pos = title.position
 
+	var tagline = $CenterContainer/VBoxContainer/TitleContainer/Tagline
+	tagline.add_theme_font_override("normal_font", font_text)
+	tagline.add_theme_color_override("default_color", Color(GameConstants.COLOR_FG.r, GameConstants.COLOR_FG.g, GameConstants.COLOR_FG.b, 0.55))
+
 	var play_btn = $CenterContainer/VBoxContainer/ButtonContainer/PlayButton
 	play_btn.add_theme_font_override("font", font_title)
 
@@ -78,6 +82,10 @@ func _ready():
 	var how_to_play_label = $HowToPlayLayer/CenterContainer/VBoxContainer/Label
 	how_to_play_label.add_theme_font_override("font", font_title)
 	how_to_play_label.add_theme_color_override("font_color", GameConstants.COLOR_FG)
+
+	var color_legend = $HowToPlayLayer/CenterContainer/VBoxContainer/ColorLegend
+	color_legend.add_theme_font_override("normal_font", font_text)
+	color_legend.add_theme_color_override("default_color", GameConstants.COLOR_FG)
 
 	var controls_lbl = $HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsLabel
 	controls_lbl.add_theme_font_override("font", font_title)
@@ -437,6 +445,11 @@ func _apply_how_to_play_layout():
 	right_col.add_theme_constant_override("separation", 16)
 
 	title.add_theme_font_size_override("font_size", 78)
+
+	var color_legend_node = $HowToPlayLayer/CenterContainer/VBoxContainer/ColorLegend
+	if color_legend_node:
+		color_legend_node.add_theme_font_size_override("normal_font_size", 24)
+
 	for label in [
 		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsLabel,
 		$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesLabel,
@@ -712,6 +725,7 @@ func _get_settings_overlay_anim_items(content: Control) -> Array[Control]:
 func _get_how_to_play_overlay_anim_items(content: Control) -> Array[Control]:
 	var items: Array[Control] = []
 	var title = content.get_node_or_null("Label") as Control
+	var color_legend = content.get_node_or_null("ColorLegend") as Control
 	var columns_row = content.get_node_or_null("HBoxContainer") as HBoxContainer
 	var left_col = columns_row.get_node_or_null("LeftColumn") as VBoxContainer if columns_row else null
 	var right_col = columns_row.get_node_or_null("RightColumn") as VBoxContainer if columns_row else null
@@ -720,6 +734,9 @@ func _get_how_to_play_overlay_anim_items(content: Control) -> Array[Control]:
 	if title:
 		title.set_meta("overlay_delay_index", 0)
 		items.append(title)
+	if color_legend:
+		color_legend.set_meta("overlay_delay_index", 0)
+		items.append(color_legend)
 	var paired_items = [
 		["ControlsLabel", "SeveringLabel", 1],
 		["ControlsText", "SeveringText", 1],
@@ -1338,6 +1355,7 @@ func _apply_localized_texts():
 	$SkinLayer/CenterContainer/VBoxContainer/BackButton.text = Config.tr_text("back")
 
 	$HowToPlayLayer/CenterContainer/VBoxContainer/Label.text = Config.tr_text("how_to_play")
+	$HowToPlayLayer/CenterContainer/VBoxContainer/ColorLegend.text = "[center]" + Config.tr_text("color_legend") + "[/center]"
 	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsLabel.text = Config.tr_text("controls")
 	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/RulesLabel.text = Config.tr_text("body_severing")
 	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/RightColumn/SeveringLabel.text = Config.tr_text("rules")
@@ -1353,6 +1371,10 @@ func _apply_localized_texts():
 		rich_text.add_theme_font_override("normal_font", body_font)
 
 	$HowToPlayLayer/CenterContainer/VBoxContainer/HBoxContainer/LeftColumn/ControlsText.text = Config.tr_text("how_controls")
+
+	var tagline = $CenterContainer/VBoxContainer/TitleContainer/Tagline
+	if tagline:
+		tagline.text = "[center]" + Config.tr_text("tagline") + "[/center]"
 
 	var ranking_layer = get_node_or_null("RankingLayer")
 	if ranking_layer:

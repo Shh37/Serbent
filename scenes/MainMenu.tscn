@@ -66,29 +66,32 @@ grow_vertical = 2
 layout_mode = 2
 theme_override_constants/separation = 80
 
-[node name="TitleContainer" type="Control" parent="CenterContainer/VBoxContainer"]
-custom_minimum_size = Vector2(800, 160)
+[node name="TitleContainer" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(800, 0)
 layout_mode = 2
+theme_override_constants/separation = 36
+alignment = 1
 
 [node name="Title" type="RichTextLabel" parent="CenterContainer/VBoxContainer/TitleContainer"]
 clip_contents = false
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -400.0
-offset_top = -80.0
-offset_right = 400.0
-offset_bottom = 80.0
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 2
+size_flags_horizontal = 4
 theme_override_font_sizes/normal_font_size = 140
 bbcode_enabled = true
 text = "[center][color=#d8a657]SER[/color][color=#a9b665]B[/color][color=#d8a657]ENT[/color][/center]"
 scroll_active = false
 autowrap_mode = 0
+fit_content = true
+
+[node name="Tagline" type="RichTextLabel" parent="CenterContainer/VBoxContainer/TitleContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/normal_font_size = 34
+bbcode_enabled = true
+text = "[center]きいろを食べてのびろ。あかをよけていきろ。[/center]"
+scroll_active = false
+autowrap_mode = 0
+fit_content = true
 
 [node name="ButtonContainer" type="VBoxContainer" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
@@ -345,6 +348,16 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 96
 text = "HOW TO PLAY"
 horizontal_alignment = 1
+
+[node name="ColorLegend" type="RichTextLabel" parent="HowToPlayLayer/CenterContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/normal_font_size = 26
+bbcode_enabled = true
+text = "[center][color=#d8a657]■[/color] きいろ＝ポイント  [color=#ea6962]■[/color] あか＝きけん[/center]"
+scroll_active = false
+autowrap_mode = 0
+fit_content = true
 
 [node name="HBoxContainer" type="HBoxContainer" parent="HowToPlayLayer/CenterContainer/VBoxContainer"]
 layout_mode = 2
