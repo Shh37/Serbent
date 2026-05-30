@@ -1082,6 +1082,8 @@ func save_game_stats(best_length: int, survival_time: float) -> bool:
 		"created_at": int(Time.get_unix_time_from_system())
 	}
 
+	var file: FileAccess
+
 	if shared_rankings_enabled:
 		var stats_folder = get_stats_folder()
 		if not _ensure_folder(stats_folder):
@@ -1091,7 +1093,7 @@ func save_game_stats(best_length: int, survival_time: float) -> bool:
 		var final_path = _join_path(stats_folder, file_name)
 
 		var temp_path = "%s.tmp" % final_path
-		var file = FileAccess.open(temp_path, FileAccess.WRITE)
+		file = FileAccess.open(temp_path, FileAccess.WRITE)
 		if not file:
 			push_warning("Could not save game stats temp file: %s" % temp_path)
 			return false
@@ -1110,7 +1112,7 @@ func save_game_stats(best_length: int, survival_time: float) -> bool:
 		# Local mode: append to stats.json
 		var existing_stats = []
 		if FileAccess.file_exists(STATS_FILE):
-			var file = FileAccess.open(STATS_FILE, FileAccess.READ)
+			file = FileAccess.open(STATS_FILE, FileAccess.READ)
 			if file:
 				var parsed = JSON.parse_string(file.get_as_text())
 				if typeof(parsed) == TYPE_ARRAY:
@@ -1119,7 +1121,7 @@ func save_game_stats(best_length: int, survival_time: float) -> bool:
 
 		existing_stats.append(stats)
 
-		var file = FileAccess.open(STATS_FILE, FileAccess.WRITE)
+		file = FileAccess.open(STATS_FILE, FileAccess.WRITE)
 		if not file:
 			push_warning("Could not save game stats to %s" % STATS_FILE)
 			return false
