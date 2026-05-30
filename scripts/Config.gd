@@ -81,7 +81,7 @@ const TEXT = {
 		"color_legend": "[color=#d8a657]■[/color] Yellow = Point  [color=#ea6962]■[/color] Red = Danger",
 		"dash_hint": "Hold SPACE / press forward twice to dash",
 		"reverse_hint": "Press opposite direction to reverse toward your tail",
-		"how_controls": "- [color=#d8a657]Arrow Keys / WASD[/color] : Turn\n- [color=#d8a657]Opposite Direction[/color] : Reverse\n- [color=#d8a657]Hold SPACE / Double Tap[/color] : Dash\n- [color=#d8a657]Shortcuts[/color] : Enter/Space select,\n  R/F5 retry, Esc/M/Backspace back,\n  Tab ranking sort",
+		"how_controls": "- [color=#d8a657]Arrow Keys / WASD[/color] : Turn\n- [color=#d8a657]Opposite Direction[/color] : Reverse\n- [color=#d8a657]Hold SPACE / Double Tap[/color] : Dash\n- [color=#d8a657]Shortcuts[/color] : Enter/Space select,\n  R/F5 retry, Esc/M/Backspace back",
 		"how_rules": "- Survive [color=#7daea3]as long as you can[/color]\n  and aim for your [color=#{snake_color}]best length[/color].\n- Eat yellow [color=#d8a657]Points[/color]\n  to grow longer.\n- Hitting [color=#ea6962]Thorns[/color] or your\n  [color=#{snake_color}]own body[/color] ends the run.",
 		"how_severing": "- [color=#ea6962]Bombs[/color] and [color=#ea6962]Beams[/color] appear sometimes.\n- They cut your [color=#{snake_color}]body[/color] when hit.\n- [color=#d8a657]Points[/color] appear where it was cut.\n- You can keep playing,\n  even after losing that part.",
 		"how_unlocks": "- Colors: unlock by reaching\n  [color=#{snake_color}]longer body lengths[/color].\n- Patterns: unlock by surviving\n  [color=#7daea3]longer[/color]."
@@ -141,7 +141,7 @@ const TEXT = {
 		"color_legend": "[color=#d8a657]■[/color] きいろ＝ポイント  [color=#ea6962]■[/color] あか＝きけん",
 		"dash_hint": "SPACE長おし / 進行方向2回でダッシュ",
 		"reverse_hint": "反対キーでしっぽへ切り返し",
-		"how_controls": "- [color=#d8a657]矢印キー / WASD[/color] : 向きをかえる\n- [color=#d8a657]反対キー[/color] : ぎゃく向きに進む\n- [color=#d8a657]SPACE長おし / 2回タップ[/color] : ダッシュ\n- [color=#d8a657]ショートカット[/color] : Enter/Space 決定,\n  R/F5 リトライ, Esc/M/Backspace 戻る,\n  Tab ランキング切替",
+		"how_controls": "- [color=#d8a657]矢印キー / WASD[/color] : 向きをかえる\n- [color=#d8a657]反対キー[/color] : ぎゃく向きに進む\n- [color=#d8a657]SPACE長おし / 2回タップ[/color] : ダッシュ\n- [color=#d8a657]ショートカット[/color] : Enter/Space 決定,\n  R/F5 リトライ, Esc/M/Backspace 戻る",
 		"how_rules": "- できるだけ[color=#7daea3]長く生きて[/color]\n  [color=#{snake_color}]いちばん長いからだ[/color]をめざす\n- きいろの[color=#d8a657]ポイント[/color]を食べると\n  からだがのびる\n- [color=#ea6962]トゲ[/color]や[color=#{snake_color}]自分のからだ[/color]に\n  ぶつかるとゲームおわり",
 		"how_severing": "- ときどき[color=#ea6962]ばくだん[/color]と[color=#ea6962]ビーム[/color]が出る\n- 当たると[color=#{snake_color}]からだ[/color]が切れる\n- 切れたところに[color=#d8a657]ポイント[/color]が出る\n- 切れてもそのままつづけられる",
 		"how_unlocks": "- 色: [color=#{snake_color}]からだを長くする[/color]とふえる\n- もよう: [color=#7daea3]長く生きる[/color]とふえる"
